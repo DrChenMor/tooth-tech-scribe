@@ -5,8 +5,12 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import dynamic from "next/dynamic";
 import { ArticleFormValues } from "@/lib/schemas";
 import { ArticleStatus } from "@/types";
+import "@uiw/react-md-editor/markdown-editor.css";
+import "@uiw/react-markdown-preview/markdown.css";
+import MDEditor from "@uiw/react-md-editor";
 
 interface ArticleFormProps {
   form: ReturnType<typeof useForm<ArticleFormValues>>;
@@ -84,6 +88,7 @@ const ArticleForm = ({ form, onSubmit, isPending, isEditMode }: ArticleFormProps
             </FormItem>
           )}
         />
+        {/* Replace the content textarea with the Markdown editor */}
         <FormField
           control={form.control}
           name="content"
@@ -91,7 +96,14 @@ const ArticleForm = ({ form, onSubmit, isPending, isEditMode }: ArticleFormProps
             <FormItem>
               <FormLabel>Content</FormLabel>
               <FormControl>
-                <Textarea placeholder="Write your article content here..." className="min-h-[200px]" {...field} />
+                <div data-color-mode="light">
+                  <MDEditor
+                    value={field.value || ""}
+                    onChange={field.onChange}
+                    height={320}
+                    preview="edit"
+                  />
+                </div>
               </FormControl>
               <FormMessage />
             </FormItem>

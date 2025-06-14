@@ -23,8 +23,8 @@ const Header = () => {
         <div className="flex items-center gap-4">
           <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-muted-foreground">
             <Link to="/" className="hover:text-primary transition-colors">Home</Link>
-            <a href="#" className="hover:text-primary transition-colors">About</a>
-            <a href="#" className="hover:text-primary transition-colors">Contact</a>
+            <Link to="/about" className="hover:text-primary transition-colors">About</Link>
+            <Link to="/contact" className="hover:text-primary transition-colors">Contact</Link>
           </nav>
           {user ? (
             <div className="flex items-center gap-4">

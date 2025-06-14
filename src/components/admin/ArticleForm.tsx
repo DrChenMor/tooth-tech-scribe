@@ -1,4 +1,3 @@
-
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -102,7 +101,7 @@ const ArticleForm = ({ form, onSubmit, isPending, isEditMode }: ArticleFormProps
                     height={600}
                     preview="live"
                     hideToolbar={false}
-                    visibleDragBar={false}
+                    visibleDragbar={false}
                     data-color-mode="light"
                   />
                 </div>

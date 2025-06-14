@@ -10,6 +10,7 @@ import AuthPage from "./pages/AuthPage";
 import AdminPage from "./pages/AdminPage";
 import ArticleEditorPage from "./pages/ArticleEditorPage";
 import AIContentGeneratorPage from "./pages/AIContentGeneratorPage";
+import AIAgentAdvancedPage from "./pages/AIAgentAdvancedPage";
 import NotFound from "./pages/NotFound";
 import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -60,6 +61,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <AIContentGeneratorPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/ai-agent-advanced"
+              element={
+                <ProtectedRoute>
+                  <AIAgentAdvancedPage />
                 </ProtectedRoute>
               } 
             />

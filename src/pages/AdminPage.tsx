@@ -1,4 +1,3 @@
-
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -10,7 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Pencil, Sparkles } from 'lucide-react';
+import { Pencil, Sparkles, Code } from 'lucide-react';
 
 const fetchAllArticles = async (): Promise<Article[]> => {
   const { data, error } = await supabase
@@ -64,6 +63,12 @@ const AdminPage = () => {
                 <Link to="/admin/ai-generator">
                   <Sparkles className="mr-2 h-4 w-4" />
                   AI Generator
+                </Link>
+              </Button>
+              <Button asChild variant="outline">
+                <Link to="/admin/ai-agent-advanced">
+                  <Code className="mr-2 h-4 w-4" />
+                  Python Agent
                 </Link>
               </Button>
               <Button asChild>

@@ -1,10 +1,13 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { v4 as uuidv4 } from 'uuid';
+
+const generateUniqueId = (): string => {
+  return crypto.randomUUID();
+};
 
 export const uploadArticleImage = async (file: File): Promise<string> => {
   const fileExtension = file.name.split('.').pop();
-  const fileName = `${uuidv4()}.${fileExtension}`;
+  const fileName = `${generateUniqueId()}.${fileExtension}`;
   const filePath = `${fileName}`;
 
   const { error: uploadError } = await supabase.storage

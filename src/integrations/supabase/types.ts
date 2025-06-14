@@ -21,7 +21,9 @@ export type Database = {
           image_url: string | null
           published_date: string
           slug: string
+          status: Database["public"]["Enums"]["article_status"]
           title: string
+          views: number
         }
         Insert: {
           author_avatar_url?: string | null
@@ -34,7 +36,9 @@ export type Database = {
           image_url?: string | null
           published_date: string
           slug: string
+          status?: Database["public"]["Enums"]["article_status"]
           title: string
+          views?: number
         }
         Update: {
           author_avatar_url?: string | null
@@ -47,7 +51,9 @@ export type Database = {
           image_url?: string | null
           published_date?: string
           slug?: string
+          status?: Database["public"]["Enums"]["article_status"]
           title?: string
+          views?: number
         }
         Relationships: []
       }
@@ -102,6 +108,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "user"
+      article_status: "draft" | "published" | "archived"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -218,6 +225,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user"],
+      article_status: ["draft", "published", "archived"],
     },
   },
 } as const

@@ -201,7 +201,7 @@ const NodeConfiguration = ({ node }: { node: WorkflowNode }) => {
           </div>
           <div className="flex items-center space-x-2">
             <Switch />
-            <Label>Auto-publish if quality score > 80%</Label>
+            <Label>Auto-publish if quality score greater than 80%</Label>
           </div>
         </div>
       )}

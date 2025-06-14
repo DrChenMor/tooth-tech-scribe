@@ -12,13 +12,22 @@ export const fetchArticleById = async (id: number): Promise<Article | null> => {
 export const upsertArticle = async ({ id, values }: { id?: number; values: ArticleFormValues }) => {
   const published_date = (values.status === 'published' ? new Date().toISOString() : new Date(0).toISOString());
 
+  const dataToUpsert = {
+    ...values,
+    published_date,
+    image_url: values.image_url || null,
+    excerpt: values.excerpt ?? null,
+    content: values.content ?? null,
+    category: values.category ?? null,
+  };
+
   if (id) {
     // Update
-    const { error } = await supabase.from("articles").update({ ...values, published_date }).eq("id", id);
+    const { error } = await supabase.from("articles").update(dataToUpsert).eq("id", id);
     if (error) throw new Error(error.message);
   } else {
     // Create
-    const { error } = await supabase.from("articles").insert({ ...values, published_date });
+    const { error } = await supabase.from("articles").insert(dataToUpsert);
     if (error) throw new Error(error.message);
   }
 };

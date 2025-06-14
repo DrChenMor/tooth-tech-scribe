@@ -9,6 +9,7 @@ import { ArticleStatus } from "@/types";
 import "@uiw/react-md-editor/markdown-editor.css";
 import "@uiw/react-markdown-preview/markdown.css";
 import MDEditor from "@uiw/react-md-editor";
+import ImageUpload from "./ImageUpload";
 
 interface ArticleFormProps {
   form: ReturnType<typeof useForm<ArticleFormValues>>;
@@ -65,9 +66,9 @@ const ArticleForm = ({ form, onSubmit, isPending, isEditMode }: ArticleFormProps
           name="image_url"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Image URL</FormLabel>
+              <FormLabel>Featured Image</FormLabel>
               <FormControl>
-                <Input placeholder="https://example.com/image.png" {...field} />
+                <ImageUpload value={field.value || ''} onChange={field.onChange} />
               </FormControl>
               <FormMessage />
             </FormItem>

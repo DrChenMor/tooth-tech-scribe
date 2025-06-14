@@ -9,7 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Pencil, Sparkles, Code } from 'lucide-react';
+import { Pencil, Sparkles, Code, Settings, Workflow } from 'lucide-react';
 
 const fetchAllArticles = async (): Promise<Article[]> => {
   const { data, error } = await supabase
@@ -60,6 +60,12 @@ const AdminPage = () => {
             <h1 className="text-3xl font-bold">Admin Dashboard</h1>
             <div className="flex gap-2">
               <Button asChild variant="outline">
+                <Link to="/admin/workflow-builder">
+                  <Workflow className="mr-2 h-4 w-4" />
+                  Workflow Builder
+                </Link>
+              </Button>
+              <Button asChild variant="outline">
                 <Link to="/admin/ai-generator">
                   <Sparkles className="mr-2 h-4 w-4" />
                   AI Generator
@@ -69,6 +75,12 @@ const AdminPage = () => {
                 <Link to="/admin/ai-agent-advanced">
                   <Code className="mr-2 h-4 w-4" />
                   Python Agent
+                </Link>
+              </Button>
+              <Button asChild variant="outline">
+                <Link to="/admin/settings">
+                  <Settings className="mr-2 h-4 w-4" />
+                  Settings
                 </Link>
               </Button>
               <Button asChild>

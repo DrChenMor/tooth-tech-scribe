@@ -11,6 +11,8 @@ import AdminPage from "./pages/AdminPage";
 import ArticleEditorPage from "./pages/ArticleEditorPage";
 import AIContentGeneratorPage from "./pages/AIContentGeneratorPage";
 import AIAgentAdvancedPage from "./pages/AIAgentAdvancedPage";
+import AdminSettingsPage from "./pages/AdminSettingsPage";
+import WorkflowBuilderPage from "./pages/WorkflowBuilderPage";
 import NotFound from "./pages/NotFound";
 import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -37,6 +39,22 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <AdminPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/settings"
+              element={
+                <ProtectedRoute>
+                  <AdminSettingsPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/workflow-builder"
+              element={
+                <ProtectedRoute>
+                  <WorkflowBuilderPage />
                 </ProtectedRoute>
               } 
             />

@@ -14,13 +14,16 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     return <div>Loading...</div>; // Or a proper spinner component
   }
 
-  if (!user) {
-    return <Navigate to="/auth" state={{ from: location }} replace />;
-  }
+  // NOTE: The following checks are temporarily disabled to allow for a "demo admin" view.
+  // To re-enable authentication for admin routes, uncomment the following lines.
 
-  if (!isAdmin) {
-    return <Navigate to="/" replace />;
-  }
+  // if (!user) {
+  //   return <Navigate to="/auth" state={{ from: location }} replace />;
+  // }
+
+  // if (!isAdmin) {
+  //   return <Navigate to="/" replace />;
+  // }
 
   return children;
 };

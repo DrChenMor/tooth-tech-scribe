@@ -1,7 +1,7 @@
 
 import { Link } from 'react-router-dom';
-import { Article } from '@/data/articles';
-import { ArrowRight } from 'lucide-react';
+import { Article } from '@/types';
+import { format } from 'date-fns';
 
 interface ArticleCardProps {
   article: Article;
@@ -14,7 +14,7 @@ const ArticleCard = ({ article, index }: ArticleCardProps) => {
       <Link to={`/article/${article.slug}`} className="block">
         <div className="overflow-hidden rounded-lg">
           <img
-            src={article.imageUrl}
+            src={article.image_url || '/placeholder.svg'}
             alt={article.title}
             className="w-full h-56 object-cover transform group-hover:scale-105 transition-transform duration-300 ease-in-out"
           />
@@ -22,12 +22,12 @@ const ArticleCard = ({ article, index }: ArticleCardProps) => {
         <div className="py-4">
           <p className="text-sm font-semibold text-primary uppercase tracking-wider">{article.category}</p>
           <h3 className="text-xl font-serif font-bold mt-2 text-foreground group-hover:text-primary transition-colors">{article.title}</h3>
-          <p className="mt-2 text-muted-foreground text-sm">{article.excerpt}</p>
+          <p className="mt-2 text-muted-foreground text-sm line-clamp-3">{article.excerpt}</p>
           <div className="flex items-center mt-4">
-            <img src={article.author.avatarUrl} alt={article.author.name} className="w-8 h-8 rounded-full mr-3" />
+            <img src={article.author_avatar_url || undefined} alt={article.author_name || ''} className="w-8 h-8 rounded-full mr-3" />
             <div className="text-sm">
-              <p className="font-semibold text-foreground">{article.author.name}</p>
-              <p className="text-muted-foreground">{article.publishedDate}</p>
+              <p className="font-semibold text-foreground">{article.author_name}</p>
+              <p className="text-muted-foreground">{format(new Date(article.published_date), 'MMMM d, yyyy')}</p>
             </div>
           </div>
         </div>

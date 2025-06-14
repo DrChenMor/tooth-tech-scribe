@@ -49,7 +49,7 @@ const WorkflowBuilderPage = () => {
       type: 'publisher',
       label: 'Auto Publisher',
       position: { x: 850, y: 100 },
-      config: { status: 'draft', category: 'AI Generated' },
+      config: { status: 'draft', category: 'AI Generated', autoPublishConditional: false },
       connected: []
     }
   ]);
@@ -82,13 +82,27 @@ const WorkflowBuilderPage = () => {
 
   const getDefaultConfig = (type: WorkflowNode['type']): Record<string, any> => {
     const configs = {
-      trigger: { schedule: 'manual' },
-      scraper: { urls: [], method: 'html' },
-      'ai-processor': { provider: 'openai', model: 'gpt-4o-mini' },
+      trigger: { schedule: 'manual', time: '09:00' },
+      scraper: { urls: [], selector: '', followPagination: false },
+      'ai-processor': { provider: 'openai', model: 'gpt-4o-mini', contentType: 'article', prompt: '' },
       filter: { minWords: 100, maxWords: 2000 },
-      publisher: { status: 'draft', autoPublish: false }
+      publisher: { status: 'draft', category: 'AI Generated', autoPublishConditional: false }
     };
     return configs[type];
+  };
+
+  const updateNodeConfig = (nodeId: string, newConfig: Partial<WorkflowNode['config']>) => {
+    setNodes(prevNodes =>
+      prevNodes.map(node =>
+        node.id === nodeId
+          ? { ...node, config: { ...node.config, ...newConfig } }
+          : node
+      )
+    );
+    // Also update selectedNode if it's the one being edited
+    if (selectedNode && selectedNode.id === nodeId) {
+      setSelectedNode(prev => prev ? { ...prev, config: { ...prev.config, ...newConfig } } : null);
+    }
   };
 
   const runWorkflow = async () => {
@@ -108,6 +122,7 @@ const WorkflowBuilderPage = () => {
         <WorkflowSidebar 
           selectedNode={selectedNode}
           onAddNode={addNode}
+          onUpdateNodeConfig={updateNodeConfig}
         />
 
         {/* Main Canvas Area */}

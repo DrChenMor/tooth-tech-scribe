@@ -1,4 +1,3 @@
-
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -12,9 +11,10 @@ import { WorkflowNode } from '@/pages/WorkflowBuilderPage';
 interface WorkflowSidebarProps {
   selectedNode: WorkflowNode | null;
   onAddNode: (type: WorkflowNode['type']) => void;
+  onUpdateNodeConfig: (nodeId: string, newConfig: Partial<WorkflowNode['config']>) => void;
 }
 
-const WorkflowSidebar = ({ selectedNode, onAddNode }: WorkflowSidebarProps) => {
+const WorkflowSidebar = ({ selectedNode, onAddNode, onUpdateNodeConfig }: WorkflowSidebarProps) => {
   const nodeTypes = [
     { type: 'trigger', icon: Clock, label: 'Trigger', description: 'Start workflows' },
     { type: 'scraper', icon: Globe, label: 'Web Scraper', description: 'Extract content' },
@@ -71,13 +71,13 @@ const WorkflowSidebar = ({ selectedNode, onAddNode }: WorkflowSidebarProps) => {
           </Card>
         </>
       ) : (
-        <NodeConfiguration node={selectedNode} />
+        <NodeConfiguration node={selectedNode} onUpdateConfig={onUpdateNodeConfig} />
       )}
     </div>
   );
 };
 
-const NodeConfiguration = ({ node }: { node: WorkflowNode }) => {
+const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpdateConfig: (nodeId: string, newConfig: Partial<WorkflowNode['config']>) => void }) => {
   const getNodeIcon = (type: WorkflowNode['type']) => {
     const icons = {
       trigger: Clock,
@@ -91,6 +91,10 @@ const NodeConfiguration = ({ node }: { node: WorkflowNode }) => {
 
   const Icon = getNodeIcon(node.type);
 
+  const handleConfigChange = (key: string, value: any) => {
+    onUpdateConfig(node.id, { [key]: value });
+  };
+
   return (
     <div>
       <div className="mb-4 flex items-center gap-2">
@@ -102,7 +106,10 @@ const NodeConfiguration = ({ node }: { node: WorkflowNode }) => {
         <div className="space-y-4">
           <div>
             <Label>Schedule Type</Label>
-            <Select defaultValue={node.config.schedule}>
+            <Select
+              value={node.config.schedule || 'manual'}
+              onValueChange={(value) => handleConfigChange('schedule', value)}
+            >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -117,7 +124,11 @@ const NodeConfiguration = ({ node }: { node: WorkflowNode }) => {
           {node.config.schedule !== 'manual' && (
             <div>
               <Label>Time</Label>
-              <Input type="time" defaultValue={node.config.time || '09:00'} />
+              <Input
+                type="time"
+                value={node.config.time || '09:00'}
+                onChange={(e) => handleConfigChange('time', e.target.value)}
+              />
             </div>
           )}
         </div>
@@ -126,18 +137,27 @@ const NodeConfiguration = ({ node }: { node: WorkflowNode }) => {
       {node.type === 'scraper' && (
         <div className="space-y-4">
           <div>
-            <Label>URLs to Scrape</Label>
+            <Label>URLs to Scrape (one per line)</Label>
             <Textarea
               placeholder="https://example.com/news&#10;https://another-site.com/articles"
               rows={4}
+              value={Array.isArray(node.config.urls) ? node.config.urls.join('\n') : ''}
+              onChange={(e) => handleConfigChange('urls', e.target.value.split('\n').filter(url => url.trim() !== ''))}
             />
           </div>
           <div>
-            <Label>Content Selector</Label>
-            <Input placeholder="article, .content, #main" />
+            <Label>Content Selector (CSS)</Label>
+            <Input
+              placeholder="article, .content, #main"
+              value={node.config.selector || ''}
+              onChange={(e) => handleConfigChange('selector', e.target.value)}
+            />
           </div>
           <div className="flex items-center space-x-2">
-            <Switch />
+            <Switch
+              checked={node.config.followPagination || false}
+              onCheckedChange={(checked) => handleConfigChange('followPagination', checked)}
+            />
             <Label>Follow pagination</Label>
           </div>
         </div>
@@ -147,7 +167,10 @@ const NodeConfiguration = ({ node }: { node: WorkflowNode }) => {
         <div className="space-y-4">
           <div>
             <Label>AI Provider</Label>
-            <Select defaultValue={node.config.provider}>
+            <Select
+              value={node.config.provider || 'openai'}
+              onValueChange={(value) => handleConfigChange('provider', value)}
+            >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -160,7 +183,10 @@ const NodeConfiguration = ({ node }: { node: WorkflowNode }) => {
           </div>
           <div>
             <Label>Content Type</Label>
-            <Select defaultValue="article">
+            <Select
+              value={node.config.contentType || 'article'}
+              onValueChange={(value) => handleConfigChange('contentType', value)}
+            >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -176,6 +202,8 @@ const NodeConfiguration = ({ node }: { node: WorkflowNode }) => {
             <Textarea
               placeholder="Transform this content into a professional article..."
               rows={3}
+              value={node.config.prompt || ''}
+              onChange={(e) => handleConfigChange('prompt', e.target.value)}
             />
           </div>
         </div>
@@ -185,7 +213,10 @@ const NodeConfiguration = ({ node }: { node: WorkflowNode }) => {
         <div className="space-y-4">
           <div>
             <Label>Publish Status</Label>
-            <Select defaultValue={node.config.status}>
+            <Select
+              value={node.config.status || 'draft'}
+              onValueChange={(value) => handleConfigChange('status', value)}
+            >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -197,10 +228,16 @@ const NodeConfiguration = ({ node }: { node: WorkflowNode }) => {
           </div>
           <div>
             <Label>Category</Label>
-            <Input defaultValue={node.config.category || 'AI Generated'} />
+            <Input
+              value={node.config.category || 'AI Generated'}
+              onChange={(e) => handleConfigChange('category', e.target.value)}
+            />
           </div>
           <div className="flex items-center space-x-2">
-            <Switch />
+            <Switch
+              checked={node.config.autoPublishConditional || false}
+              onCheckedChange={(checked) => handleConfigChange('autoPublishConditional', checked)}
+            />
             <Label>Auto-publish if quality score greater than 80%</Label>
           </div>
         </div>

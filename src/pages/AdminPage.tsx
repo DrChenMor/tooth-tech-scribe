@@ -1,9 +1,8 @@
-
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Article } from '@/types';
+import { Article, ArticleStatus } from '@/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -19,7 +18,7 @@ const fetchAllArticles = async (): Promise<Article[]> => {
   return data || [];
 };
 
-const updateArticleStatus = async ({ id, status }: { id: number; status: string }) => {
+const updateArticleStatus = async ({ id, status }: { id: number; status: ArticleStatus }) => {
   const { error } = await supabase
     .from('articles')
     .update({ status })
@@ -27,7 +26,7 @@ const updateArticleStatus = async ({ id, status }: { id: number; status: string 
   if (error) throw new Error(error.message);
 };
 
-const statusColor = (status: string) => {
+const statusColor = (status: ArticleStatus) => {
   if (status === 'draft') return 'bg-gray-200 text-gray-800';
   if (status === 'published') return 'bg-green-200 text-green-800';
   if (status === 'archived') return 'bg-yellow-100 text-yellow-800';
@@ -82,7 +81,7 @@ const AdminPage = () => {
                       <div className="text-xs text-muted-foreground">{article.slug}</div>
                     </TableCell>
                     <TableCell>
-                      <span className={`px-2 py-1 rounded text-xs font-medium ${statusColor(article.status as string)}`}>
+                      <span className={`px-2 py-1 rounded text-xs font-medium ${statusColor(article.status)}`}>
                         {article.status}
                       </span>
                     </TableCell>
@@ -146,4 +145,3 @@ const AdminPage = () => {
 };
 
 export default AdminPage;
-

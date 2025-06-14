@@ -1,4 +1,6 @@
 
+export type ArticleStatus = "draft" | "published" | "archived";
+
 export interface Article {
   id: number;
   slug: string;
@@ -10,6 +12,8 @@ export interface Article {
   author_avatar_url: string | null;
   published_date: string;
   category: string | null;
+  status: ArticleStatus;
+  views: number;
 }
 
 export interface Profile {

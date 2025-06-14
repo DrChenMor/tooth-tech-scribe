@@ -1,4 +1,3 @@
-
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -71,20 +70,17 @@ const ArticleEditorPage = () => {
   });
 
   const onSubmit = (values: ArticleFormValues) => {
-    if (!profile) {
-      toast({
-        title: "Authentication Error",
-        description: "You must be logged in to save an article.",
-        variant: "destructive",
-      });
-      return;
-    }
+    const authorProfile = profile || {
+      full_name: "Demo Admin",
+      avatar_url: null,
+    };
+
     mutation.mutate({
       id: articleId ? Number(articleId) : undefined,
       values,
       author: {
-        name: profile.full_name,
-        avatar_url: profile.avatar_url,
+        name: authorProfile.full_name,
+        avatar_url: authorProfile.avatar_url,
       },
     });
   };

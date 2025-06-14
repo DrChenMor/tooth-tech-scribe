@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { Pencil } from 'lucide-react';
 
 const fetchAllArticles = async (): Promise<Article[]> => {
   const { data, error } = await supabase
@@ -54,7 +56,12 @@ const AdminPage = () => {
     <div className="flex flex-col min-h-screen">
       <Header />
       <main className="flex-grow container mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+        <div className="flex justify-between items-center">
+            <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+            <Button asChild>
+                <Link to="/admin/editor">Create New Article</Link>
+            </Button>
+        </div>
         <p className="mt-2 text-muted-foreground">Manage all articles below. (Drafts, Published, Archived)</p>
 
         <div className="mt-6 bg-background p-4 rounded-xl shadow">
@@ -91,7 +98,7 @@ const AdminPage = () => {
                         ? format(new Date(article.published_date), "yyyy-MM-dd")
                         : <span className="text-xs text-muted-foreground">Not published</span>}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="flex items-center space-x-2">
                       {article.status !== "published" && (
                         <Button
                           variant="outline"
@@ -118,11 +125,15 @@ const AdminPage = () => {
                           Unpublish
                         </Button>
                       )}
+                      <Button asChild variant="outline" size="sm">
+                        <Link to={`/admin/editor/${article.id}`}>
+                          <Pencil className="h-4 w-4" />
+                        </Link>
+                      </Button>
                       <Button
                         variant="destructive"
                         size="sm"
                         disabled={mutating === article.id || article.status === "archived"}
-                        className="ml-2"
                         onClick={() => {
                           setMutating(article.id);
                           mutation.mutate({ id: article.id, status: "archived" });
@@ -130,7 +141,6 @@ const AdminPage = () => {
                       >
                         Archive
                       </Button>
-                      {/* Future: Add Edit button here */}
                     </TableCell>
                   </TableRow>
                 ))}

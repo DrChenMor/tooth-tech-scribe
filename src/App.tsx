@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import ArticlePage from "./pages/ArticlePage";
 import AuthPage from "./pages/AuthPage";
 import AdminPage from "./pages/AdminPage";
+import ArticleEditorPage from "./pages/ArticleEditorPage";
 import NotFound from "./pages/NotFound";
 import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -30,6 +31,22 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <AdminPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/editor"
+              element={
+                <ProtectedRoute>
+                  <ArticleEditorPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/editor/:articleId"
+              element={
+                <ProtectedRoute>
+                  <ArticleEditorPage />
                 </ProtectedRoute>
               } 
             />

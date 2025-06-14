@@ -1,4 +1,3 @@
-
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -37,18 +36,15 @@ const fetchArticleById = async (id: number): Promise<Article | null> => {
 };
 
 const upsertArticle = async ({ id, values }: { id?: number, values: ArticleFormValues }) => {
-  const articleData = {
-    ...values,
-    published_date: (values.status === 'published' ? new Date().toISOString() : new Date(0).toISOString()),
-  };
+  const published_date = (values.status === 'published' ? new Date().toISOString() : new Date(0).toISOString());
 
   if (id) {
     // Update
-    const { error } = await supabase.from("articles").update(articleData).eq("id", id);
+    const { error } = await supabase.from("articles").update({ ...values, published_date }).eq("id", id);
     if (error) throw new Error(error.message);
   } else {
     // Create
-    const { error } = await supabase.from("articles").insert(articleData);
+    const { error } = await supabase.from("articles").insert({ ...values, published_date });
     if (error) throw new Error(error.message);
   }
 };

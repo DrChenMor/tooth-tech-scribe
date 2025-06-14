@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 
@@ -13,6 +12,7 @@ interface GenerateContentRequest {
   provider: 'openai' | 'claude' | 'gemini';
   contentType: 'article' | 'summary' | 'analysis';
   category?: string;
+  prompt?: string;
 }
 
 async function scrapeContent(url: string): Promise<string> {
@@ -35,7 +35,7 @@ async function scrapeContent(url: string): Promise<string> {
   }
 }
 
-async function generateWithOpenAI(prompt: string, contentType: string): Promise<string> {
+async function generateWithOpenAI(content: string, contentType: string, customPrompt?: string): Promise<string> {
   const apiKey = Deno.env.get('OPENAI_API_KEY');
   if (!apiKey) throw new Error('OpenAI API key not configured');
 
@@ -44,6 +44,7 @@ async function generateWithOpenAI(prompt: string, contentType: string): Promise<
     summary: 'You are a professional summarizer. Create a concise, informative summary of the provided content, highlighting key points and insights.',
     analysis: 'You are a professional analyst. Provide a detailed analysis of the provided content, including key insights, trends, implications, and actionable takeaways.'
   };
+  const systemMessage = customPrompt || systemPrompts[contentType as keyof typeof systemPrompts];
 
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -54,8 +55,8 @@ async function generateWithOpenAI(prompt: string, contentType: string): Promise<
     body: JSON.stringify({
       model: 'gpt-4o-mini',
       messages: [
-        { role: 'system', content: systemPrompts[contentType as keyof typeof systemPrompts] },
-        { role: 'user', content: prompt }
+        { role: 'system', content: systemMessage },
+        { role: 'user', content: content }
       ],
       max_tokens: 2000,
       temperature: 0.7,
@@ -70,7 +71,7 @@ async function generateWithOpenAI(prompt: string, contentType: string): Promise<
   return data.choices[0].message.content;
 }
 
-async function generateWithClaude(prompt: string, contentType: string): Promise<string> {
+async function generateWithClaude(content: string, contentType: string, customPrompt?: string): Promise<string> {
   const apiKey = Deno.env.get('ANTHROPIC_API_KEY');
   if (!apiKey) throw new Error('Anthropic API key not configured');
 
@@ -79,6 +80,7 @@ async function generateWithClaude(prompt: string, contentType: string): Promise<
     summary: 'Create a concise, informative summary of the provided content, highlighting key points and insights.',
     analysis: 'Provide a detailed analysis of the provided content, including key insights, trends, implications, and actionable takeaways.'
   };
+  const systemMessage = customPrompt || systemPrompts[contentType as keyof typeof systemPrompts];
 
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -90,9 +92,9 @@ async function generateWithClaude(prompt: string, contentType: string): Promise<
     body: JSON.stringify({
       model: 'claude-3-5-sonnet-20241022',
       max_tokens: 2000,
-      system: systemPrompts[contentType as keyof typeof systemPrompts],
+      system: systemMessage,
       messages: [
-        { role: 'user', content: prompt }
+        { role: 'user', content: content }
       ],
     }),
   });
@@ -105,7 +107,7 @@ async function generateWithClaude(prompt: string, contentType: string): Promise<
   return data.content[0].text;
 }
 
-async function generateWithGemini(prompt: string, contentType: string): Promise<string> {
+async function generateWithGemini(content: string, contentType: string, customPrompt?: string): Promise<string> {
   const apiKey = Deno.env.get('GOOGLE_API_KEY');
   if (!apiKey) throw new Error('Google API key not configured');
 
@@ -114,8 +116,9 @@ async function generateWithGemini(prompt: string, contentType: string): Promise<
     summary: 'Create a concise, informative summary of the provided content, highlighting key points and insights.',
     analysis: 'Provide a detailed analysis of the provided content, including key insights, trends, implications, and actionable takeaways.'
   };
+  const systemMessage = customPrompt || systemPrompts[contentType as keyof typeof systemPrompts];
 
-  const fullPrompt = `${systemPrompts[contentType as keyof typeof systemPrompts]}\n\nContent to process:\n${prompt}`;
+  const fullPrompt = `${systemMessage}\n\nContent to process:\n${content}`;
 
   const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`, {
     method: 'POST',
@@ -165,13 +168,13 @@ serve(async (req) => {
     
     switch (request.provider) {
       case 'openai':
-        generatedContent = await generateWithOpenAI(contentToProcess, request.contentType);
+        generatedContent = await generateWithOpenAI(contentToProcess, request.contentType, request.prompt);
         break;
       case 'claude':
-        generatedContent = await generateWithClaude(contentToProcess, request.contentType);
+        generatedContent = await generateWithClaude(contentToProcess, request.contentType, request.prompt);
         break;
       case 'gemini':
-        generatedContent = await generateWithGemini(contentToProcess, request.contentType);
+        generatedContent = await generateWithGemini(contentToProcess, request.contentType, request.prompt);
         break;
       default:
         throw new Error('Unsupported AI provider');

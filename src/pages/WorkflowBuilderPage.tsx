@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -8,6 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { Workflow, Play, Settings, Plus, ArrowRight } from 'lucide-react';
 import WorkflowCanvas from '@/components/workflow/WorkflowCanvas';
 import WorkflowSidebar from '@/components/workflow/WorkflowSidebar';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from "@/components/ui/use-toast";
 
 export interface WorkflowNode {
   id: string;
@@ -56,6 +57,8 @@ const WorkflowBuilderPage = () => {
 
   const [selectedNode, setSelectedNode] = useState<WorkflowNode | null>(null);
   const [isRunning, setIsRunning] = useState(false);
+  const [executionLog, setExecutionLog] = useState<string[]>([]);
+  const { toast } = useToast();
 
   const addNode = (type: WorkflowNode['type']) => {
     const newNode: WorkflowNode = {
@@ -107,17 +110,120 @@ const WorkflowBuilderPage = () => {
 
   const runWorkflow = async () => {
     setIsRunning(true);
-    // Simulate workflow execution
-    setTimeout(() => {
-      setIsRunning(false);
-      console.log('Workflow completed');
-    }, 3000);
+    setExecutionLog(['Workflow started...']);
+
+    const log = (message: string) => {
+        setExecutionLog(prev => [...prev, message]);
+    };
+
+    try {
+      const triggerNode = nodes.find(n => n.type === 'trigger');
+      if (!triggerNode) {
+        throw new Error('No trigger node found in the workflow.');
+      }
+
+      let currentNode: WorkflowNode | null = triggerNode;
+      let previousNodeOutput: any = {};
+
+      while (currentNode) {
+        log(`Executing: ${currentNode.label} (${currentNode.type})`);
+        
+        switch (currentNode.type) {
+          case 'trigger':
+            previousNodeOutput = { content: 'Trigger fired manually.' };
+            break;
+
+          case 'scraper': {
+            const urls = currentNode.config.urls as string[];
+            if (!urls || urls.length === 0) {
+              throw new Error('Scraper node has no URLs configured.');
+            }
+            const urlToScrape = urls[0];
+            log(`Scraping URL: ${urlToScrape}`);
+
+            const { data: scraperData, error: scraperError } = await supabase.functions.invoke('web-scraper', {
+              body: { url: urlToScrape, selector: currentNode.config.selector },
+            });
+            if (scraperError) throw scraperError;
+            if (scraperData.error) throw new Error(scraperData.error);
+            if (!scraperData.content && scraperData.content !== "") throw new Error('Scraper returned no content.');
+            
+            previousNodeOutput = { content: scraperData.content };
+            log(`Scraping successful. Content length: ${scraperData.content.length}`);
+            break;
+          }
+
+          case 'ai-processor': {
+            if (previousNodeOutput.content === undefined) {
+              throw new Error('AI Processor has no content to process.');
+            }
+            log(`Sending content to ${currentNode.config.provider}...`);
+
+            const { data: aiData, error: aiError } = await supabase.functions.invoke('ai-content-generator', {
+              body: {
+                content: previousNodeOutput.content,
+                provider: currentNode.config.provider,
+                contentType: currentNode.config.contentType,
+                prompt: currentNode.config.prompt,
+              },
+            });
+            if (aiError) throw aiError;
+            if (aiData.error) throw new Error(aiData.error);
+            if (!aiData.content) throw new Error('AI Processor returned no content.');
+
+            previousNodeOutput = { ...previousNodeOutput, content: aiData.content, provider: currentNode.config.provider };
+            log(`AI processing successful.`);
+            break;
+          }
+
+          case 'publisher': {
+            if (!previousNodeOutput.content) {
+              throw new Error('Publisher has no content to publish.');
+            }
+            log(`Publishing article...`);
+
+            const { data: articleData, error: articleError } = await supabase.functions.invoke('create-article-from-ai', {
+              body: {
+                content: previousNodeOutput.content,
+                provider: previousNodeOutput.provider || 'AI',
+                category: currentNode.config.category,
+              },
+            });
+            if (articleError) throw articleError;
+            if (articleData.error) throw new Error(articleData.error);
+
+            previousNodeOutput = { article: articleData.article };
+            log(`Article created as draft: ${articleData.article.title}`);
+            break;
+          }
+            
+          case 'filter':
+            log(`Filter node is not implemented yet. Skipping.`);
+            previousNodeOutput = { ...previousNodeOutput };
+            break;
+        }
+
+        const nextNodeId = currentNode.connected[0];
+        currentNode = nextNodeId ? nodes.find(n => n.id === nextNodeId) || null : null;
+      }
+
+      log('Workflow completed successfully!');
+      toast({ title: 'Success', description: 'Workflow executed successfully.' });
+
+    } catch (error: any) {
+      const errorMessage = error.message || 'An unknown error occurred.';
+      log(`Error: ${errorMessage}`);
+      toast({ title: 'Workflow Failed', description: errorMessage, variant: 'destructive' });
+      console.error("Workflow execution error:", error);
+    } finally {
+      // Keep log visible after run
+    }
   };
 
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
-      <main className="flex-grow flex">
+      <main className="flex-grow flex relative">
         {/* Sidebar */}
         <WorkflowSidebar 
           selectedNode={selectedNode}
@@ -168,6 +274,24 @@ const WorkflowBuilderPage = () => {
             />
           </div>
         </div>
+        
+        {/* Execution Log */}
+        {executionLog.length > 0 && (
+          <div className="absolute bottom-4 right-4 w-96 max-h-80 bg-background border rounded-lg shadow-xl flex flex-col z-20">
+              <div className="p-3 border-b flex justify-between items-center">
+                <h4 className="font-semibold">Execution Log</h4>
+                <div className="flex gap-1">
+                  <Button variant="ghost" size="sm" onClick={() => setIsRunning(false)} disabled={!isRunning}>
+                    {isRunning ? 'Running...' : 'Done'}
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => setExecutionLog([])}>Clear</Button>
+                </div>
+              </div>
+              <div className="flex-1 p-3 overflow-y-auto text-sm font-mono space-y-1">
+                  {executionLog.map((log, i) => <div key={i} className="whitespace-pre-wrap">{log}</div>)}
+              </div>
+          </div>
+        )}
       </main>
     </div>
   );

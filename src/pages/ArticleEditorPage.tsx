@@ -14,12 +14,14 @@ import ArticleForm from "@/components/admin/ArticleForm";
 import ArticleEditorSkeleton from "@/components/admin/ArticleEditorSkeleton";
 import { articleSchema, ArticleFormValues } from "@/lib/schemas";
 import { fetchArticleById, upsertArticle } from "@/services/articles";
+import { useAuth } from "@/contexts/AuthContext";
 
 const ArticleEditorPage = () => {
   const { articleId } = useParams<{ articleId: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const isEditMode = Boolean(articleId);
+  const { profile } = useAuth();
 
   const { data: article, isLoading } = useQuery({
     queryKey: ['article-editor', articleId],
@@ -69,7 +71,22 @@ const ArticleEditorPage = () => {
   });
 
   const onSubmit = (values: ArticleFormValues) => {
-    mutation.mutate({ id: articleId ? Number(articleId) : undefined, values });
+    if (!profile) {
+      toast({
+        title: "Authentication Error",
+        description: "You must be logged in to save an article.",
+        variant: "destructive",
+      });
+      return;
+    }
+    mutation.mutate({
+      id: articleId ? Number(articleId) : undefined,
+      values,
+      author: {
+        name: profile.full_name,
+        avatar_url: profile.avatar_url,
+      },
+    });
   };
   
   if (isLoading && isEditMode) {

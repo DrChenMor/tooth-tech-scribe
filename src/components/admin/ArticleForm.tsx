@@ -1,3 +1,4 @@
+
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -99,7 +100,7 @@ const ArticleForm = ({ form, onSubmit, isPending, isEditMode }: ArticleFormProps
                   <MDEditor
                     value={field.value || ""}
                     onChange={field.onChange}
-                    height={320}
+                    height={500}
                     preview="edit"
                   />
                 </div>

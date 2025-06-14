@@ -2,6 +2,7 @@
 import { Link } from 'react-router-dom';
 import { Article } from '@/types';
 import { format } from 'date-fns';
+import { Badge } from '@/components/ui/badge';
 
 interface ArticleCardProps {
   article: Article;
@@ -20,7 +21,7 @@ const ArticleCard = ({ article, index }: ArticleCardProps) => {
           />
         </div>
         <div className="py-4">
-          <p className="text-sm font-semibold text-primary uppercase tracking-wider">{article.category}</p>
+          {article.category && <Badge variant="outline">{article.category}</Badge>}
           <h3 className="text-xl font-serif font-bold mt-2 text-foreground group-hover:text-primary transition-colors">{article.title}</h3>
           <p className="mt-2 text-muted-foreground text-sm line-clamp-3">{article.excerpt}</p>
           <div className="flex items-center mt-4">

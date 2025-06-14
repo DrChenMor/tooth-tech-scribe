@@ -10,6 +10,7 @@ import { format } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
 import MDEditor from '@uiw/react-md-editor';
 import "@uiw/react-markdown-preview/markdown.css";
+import { Badge } from '@/components/ui/badge';
 
 const fetchArticleBySlug = async (slug: string): Promise<Article | null> => {
   const { data, error } = await supabase
@@ -96,7 +97,7 @@ const ArticlePage = () => {
                 &larr; Back to all articles
               </Link>
               <h1 className="text-4xl md:text-5xl font-serif font-bold mt-4 leading-tight">{article.title}</h1>
-              <div className="mt-6 flex justify-center items-center space-x-6 text-muted-foreground text-sm">
+              <div className="mt-6 flex justify-center items-center flex-wrap gap-x-6 gap-y-2 text-muted-foreground text-sm">
                 <div className="flex items-center space-x-2">
                   <User size={16} />
                   <span>{article.author_name}</span>
@@ -105,10 +106,12 @@ const ArticlePage = () => {
                   <Calendar size={16} />
                   <span>{format(new Date(article.published_date), 'MMMM d, yyyy')}</span>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <Tag size={16} />
-                  <span>{article.category}</span>
-                </div>
+                {article.category && (
+                  <Badge variant="outline" className="flex items-center">
+                    <Tag size={14} className="mr-1.5" />
+                    {article.category}
+                  </Badge>
+                )}
               </div>
             </div>
             <img src={article.image_url || '/placeholder.svg'} alt={article.title} className="w-full h-auto max-h-[500px] object-cover rounded-lg shadow-lg mb-8" />

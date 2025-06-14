@@ -1,4 +1,3 @@
-
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import ArticleCard from '@/components/ArticleCard';
@@ -8,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Article } from '@/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
+import { Badge } from '@/components/ui/badge';
 
 const fetchArticles = async (): Promise<Article[]> => {
   const { data, error } = await supabase
@@ -126,7 +126,7 @@ const Index = () => {
                 <img src={featuredArticle.image_url || '/placeholder.svg'} alt={featuredArticle.title} className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-300 ease-in-out" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-primary uppercase tracking-wider">{featuredArticle.category}</p>
+                {featuredArticle.category && <Badge variant="outline">{featuredArticle.category}</Badge>}
                 <h2 className="text-3xl md:text-4xl font-serif font-bold mt-2 text-foreground group-hover:text-primary transition-colors">{featuredArticle.title}</h2>
                 <p className="mt-4 text-muted-foreground">{featuredArticle.excerpt}</p>
                  <div className="flex items-center mt-4">

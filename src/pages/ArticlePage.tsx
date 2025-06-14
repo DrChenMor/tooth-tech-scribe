@@ -1,4 +1,3 @@
-
 import { useParams, Link } from 'react-router-dom';
 import NotFound from './NotFound';
 import Header from '@/components/Header';
@@ -9,6 +8,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { Article } from '@/types';
 import { format } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
+import MDEditor from '@uiw/react-md-editor';
+import "@uiw/react-markdown-preview/markdown.css";
 
 const fetchArticleBySlug = async (slug: string): Promise<Article | null> => {
   const { data, error } = await supabase
@@ -111,10 +112,9 @@ const ArticlePage = () => {
               </div>
             </div>
             <img src={article.image_url || '/placeholder.svg'} alt={article.title} className="w-full h-auto max-h-[500px] object-cover rounded-lg shadow-lg mb-8" />
-            <div
-              className="prose lg:prose-xl max-w-none mx-auto text-foreground"
-              dangerouslySetInnerHTML={{ __html: article.content || '' }}
-            />
+            <div className="prose lg:prose-xl max-w-none mx-auto text-foreground" data-color-mode="light">
+              <MDEditor.Markdown source={article.content || ''} />
+            </div>
           </div>
         </div>
       </main>

@@ -123,7 +123,7 @@ const Index = () => {
           <div className="mb-16 animate-fade-in" style={{ animationDelay: '200ms' }}>
             <Link to={`/article/${featuredArticle.slug}`} className="group block md:grid md:grid-cols-2 gap-8 items-center">
               <div className="overflow-hidden rounded-lg">
-                <img src={featuredArticle.image_url || '/placeholder.svg'} alt={featuredArticle.title} className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-300 ease-in-out" />
+                <img src={featuredArticle.image_url || 'https://via.placeholder.com/1280x720/EEE/BDBDBD?text=Denti-AI'} alt={featuredArticle.title} className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-300 ease-in-out" />
               </div>
               <div>
                 {featuredArticle.category && <Badge variant="outline">{featuredArticle.category}</Badge>}

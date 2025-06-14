@@ -15,7 +15,7 @@ const ArticleCard = ({ article, index }: ArticleCardProps) => {
       <Link to={`/article/${article.slug}`} className="block">
         <div className="overflow-hidden rounded-lg">
           <img
-            src={article.image_url || '/placeholder.svg'}
+            src={article.image_url || 'https://via.placeholder.com/1280x720/EEE/BDBDBD?text=Denti-AI'}
             alt={article.title}
             className="w-full h-56 object-cover transform group-hover:scale-105 transition-transform duration-300 ease-in-out"
           />

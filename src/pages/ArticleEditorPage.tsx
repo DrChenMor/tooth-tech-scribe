@@ -1,3 +1,4 @@
+
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -14,6 +15,7 @@ import ArticleEditorSkeleton from "@/components/admin/ArticleEditorSkeleton";
 import { articleSchema, ArticleFormValues } from "@/lib/schemas";
 import { fetchArticleById, upsertArticle } from "@/services/articles";
 import { useAuth } from "@/contexts/AuthContext";
+import { slugify } from "@/lib/slugify";
 
 const ArticleEditorPage = () => {
   const { articleId } = useParams<{ articleId: string }>();
@@ -40,6 +42,16 @@ const ArticleEditorPage = () => {
       status: "draft",
     },
   });
+
+  const { watch, setValue } = form;
+  const title = watch("title");
+
+  useEffect(() => {
+    if (!isEditMode) {
+      const slug = slugify(title);
+      setValue("slug", slug, { shouldValidate: true, shouldDirty: !!slug });
+    }
+  }, [title, isEditMode, setValue]);
 
   useEffect(() => {
     if (isEditMode && article) {

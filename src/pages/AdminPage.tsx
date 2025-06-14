@@ -1,3 +1,4 @@
+
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -9,7 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Pencil } from 'lucide-react';
+import { Pencil, Sparkles } from 'lucide-react';
 
 const fetchAllArticles = async (): Promise<Article[]> => {
   const { data, error } = await supabase
@@ -58,9 +59,17 @@ const AdminPage = () => {
       <main className="flex-grow container mx-auto px-4 py-8">
         <div className="flex justify-between items-center">
             <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-            <Button asChild>
+            <div className="flex gap-2">
+              <Button asChild variant="outline">
+                <Link to="/admin/ai-generator">
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  AI Generator
+                </Link>
+              </Button>
+              <Button asChild>
                 <Link to="/admin/editor">Create New Article</Link>
-            </Button>
+              </Button>
+            </div>
         </div>
         <p className="mt-2 text-muted-foreground">Manage all articles below. (Drafts, Published, Archived)</p>
 

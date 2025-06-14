@@ -88,7 +88,6 @@ const ArticleForm = ({ form, onSubmit, isPending, isEditMode }: ArticleFormProps
             </FormItem>
           )}
         />
-        {/* Replace the content textarea with the Markdown editor */}
         <FormField
           control={form.control}
           name="content"
@@ -96,12 +95,15 @@ const ArticleForm = ({ form, onSubmit, isPending, isEditMode }: ArticleFormProps
             <FormItem>
               <FormLabel>Content</FormLabel>
               <FormControl>
-                <div data-color-mode="light">
+                <div className="border rounded-lg overflow-hidden">
                   <MDEditor
                     value={field.value || ""}
                     onChange={field.onChange}
-                    height={500}
-                    preview="edit"
+                    height={600}
+                    preview="live"
+                    hideToolbar={false}
+                    visibleDragBar={false}
+                    data-color-mode="light"
                   />
                 </div>
               </FormControl>

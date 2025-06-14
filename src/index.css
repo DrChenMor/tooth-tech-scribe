@@ -52,3 +52,78 @@
     @apply font-serif;
   }
 }
+
+/* Custom markdown styles for better rendering */
+.wmde-markdown {
+  background: transparent !important;
+  color: inherit !important;
+}
+
+.wmde-markdown h1,
+.wmde-markdown h2,
+.wmde-markdown h3,
+.wmde-markdown h4,
+.wmde-markdown h5,
+.wmde-markdown h6 {
+  font-family: var(--font-serif), serif !important;
+  color: inherit !important;
+  margin-top: 2rem !important;
+  margin-bottom: 1rem !important;
+}
+
+.wmde-markdown p {
+  margin-bottom: 1.5rem !important;
+  line-height: 1.8 !important;
+  font-size: 1.125rem !important;
+}
+
+.wmde-markdown img {
+  border-radius: 0.5rem !important;
+  margin: 2rem auto !important;
+  display: block !important;
+  max-width: 100% !important;
+  height: auto !important;
+}
+
+.wmde-markdown strong {
+  font-weight: 700 !important;
+  color: inherit !important;
+}
+
+.wmde-markdown em {
+  font-style: italic !important;
+}
+
+.wmde-markdown ul,
+.wmde-markdown ol {
+  margin-bottom: 1.5rem !important;
+  padding-left: 2rem !important;
+}
+
+.wmde-markdown li {
+  margin-bottom: 0.5rem !important;
+  line-height: 1.6 !important;
+}
+
+.wmde-markdown blockquote {
+  border-left: 4px solid hsl(var(--primary)) !important;
+  padding-left: 1.5rem !important;
+  margin: 2rem 0 !important;
+  font-style: italic !important;
+  color: hsl(var(--muted-foreground)) !important;
+}
+
+.wmde-markdown code {
+  background: hsl(var(--muted)) !important;
+  padding: 0.25rem 0.5rem !important;
+  border-radius: 0.25rem !important;
+  font-size: 0.875rem !important;
+}
+
+.wmde-markdown pre {
+  background: hsl(var(--muted)) !important;
+  padding: 1.5rem !important;
+  border-radius: 0.5rem !important;
+  overflow-x: auto !important;
+  margin: 2rem 0 !important;
+}

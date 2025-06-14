@@ -1,3 +1,4 @@
+
 import { useParams, Link } from 'react-router-dom';
 import NotFound from './NotFound';
 import Header from '@/components/Header';
@@ -10,6 +11,7 @@ import { format } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
 import MDEditor from '@uiw/react-md-editor';
 import "@uiw/react-markdown-preview/markdown.css";
+import "@uiw/react-md-editor/markdown-editor.css";
 import { Badge } from '@/components/ui/badge';
 
 const fetchArticleBySlug = async (slug: string): Promise<Article | null> => {
@@ -25,7 +27,6 @@ const fetchArticleBySlug = async (slug: string): Promise<Article | null> => {
   }
   return data;
 };
-
 
 const ArticlePage = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -115,8 +116,17 @@ const ArticlePage = () => {
               </div>
             </div>
             <img src={article.image_url || '/placeholder.svg'} alt={article.title} className="w-full h-auto max-h-[500px] object-cover rounded-lg shadow-lg mb-8" />
-            <div className="prose lg:prose-xl max-w-none mx-auto text-foreground" data-color-mode="light">
-              <MDEditor.Markdown source={article.content || ''} />
+            <div className="w-full" data-color-mode="light">
+              <MDEditor.Markdown 
+                source={article.content || ''} 
+                style={{ 
+                  backgroundColor: 'transparent',
+                  fontSize: '18px',
+                  lineHeight: '1.8',
+                  fontFamily: 'inherit'
+                }}
+                className="prose prose-lg max-w-none"
+              />
             </div>
           </div>
         </div>

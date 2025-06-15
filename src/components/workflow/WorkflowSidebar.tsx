@@ -6,9 +6,10 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { Clock, Globe, Brain, Filter, Send, Plus, Share2, Mail, ImagePlay, SearchCheck, Languages, Eye, Award, TrendingUp, HeartPulse, Rss } from 'lucide-react';
+import { Clock, Globe, Brain, Filter, Send, Plus, Share2, Mail, ImagePlay, SearchCheck, Languages, Eye, Award, TrendingUp, HeartPulse, Rss, GraduationCap, Newspaper, Search, Combine, BarChart3 } from 'lucide-react';
 import { WorkflowNode } from '@/pages/WorkflowBuilderPage';
 import { EmailPreviewDialog } from './EmailPreviewDialog';
+import { AVAILABLE_MODELS } from '@/services/aiModelService';
 
 interface WorkflowSidebarProps {
   selectedNode: WorkflowNode | null;
@@ -21,7 +22,11 @@ const WorkflowSidebar = ({ selectedNode, onAddNode, onUpdateNodeConfig }: Workfl
     { type: 'trigger', icon: Clock, label: 'Trigger', description: 'Start workflows' },
     { type: 'scraper', icon: Globe, label: 'Web Scraper', description: 'Extract content' },
     { type: 'rss-aggregator', icon: Rss, label: 'RSS Aggregator', description: 'Fetch content from RSS feeds' },
+    { type: 'google-scholar-search', icon: GraduationCap, label: 'Google Scholar Search', description: 'Search academic papers' },
+    { type: 'news-discovery', icon: Newspaper, label: 'News Discovery', description: 'Find trending news articles' },
+    { type: 'perplexity-research', icon: Search, label: 'Perplexity Research', description: 'AI-powered web research' },
     { type: 'ai-processor', icon: Brain, label: 'AI Processor', description: 'Generate content' },
+    { type: 'multi-source-synthesizer', icon: Combine, label: 'Multi-Source Synthesizer', description: 'Combine multiple sources with AI' },
     { type: 'filter', icon: Filter, label: 'Filter', description: 'Quality control' },
     { type: 'publisher', icon: Send, label: 'Publisher', description: 'Publish articles' },
     { type: 'social-poster', icon: Share2, label: 'Social Poster', description: 'Post to social media' },
@@ -32,6 +37,7 @@ const WorkflowSidebar = ({ selectedNode, onAddNode, onUpdateNodeConfig }: Workfl
     { type: 'content-quality-analyzer', icon: Award, label: 'Content Quality Analyzer', description: 'Score content quality with AI' },
     { type: 'ai-seo-optimizer', icon: TrendingUp, label: 'AI SEO Optimizer', description: 'Generate SEO suggestions with AI' },
     { type: 'engagement-forecaster', icon: HeartPulse, label: 'Engagement Forecaster', description: 'Predict engagement with AI' },
+    { type: 'content-performance-analyzer', icon: BarChart3, label: 'Content Performance Analyzer', description: 'Track and analyze content metrics' },
   ] as const;
 
   return (
@@ -72,7 +78,7 @@ const WorkflowSidebar = ({ selectedNode, onAddNode, onUpdateNodeConfig }: Workfl
             <CardContent className="text-sm text-muted-foreground">
               <ol className="list-decimal list-inside space-y-1">
                 <li>Add a Trigger to start your workflow</li>
-                <li>Add a Web Scraper to collect content</li>
+                <li>Add research nodes to collect content</li>
                 <li>Add an AI Processor to transform content</li>
                 <li>Add a Publisher to save articles</li>
                 <li>Connect the components</li>
@@ -96,7 +102,11 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
       trigger: Clock,
       scraper: Globe,
       'rss-aggregator': Rss,
+      'google-scholar-search': GraduationCap,
+      'news-discovery': Newspaper,
+      'perplexity-research': Search,
       'ai-processor': Brain,
+      'multi-source-synthesizer': Combine,
       filter: Filter,
       publisher: Send,
       'social-poster': Share2,
@@ -107,6 +117,7 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
       'content-quality-analyzer': Award,
       'ai-seo-optimizer': TrendingUp,
       'engagement-forecaster': HeartPulse,
+      'content-performance-analyzer': BarChart3,
     };
     return icons[type];
   };
@@ -119,12 +130,32 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
 
   const getInterpolatedValue = (template: string) => {
     if (!template) return '';
-    // This is a mock interpolation for preview.
     return template
       .replace(/{{article.title}}/g, 'Example Article Title')
       .replace(/{{article.url}}/g, 'https://example.com/article/example-slug')
       .replace(/{{article.excerpt}}/g, 'This is an example excerpt of the article content.');
   };
+
+  const renderAIModelSelector = () => (
+    <div>
+      <Label>AI Model</Label>
+      <Select
+        value={node.config.aiModel || 'gemini-1.5-flash-latest'}
+        onValueChange={(value) => handleConfigChange('aiModel', value)}
+      >
+        <SelectTrigger>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {AVAILABLE_MODELS.map((model) => (
+            <SelectItem key={model.id} value={model.id}>
+              {model.name} ({model.provider})
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
 
   return (
     <div>
@@ -194,24 +225,268 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
         </div>
       )}
 
-      {node.type === 'ai-processor' && (
+      {node.type === 'google-scholar-search' && (
         <div className="space-y-4">
           <div>
-            <Label>AI Provider</Label>
+            <Label>Search Query</Label>
+            <Input
+              placeholder="machine learning natural language processing"
+              value={node.config.query || ''}
+              onChange={(e) => handleConfigChange('query', e.target.value)}
+            />
+          </div>
+          <div>
+            <Label>Number of Results</Label>
+            <Input
+              type="number"
+              min="1"
+              max="100"
+              value={node.config.maxResults || 20}
+              onChange={(e) => handleConfigChange('maxResults', parseInt(e.target.value, 10))}
+            />
+          </div>
+          <div>
+            <Label>Publication Year Range</Label>
+            <div className="flex gap-2">
+              <Input
+                type="number"
+                placeholder="2020"
+                value={node.config.yearFrom || ''}
+                onChange={(e) => handleConfigChange('yearFrom', e.target.value)}
+              />
+              <span className="self-center">to</span>
+              <Input
+                type="number"
+                placeholder="2024"
+                value={node.config.yearTo || ''}
+                onChange={(e) => handleConfigChange('yearTo', e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Switch
+              checked={node.config.includeAbstracts || true}
+              onCheckedChange={(checked) => handleConfigChange('includeAbstracts', checked)}
+            />
+            <Label>Include abstracts</Label>
+          </div>
+        </div>
+      )}
+
+      {node.type === 'news-discovery' && (
+        <div className="space-y-4">
+          <div>
+            <Label>Search Keywords</Label>
+            <Input
+              placeholder="artificial intelligence, technology"
+              value={node.config.keywords || ''}
+              onChange={(e) => handleConfigChange('keywords', e.target.value)}
+            />
+          </div>
+          <div>
+            <Label>News Sources</Label>
             <Select
-              value={node.config.provider || 'openai'}
-              onValueChange={(value) => handleConfigChange('provider', value)}
+              value={node.config.source || 'all'}
+              onValueChange={(value) => handleConfigChange('source', value)}
             >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="openai">OpenAI GPT</SelectItem>
-                <SelectItem value="claude">Anthropic Claude</SelectItem>
-                <SelectItem value="gemini">Google Gemini</SelectItem>
+                <SelectItem value="all">All Sources</SelectItem>
+                <SelectItem value="google-news">Google News</SelectItem>
+                <SelectItem value="reddit">Reddit</SelectItem>
+                <SelectItem value="hackernews">Hacker News</SelectItem>
               </SelectContent>
             </Select>
           </div>
+          <div>
+            <Label>Time Range</Label>
+            <Select
+              value={node.config.timeRange || 'day'}
+              onValueChange={(value) => handleConfigChange('timeRange', value)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="hour">Last Hour</SelectItem>
+                <SelectItem value="day">Last 24 Hours</SelectItem>
+                <SelectItem value="week">Last Week</SelectItem>
+                <SelectItem value="month">Last Month</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Maximum Articles</Label>
+            <Input
+              type="number"
+              min="1"
+              max="50"
+              value={node.config.maxResults || 10}
+              onChange={(e) => handleConfigChange('maxResults', parseInt(e.target.value, 10))}
+            />
+          </div>
+        </div>
+      )}
+
+      {node.type === 'perplexity-research' && (
+        <div className="space-y-4">
+          {renderAIModelSelector()}
+          <div>
+            <Label>Research Query</Label>
+            <Textarea
+              placeholder="What are the latest developments in AI safety research?"
+              rows={3}
+              value={node.config.query || ''}
+              onChange={(e) => handleConfigChange('query', e.target.value)}
+            />
+          </div>
+          <div>
+            <Label>Research Depth</Label>
+            <Select
+              value={node.config.depth || 'medium'}
+              onValueChange={(value) => handleConfigChange('depth', value)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="quick">Quick Overview</SelectItem>
+                <SelectItem value="medium">Medium Depth</SelectItem>
+                <SelectItem value="deep">Deep Research</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Switch
+              checked={node.config.includeSources || true}
+              onCheckedChange={(checked) => handleConfigChange('includeSources', checked)}
+            />
+            <Label>Include source citations</Label>
+          </div>
+        </div>
+      )}
+
+      {node.type === 'multi-source-synthesizer' && (
+        <div className="space-y-4">
+          {renderAIModelSelector()}
+          <div>
+            <Label>Synthesis Style</Label>
+            <Select
+              value={node.config.style || 'comprehensive'}
+              onValueChange={(value) => handleConfigChange('style', value)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="summary">Summary</SelectItem>
+                <SelectItem value="comprehensive">Comprehensive Analysis</SelectItem>
+                <SelectItem value="comparison">Comparative Analysis</SelectItem>
+                <SelectItem value="narrative">Narrative Synthesis</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Target Length</Label>
+            <Select
+              value={node.config.targetLength || 'medium'}
+              onValueChange={(value) => handleConfigChange('targetLength', value)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="short">Short (500-800 words)</SelectItem>
+                <SelectItem value="medium">Medium (800-1500 words)</SelectItem>
+                <SelectItem value="long">Long (1500+ words)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Switch
+              checked={node.config.maintainAttribution || true}
+              onCheckedChange={(checked) => handleConfigChange('maintainAttribution', checked)}
+            />
+            <Label>Maintain source attribution</Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Switch
+              checked={node.config.resolveConflicts || true}
+              onCheckedChange={(checked) => handleConfigChange('resolveConflicts', checked)}
+            />
+            <Label>Resolve conflicting information</Label>
+          </div>
+        </div>
+      )}
+
+      {node.type === 'content-performance-analyzer' && (
+        <div className="space-y-4">
+          {renderAIModelSelector()}
+          <div>
+            <Label>Analysis Metrics</Label>
+            <div className="space-y-2">
+              <div className="flex items-center space-x-2">
+                <Switch
+                  checked={node.config.trackViews || true}
+                  onCheckedChange={(checked) => handleConfigChange('trackViews', checked)}
+                />
+                <Label>Page views</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  checked={node.config.trackEngagement || true}
+                  onCheckedChange={(checked) => handleConfigChange('trackEngagement', checked)}
+                />
+                <Label>Engagement metrics</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  checked={node.config.trackSEO || true}
+                  onCheckedChange={(checked) => handleConfigChange('trackSEO', checked)}
+                />
+                <Label>SEO performance</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  checked={node.config.trackSocial || false}
+                  onCheckedChange={(checked) => handleConfigChange('trackSocial', checked)}
+                />
+                <Label>Social media metrics</Label>
+              </div>
+            </div>
+          </div>
+          <div>
+            <Label>Analysis Period</Label>
+            <Select
+              value={node.config.period || 'week'}
+              onValueChange={(value) => handleConfigChange('period', value)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="day">Daily</SelectItem>
+                <SelectItem value="week">Weekly</SelectItem>
+                <SelectItem value="month">Monthly</SelectItem>
+                <SelectItem value="quarter">Quarterly</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Switch
+              checked={node.config.generateRecommendations || true}
+              onCheckedChange={(checked) => handleConfigChange('generateRecommendations', checked)}
+            />
+            <Label>Generate AI recommendations</Label>
+          </div>
+        </div>
+      )}
+
+      {node.type === 'ai-processor' && (
+        <div className="space-y-4">
+          {renderAIModelSelector()}
           <div>
             <Label>Content Type</Label>
             <Select
@@ -475,34 +750,28 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
       )}
 
       {node.type === 'content-quality-analyzer' && (
-        <div className="space-y-2">
+        <div className="space-y-4">
+          {renderAIModelSelector()}
           <p className="text-sm text-muted-foreground">
-            This node uses the Content Quality AI Agent to analyze articles. It will generate suggestions for articles with a quality score below 70.
-          </p>
-          <p className="text-sm text-muted-foreground font-semibold mt-2">
-            No configuration is needed.
+            This node uses AI to analyze article quality and generate improvement suggestions for articles with a quality score below 70.
           </p>
         </div>
       )}
 
       {node.type === 'ai-seo-optimizer' && (
-        <div className="space-y-2">
+        <div className="space-y-4">
+          {renderAIModelSelector()}
           <p className="text-sm text-muted-foreground">
-            This node uses the AI SEO Optimizer Agent to analyze articles. It will generate SEO keywords, meta descriptions, and other on-page improvements.
-          </p>
-           <p className="text-sm text-muted-foreground font-semibold mt-2">
-            No configuration is needed.
+            This node uses AI to analyze articles and generate SEO keywords, meta descriptions, and other on-page improvements.
           </p>
         </div>
       )}
 
       {node.type === 'engagement-forecaster' && (
-        <div className="space-y-2">
+        <div className="space-y-4">
+          {renderAIModelSelector()}
           <p className="text-sm text-muted-foreground">
-            This node uses the Engagement Forecaster AI Agent to predict engagement. For articles with high predicted engagement, it will suggest a social media post.
-          </p>
-           <p className="text-sm text-muted-foreground font-semibold mt-2">
-            No configuration is needed.
+            This node uses AI to predict engagement potential and suggests social media posts for high-potential articles.
           </p>
         </div>
       )}

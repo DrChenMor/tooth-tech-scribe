@@ -60,11 +60,13 @@ const WorkflowBuilderPage = () => {
   const [selectedNode, setSelectedNode] = useState<WorkflowNode | null>(null);
   const [isRunning, setIsRunning] = useState(false);
   const [executionLog, setExecutionLog] = useState<string[]>([]);
+  const [executionLogs, setExecutionLogs] = useState<{id: string, timestamp: string, workflowName: string, logs: string[], success: boolean}[]>([]);
   const [connectingNodeId, setConnectingNodeId] = useState<string | null>(null);
   const [workflowName, setWorkflowName] = useState('');
   const [savedWorkflows, setSavedWorkflows] = useState<{id: string, name: string, nodes: WorkflowNode[]}[]>([]);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [showLoadDialog, setShowLoadDialog] = useState(false);
+  const [showExecutionLogs, setShowExecutionLogs] = useState(false);
   const { toast } = useToast();
 
   // Load saved workflows from localStorage
@@ -72,6 +74,14 @@ const WorkflowBuilderPage = () => {
     const saved = localStorage.getItem('savedWorkflows');
     if (saved) {
       setSavedWorkflows(JSON.parse(saved));
+    }
+  }, []);
+
+  // Load execution logs from localStorage
+  useEffect(() => {
+    const savedLogs = localStorage.getItem('workflowExecutionLogs');
+    if (savedLogs) {
+      setExecutionLogs(JSON.parse(savedLogs));
     }
   }, []);
 
@@ -206,11 +216,17 @@ const WorkflowBuilderPage = () => {
 
   const runWorkflow = async () => {
     setIsRunning(true);
-    setExecutionLog(['Workflow started...']);
+    const currentExecutionId = Date.now().toString();
+    const executionStartTime = new Date().toISOString();
+    const currentLog: string[] = ['Workflow started...'];
+    setExecutionLog(currentLog);
 
     const log = (message: string) => {
-        setExecutionLog(prev => [...prev, message]);
+        currentLog.push(message);
+        setExecutionLog([...currentLog]);
     };
+
+    let workflowSuccess = false;
 
     try {
       const triggerNode = nodes.find(n => n.type === 'trigger');
@@ -303,30 +319,44 @@ const WorkflowBuilderPage = () => {
           }
 
           case 'email-sender': {
-            // More flexible email handling - work with any content or article
+            // Enhanced email handling with proper translation support
             let title = 'Generated Content';
             let articleUrl = window.location.origin;
+            let contentToShow = '';
             
             if (inputData.article?.title && inputData.article?.slug) {
               title = inputData.article.title;
               articleUrl = `${window.location.origin}/article/${inputData.article.slug}`;
+              contentToShow = inputData.article.content || inputData.content || '';
+            } else if (inputData.content) {
+              // Use the actual translated/processed content
+              contentToShow = inputData.content;
+              title = 'Translated Content'; // Better default for translated content
             }
 
             const subject = (currentNode.config.subject || 'New Content: {{article.title}}')
               .replace(/{{article.title}}/g, title)
               .replace(/{{article.url}}/g, articleUrl);
               
-            const body = (currentNode.config.body || 'Check out this content: {{article.url}}')
+            let body = (currentNode.config.body || 'Check out this content: {{article.url}}')
               .replace(/{{article.title}}/g, title)
-              .replace(/{{article.url}}/g, articleUrl)
-              .replace(/\n/g, '<br />');
+              .replace(/{{article.url}}/g, articleUrl);
+            
+            // If we have translated content, include it in the email body
+            if (contentToShow && inputData.content !== 'Trigger fired manually.') {
+              const preview = contentToShow.substring(0, 500) + (contentToShow.length > 500 ? '...' : '');
+              body += `\n\n<h3>Content Preview:</h3>\n<div style="border: 1px solid #ddd; padding: 15px; background: #f9f9f9;">${preview}</div>`;
+            }
+            
+            body = body.replace(/\n/g, '<br />');
             
             const recipient = currentNode.config.recipient;
             if (!recipient) {
               throw new Error('Email Sender has no recipient configured.');
             }
 
-            log(`Sending email to ${recipient}...`);
+            log(`Sending email to ${recipient} with translated content...`);
+            log(`Email subject: ${subject}`);
 
             const { error: emailError } = await supabase.functions.invoke('send-email', {
               body: {
@@ -338,7 +368,7 @@ const WorkflowBuilderPage = () => {
 
             if (emailError) throw emailError;
 
-            log(`Email sent successfully to ${recipient}.`);
+            log(`Email sent successfully to ${recipient} with content length: ${contentToShow.length}`);
             outputData = { ...inputData };
             break;
           }
@@ -349,6 +379,7 @@ const WorkflowBuilderPage = () => {
               throw new Error('Translator has no content to translate. Make sure it follows a node that provides content or an article.');
             }
             log(`Translating content to ${currentNode.config.targetLanguage} using ${currentNode.config.provider}...`);
+            log(`Original content length: ${contentToTranslate.length}`);
 
             const { data: translatorData, error: translatorError } = await supabase.functions.invoke('translator', {
               body: {
@@ -371,12 +402,18 @@ const WorkflowBuilderPage = () => {
             }
 
             const translatedContent = translatorData.content;
-            outputData = { ...inputData, content: translatedContent };
+            log(`Translation successful using ${currentNode.config.provider}. Translated length: ${translatedContent.length}`);
+            
+            // Pass the translated content forward properly
+            outputData = { 
+              ...inputData, 
+              content: translatedContent, // Make sure this is the translated content
+              originalContent: contentToTranslate // Keep original for reference
+            };
+            
             if (outputData.article) {
                 outputData.article.content = translatedContent;
             }
-
-            log(`Translation successful using ${currentNode.config.provider}.`);
             break;
           }
 
@@ -389,6 +426,8 @@ const WorkflowBuilderPage = () => {
         // Execute all connected nodes in parallel (branching)
         if (currentNode.connected.length > 0) {
           const nextNodes = currentNode.connected.map(nodeId => nodes.find(n => n.id === nodeId)).filter(Boolean);
+          log(`Branching to ${nextNodes.length} connected nodes: ${nextNodes.map(n => n!.label).join(', ')}`);
+          
           await Promise.all(
             nextNodes.map(nextNode => executeNode(nextNode!, outputData))
           );
@@ -397,6 +436,7 @@ const WorkflowBuilderPage = () => {
 
       await executeNode(triggerNode, {});
       log('Workflow completed successfully!');
+      workflowSuccess = true;
       toast({ title: 'Success', description: 'Workflow executed successfully.' });
 
     } catch (error: any) {
@@ -423,6 +463,21 @@ const WorkflowBuilderPage = () => {
       toast({ title: 'Workflow Failed', description: errorMessage, variant: 'destructive' });
     } finally {
       setIsRunning(false);
+      
+      // Save execution log for admin review
+      const executionRecord = {
+        id: currentExecutionId,
+        timestamp: executionStartTime,
+        workflowName: savedWorkflows.find(w => JSON.stringify(w.nodes) === JSON.stringify(nodes))?.name || 'Unsaved Workflow',
+        logs: [...currentLog],
+        success: workflowSuccess
+      };
+      
+      const updatedLogs = [...executionLogs, executionRecord];
+      setExecutionLogs(updatedLogs);
+      localStorage.setItem('workflowExecutionLogs', JSON.stringify(updatedLogs));
+      
+      log(`Execution log saved with ID: ${currentExecutionId}`);
     }
   };
 
@@ -456,6 +511,7 @@ const WorkflowBuilderPage = () => {
                   {nodes.length} Nodes
                 </Badge>
                 
+                {/* Save Dialog */}
                 <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
                   <DialogTrigger asChild>
                     <Button variant="outline" className="flex items-center gap-2">
@@ -480,6 +536,7 @@ const WorkflowBuilderPage = () => {
                   </DialogContent>
                 </Dialog>
 
+                {/* Load Dialog */}
                 <Dialog open={showLoadDialog} onOpenChange={setShowLoadDialog}>
                   <DialogTrigger asChild>
                     <Button variant="outline" className="flex items-center gap-2">
@@ -508,6 +565,48 @@ const WorkflowBuilderPage = () => {
                   </DialogContent>
                 </Dialog>
 
+                {/* Execution Logs Dialog */}
+                <Dialog open={showExecutionLogs} onOpenChange={setShowExecutionLogs}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" className="flex items-center gap-2">
+                      <Settings className="h-4 w-4" />
+                      Logs ({executionLogs.length})
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle>Workflow Execution Logs</DialogTitle>
+                      <CardDescription>Review past workflow executions for debugging</CardDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      {executionLogs.length === 0 ? (
+                        <p className="text-muted-foreground">No execution logs yet</p>
+                      ) : (
+                        executionLogs.reverse().map((log) => (
+                          <Card key={log.id} className={`${log.success ? 'border-green-200' : 'border-red-200'}`}>
+                            <CardHeader className="pb-2">
+                              <div className="flex justify-between items-center">
+                                <CardTitle className="text-sm">{log.workflowName}</CardTitle>
+                                <Badge variant={log.success ? 'default' : 'destructive'}>
+                                  {log.success ? 'Success' : 'Failed'}
+                                </Badge>
+                              </div>
+                              <CardDescription>{new Date(log.timestamp).toLocaleString()}</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                              <div className="bg-gray-50 p-3 rounded text-sm font-mono max-h-40 overflow-y-auto">
+                                {log.logs.map((logLine, i) => (
+                                  <div key={i} className="whitespace-pre-wrap">{logLine}</div>
+                                ))}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))
+                      )}
+                    </div>
+                  </DialogContent>
+                </Dialog>
+
                 <Button
                   onClick={runWorkflow}
                   disabled={isRunning}
@@ -515,9 +614,6 @@ const WorkflowBuilderPage = () => {
                 >
                   <Play className="h-4 w-4" />
                   {isRunning ? 'Running...' : 'Test Workflow'}
-                </Button>
-                <Button variant="outline">
-                  <Settings className="h-4 w-4" />
                 </Button>
               </div>
             </div>

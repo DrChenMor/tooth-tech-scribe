@@ -130,10 +130,7 @@ export async function generatePredictiveInsights(): Promise<PredictiveInsight[]>
     if (agent.performance_trend === 'improving') {
       insights.push({
         id: `trending-up-${agent.agent_id}`,
-        type: '
-' 이하
-
-trend',
+        type: 'trend',
         title: `Performance Improvement Trend`,
         description: `Agent "${agent.agent_name}" shows consistent improvement in recent performance metrics.`,
         confidence: 78,

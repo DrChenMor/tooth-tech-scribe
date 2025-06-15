@@ -151,9 +151,15 @@ const AgentManagementDialog = ({ isOpen, onClose, agent, mode }: AgentManagement
       case 'enhanced_trending':
         return {
           ai_model: 'gpt-4o',
-          prompt_template: 'Perform advanced trend analysis on the provided content, considering engagement velocity and predictive signals. Return a JSON object with "trending_articles" and "future_predictions".',
-          prediction_window_hours: 48,
-          ml_confidence_threshold: 0.8,
+          prompt_template: `As an expert data scientist, perform an advanced trend analysis on the provided articles. Consider metrics like engagement, freshness, quality, and trending scores. Identify up to 3 articles with the highest potential to go viral or become top performers. Also, provide one high-level "future_prediction" about content trends based on the data.
+
+Return a JSON object with two keys:
+1. "trending_articles": An array of objects, each with "article_id", "reasoning" (explain why it's trending), "confidence_score" (0-1), and "suggested_action" (e.g., "Feature in hero section", "Promote on social media").
+2. "future_predictions": An array with a single object containing "prediction_text" and "confidence_score".
+
+If no articles are trending and no predictions can be made, return empty arrays for both keys.
+
+Article data: {articles_data}`,
         };
       default:
         return {

@@ -1,15 +1,15 @@
 
 import { useQuery } from '@tanstack/react-query';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { TrendingUp, TrendingDown, Activity, Target, Brain, AlertTriangle } from 'lucide-react';
-import { getAgentAnalytics, getAgentPerformanceData, AgentAnalytics } from '@/services/agentAnalytics';
 import { useState } from 'react';
-
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { getAgentAnalytics, AgentAnalytics } from '@/services/agentAnalytics';
+import { getSystemMetrics, getAgentPerformanceData, SystemMetrics, AgentPerformanceData } from '@/services/advancedAnalytics';
+import { fetchAIAgents, AIAgent } from '@/services/aiAgents';
+import SystemMetricsDashboard from './SystemMetricsDashboard';
+import AgentPerformanceChart from './AgentPerformanceChart';
+import { Brain, BarChart3, TrendingUp } from 'lucide-react';
 
 const AgentAnalyticsDashboard = () => {
   const [selectedAgentId, setSelectedAgentId] = useState<string>('');
@@ -17,39 +17,29 @@ const AgentAnalyticsDashboard = () => {
   const { data: analytics = [], isLoading: analyticsLoading } = useQuery({
     queryKey: ['agent-analytics'],
     queryFn: getAgentAnalytics,
-    refetchInterval: 60000, // Refresh every minute
   });
 
-  const { data: performanceData, isLoading: performanceLoading } = useQuery({
+  const { data: systemMetrics, isLoading: metricsLoading } = useQuery({
+    queryKey: ['system-metrics'],
+    queryFn: getSystemMetrics,
+  });
+
+  const { data: agents = [] } = useQuery({
+    queryKey: ['ai-agents'],
+    queryFn: fetchAIAgents,
+  });
+
+  const { data: agentPerformanceData = [], isLoading: performanceLoading } = useQuery({
     queryKey: ['agent-performance', selectedAgentId],
-    queryFn: () => getAgentPerformanceData(selectedAgentId),
+    queryFn: () => selectedAgentId ? getAgentPerformanceData(selectedAgentId) : Promise.resolve([]),
     enabled: !!selectedAgentId,
   });
 
-  const getTrendIcon = (trend: string) => {
-    switch (trend) {
-      case 'improving':
-        return <TrendingUp className="h-4 w-4 text-green-600" />;
-      case 'declining':
-        return <TrendingDown className="h-4 w-4 text-red-600" />;
-      default:
-        return <Activity className="h-4 w-4 text-gray-600" />;
-    }
-  };
+  const selectedAgent = agents.find(agent => agent.id === selectedAgentId);
+  const selectedAgentAnalytics = analytics.find(a => a.agent_id === selectedAgentId);
 
-  const getTrendColor = (trend: string) => {
-    switch (trend) {
-      case 'improving':
-        return 'text-green-600';
-      case 'declining':
-        return 'text-red-600';
-      default:
-        return 'text-gray-600';
-    }
-  };
-
-  if (analyticsLoading) {
-    return <div>Loading agent analytics...</div>;
+  if (analyticsLoading || metricsLoading) {
+    return <div>Loading analytics...</div>;
   }
 
   return (
@@ -57,263 +47,148 @@ const AgentAnalyticsDashboard = () => {
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold flex items-center gap-2">
-            <Target className="h-6 w-6" />
-            Agent Performance Analytics
+            <BarChart3 className="h-6 w-6" />
+            Agent Analytics Dashboard
           </h2>
           <p className="text-muted-foreground">
-            Track AI agent performance, success rates, and optimization opportunities
+            Monitor and analyze AI agent performance and system metrics
           </p>
         </div>
       </div>
 
       <Tabs defaultValue="overview" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="individual">Individual Analysis</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="overview">System Overview</TabsTrigger>
+          <TabsTrigger value="agents">Agent Performance</TabsTrigger>
           <TabsTrigger value="trends">Performance Trends</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="overview" className="space-y-4">
-          {/* Overview Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Agents</CardTitle>
-                <Brain className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{analytics.length}</div>
-                <p className="text-xs text-muted-foreground">
-                  {analytics.filter(a => a.recent_activity > 0).length} active recently
-                </p>
-              </CardContent>
-            </Card>
+        <TabsContent value="overview" className="space-y-6">
+          {systemMetrics && <SystemMetricsDashboard metrics={systemMetrics} />}
+        </TabsContent>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Avg Approval Rate</CardTitle>
-                <Target className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {analytics.length > 0 
-                    ? Math.round(analytics.reduce((sum, a) => sum + a.approval_rate, 0) / analytics.length)
-                    : 0
-                  }%
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Across all agents
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Suggestions</CardTitle>
-                <Activity className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {analytics.reduce((sum, a) => sum + a.total_suggestions, 0)}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  {analytics.reduce((sum, a) => sum + a.recent_activity, 0)} this week
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Performance Issues</CardTitle>
-                <AlertTriangle className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {analytics.filter(a => a.approval_rate < 30).length}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Agents with low approval rates
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Agent Performance Table */}
+        <TabsContent value="agents" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Agent Performance Overview</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <Brain className="h-5 w-5" />
+                Individual Agent Analytics
+              </CardTitle>
               <CardDescription>
-                Performance metrics for all AI agents
+                Select an agent to view detailed performance metrics and trends
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {analytics.map((agent) => (
-                  <div key={agent.agent_id} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="font-semibold">{agent.agent_name}</h3>
-                        <Badge variant={agent.performance_trend === 'improving' ? 'default' : 
-                                     agent.performance_trend === 'declining' ? 'destructive' : 'secondary'}>
-                          <div className="flex items-center gap-1">
-                            {getTrendIcon(agent.performance_trend)}
-                            <span className="capitalize">{agent.performance_trend}</span>
-                          </div>
-                        </Badge>
-                      </div>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                        <div>
-                          <p className="text-muted-foreground">Approval Rate</p>
-                          <div className="flex items-center gap-2">
-                            <Progress value={agent.approval_rate} className="w-16" />
-                            <span className="font-medium">{Math.round(agent.approval_rate)}%</span>
-                          </div>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground">Total Suggestions</p>
-                          <p className="font-medium">{agent.total_suggestions}</p>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground">Avg Confidence</p>
-                          <p className="font-medium">{Math.round(agent.average_confidence * 100)}%</p>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground">Recent Activity</p>
-                          <p className="font-medium">{agent.recent_activity}</p>
-                        </div>
-                      </div>
-                    </div>
-                    <button 
-                      onClick={() => setSelectedAgentId(agent.agent_id)}
-                      className="ml-4 px-3 py-1 text-sm bg-primary text-primary-foreground rounded hover:bg-primary/90"
-                    >
-                      View Details
-                    </button>
-                  </div>
-                ))}
+              <div className="mb-6">
+                <Select value={selectedAgentId} onValueChange={setSelectedAgentId}>
+                  <SelectTrigger className="w-full max-w-xs">
+                    <SelectValue placeholder="Select an agent to analyze" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {agents.map((agent) => (
+                      <SelectItem key={agent.id} value={agent.id}>
+                        {agent.name} ({agent.type})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
+
+              {selectedAgent && selectedAgentAnalytics && (
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                  <Card>
+                    <CardContent className="pt-6">
+                      <div className="text-2xl font-bold text-blue-600">
+                        {selectedAgentAnalytics.total_suggestions}
+                      </div>
+                      <p className="text-xs text-muted-foreground">Total Suggestions</p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="pt-6">
+                      <div className="text-2xl font-bold text-green-600">
+                        {selectedAgentAnalytics.approval_rate.toFixed(1)}%
+                      </div>
+                      <p className="text-xs text-muted-foreground">Approval Rate</p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="pt-6">
+                      <div className="text-2xl font-bold text-purple-600">
+                        {selectedAgentAnalytics.average_confidence.toFixed(2)}
+                      </div>
+                      <p className="text-xs text-muted-foreground">Avg Confidence</p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="pt-6">
+                      <div className="text-2xl font-bold text-orange-600">
+                        {selectedAgentAnalytics.recent_activity}
+                      </div>
+                      <p className="text-xs text-muted-foreground">Recent Activity</p>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+
+              {selectedAgent && !performanceLoading && agentPerformanceData.length > 0 && (
+                <AgentPerformanceChart
+                  data={agentPerformanceData}
+                  agentName={selectedAgent.name}
+                  trend={selectedAgentAnalytics?.performance_trend || 'stable'}
+                />
+              )}
+
+              {selectedAgent && agentPerformanceData.length === 0 && !performanceLoading && (
+                <div className="text-center py-8 text-muted-foreground">
+                  <BarChart3 className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No performance data available for this agent yet.</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="individual" className="space-y-4">
-          {selectedAgentId && performanceData ? (
-            <>
-              <Card>
-                <CardHeader>
-                  <CardTitle>Daily Suggestion Volume</CardTitle>
-                  <CardDescription>
-                    Number of suggestions generated over the last 30 days
-                  </CardDescription>
+        <TabsContent value="trends" className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {analytics.map((agent) => (
+              <Card key={agent.agent_id}>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-medium flex items-center justify-between">
+                    {agent.agent_name}
+                    <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs ${
+                      agent.performance_trend === 'improving' ? 'bg-green-100 text-green-800' :
+                      agent.performance_trend === 'declining' ? 'bg-red-100 text-red-800' :
+                      'bg-gray-100 text-gray-800'
+                    }`}>
+                      <TrendingUp className="h-3 w-3" />
+                      {agent.performance_trend}
+                    </div>
+                  </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={performanceData.daily_suggestions}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="date" />
-                      <YAxis />
-                      <Tooltip />
-                      <Bar dataKey="count" fill="#8884d8" />
-                    </BarChart>
-                  </ResponsiveContainer>
+                <CardContent className="space-y-3">
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p className="text-muted-foreground">Approval Rate</p>
+                      <p className="font-semibold">{agent.approval_rate.toFixed(1)}%</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Total Suggestions</p>
+                      <p className="font-semibold">{agent.total_suggestions}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Avg Confidence</p>
+                      <p className="font-semibold">{agent.average_confidence.toFixed(2)}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Recent Activity</p>
+                      <p className="font-semibold">{agent.recent_activity}</p>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Confidence Distribution</CardTitle>
-                    <CardDescription>
-                      Distribution of suggestion confidence scores
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <ResponsiveContainer width="100%" height={250}>
-                      <PieChart>
-                        <Pie
-                          data={performanceData.confidence_distribution}
-                          cx="50%"
-                          cy="50%"
-                          labelLine={false}
-                          label={({ range, count }) => count > 0 ? `${range}: ${count}` : ''}
-                          outerRadius={80}
-                          fill="#8884d8"
-                          dataKey="count"
-                        >
-                          {performanceData.confidence_distribution.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                          ))}
-                        </Pie>
-                        <Tooltip />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Priority Distribution</CardTitle>
-                    <CardDescription>
-                      Distribution of suggestion priorities (1=highest, 5=lowest)
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <ResponsiveContainer width="100%" height={250}>
-                      <BarChart data={performanceData.priority_distribution}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="priority" />
-                        <YAxis />
-                        <Tooltip />
-                        <Bar dataKey="count" fill="#82ca9d" />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </CardContent>
-                </Card>
-              </div>
-            </>
-          ) : (
-            <Card>
-              <CardContent className="pt-6">
-                <div className="text-center text-muted-foreground">
-                  <Brain className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>Select an agent from the overview to view detailed analytics</p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
-
-        <TabsContent value="trends" className="space-y-4">
-          {selectedAgentId && performanceData ? (
-            <Card>
-              <CardHeader>
-                <CardTitle>Approval Rate Trend</CardTitle>
-                <CardDescription>
-                  How approval rates have changed over time
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={performanceData.approval_rates}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" />
-                    <YAxis />
-                    <Tooltip />
-                    <Line type="monotone" dataKey="rate" stroke="#8884d8" strokeWidth={2} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          ) : (
-            <Card>
-              <CardContent className="pt-6">
-                <div className="text-center text-muted-foreground">
-                  <TrendingUp className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>Select an agent to view performance trends</p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+            ))}
+          </div>
         </TabsContent>
       </Tabs>
     </div>

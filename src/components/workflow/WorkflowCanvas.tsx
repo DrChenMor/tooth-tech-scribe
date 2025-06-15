@@ -166,7 +166,49 @@ const WorkflowCanvas = ({
         const canConnectTo = connectingNodeId && connectingNodeId !== node.id;
         
         return (
-          <ContextMenuTrigger key={node.id}>
+          <ContextMenu key={node.id}>
+            <ContextMenuTrigger asChild>
+              <Card
+                className={`absolute w-60 cursor-move select-none ${
+                  getNodeColor(node.type)
+                } ${isSelected ? 'ring-2 ring-blue-500 shadow-lg' : 'hover:shadow-md'}
+                ${isConnecting ? 'ring-2 ring-green-500 animate-pulse' : ''}
+                ${canConnectTo ? 'hover:ring-2 hover:ring-green-400' : ''}`}
+                style={{
+                  left: node.position.x,
+                  top: node.position.y,
+                  zIndex: draggedNode === node.id ? 10 : 2
+                }}
+                onMouseDown={(e) => {
+                  e.stopPropagation();
+                  handleMouseDown(e, node.id);
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (canConnectTo && connectingNodeId) {
+                    onConnectEnd(connectingNodeId, node.id);
+                  } else {
+                    onSelectNode(node);
+                  }
+                }}
+              >
+                <div className="p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Icon className="h-4 w-4" />
+                    <h4 className="font-medium text-sm">{node.label}</h4>
+                  </div>
+                  <Badge variant="outline" className="text-xs">
+                    {node.type.replace('-', ' ')}
+                  </Badge>
+                  {node.connected.length > 0 && (
+                    <div className="mt-2 flex items-center text-xs text-muted-foreground">
+                      <ArrowRight className="h-3 w-3 mr-1" />
+                      Connected to {node.connected.length} node(s)
+                    </div>
+                  )}
+                </div>
+              </Card>
+            </ContextMenuTrigger>
             <ContextMenuContent>
               <ContextMenuItem onClick={() => onConnectStart(node.id)} className="flex items-center gap-2 cursor-pointer">
                 <LinkIcon className="h-4 w-4" /> Connect
@@ -181,47 +223,7 @@ const WorkflowCanvas = ({
                 <Trash2 className="h-4 w-4" /> Delete Node
               </ContextMenuItem>
             </ContextMenuContent>
-            <Card
-              className={`absolute w-60 cursor-move select-none ${
-                getNodeColor(node.type)
-              } ${isSelected ? 'ring-2 ring-blue-500 shadow-lg' : 'hover:shadow-md'}
-              ${isConnecting ? 'ring-2 ring-green-500 animate-pulse' : ''}
-              ${canConnectTo ? 'hover:ring-2 hover:ring-green-400' : ''}`}
-              style={{
-                left: node.position.x,
-                top: node.position.y,
-                zIndex: draggedNode === node.id ? 10 : 2
-              }}
-              onMouseDown={(e) => {
-                e.stopPropagation();
-                handleMouseDown(e, node.id);
-              }}
-              onClick={(e) => {
-                e.stopPropagation();
-                if (canConnectTo && connectingNodeId) {
-                  onConnectEnd(connectingNodeId, node.id);
-                } else {
-                  onSelectNode(node);
-                }
-              }}
-            >
-              <div className="p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <Icon className="h-4 w-4" />
-                  <h4 className="font-medium text-sm">{node.label}</h4>
-                </div>
-                <Badge variant="outline" className="text-xs">
-                  {node.type.replace('-', ' ')}
-                </Badge>
-                {node.connected.length > 0 && (
-                  <div className="mt-2 flex items-center text-xs text-muted-foreground">
-                    <ArrowRight className="h-3 w-3 mr-1" />
-                    Connected to {node.connected.length} node(s)
-                  </div>
-                )}
-              </div>
-            </Card>
-          </ContextMenuTrigger>
+          </ContextMenu>
         );
       })}
 

@@ -1,10 +1,9 @@
-
-import { AgentSuggestion, AgentAnalysisContext } from './BaseAgent';
-import { EnhancedBaseAgent } from './EnhancedBaseAgent';
+import { AgentSuggestion } from './BaseAgent';
+import { EnhancedBaseAgent, EnhancedSuggestion, EnhancedAnalysisContext } from './EnhancedBaseAgent';
 
 export class EnhancedTrendingAgent extends EnhancedBaseAgent {
-  // Override the analyze method to use our new AI-powered approach
-  async analyze(context: AgentAnalysisContext): Promise<AgentSuggestion[]> {
+  // Implement the abstract method from EnhancedBaseAgent
+  async enhancedAnalyze(context: EnhancedAnalysisContext): Promise<EnhancedSuggestion[]> {
     const { articles = [] } = context;
 
     if (articles.length === 0) {
@@ -16,7 +15,7 @@ export class EnhancedTrendingAgent extends EnhancedBaseAgent {
 
     try {
       const aiResponse = await this.performAIAnalysis(prompt);
-      const suggestions = this.createSuggestionsFromAI(aiResponse, publishedArticles);
+      const suggestions = this.createSuggestionsFromAI(aiResponse, publishedArticles, context);
       return suggestions;
     } catch (error) {
       console.error(`EnhancedTrendingAgent failed: ${error}`);
@@ -52,8 +51,8 @@ Article data: {articles_data}`;
     return promptTemplate;
   }
 
-  private createSuggestionsFromAI(aiResponse: any, allArticles: any[]): AgentSuggestion[] {
-    const suggestions: AgentSuggestion[] = [];
+  private createSuggestionsFromAI(aiResponse: any, allArticles: any[], context: EnhancedAnalysisContext): EnhancedSuggestion[] {
+    const suggestions: EnhancedSuggestion[] = [];
 
     if (!aiResponse) return [];
 
@@ -64,7 +63,7 @@ Article data: {articles_data}`;
     trendingFromAI.forEach((info: any, index: number) => {
       const article = allArticles.find(a => a.id === info.article_id);
       if (article) {
-        suggestions.push({
+        const baseSuggestion: AgentSuggestion = {
           target_type: info.suggested_action?.toLowerCase().includes('hero') ? 'hero_section' : 'featured_section',
           target_id: info.suggested_action?.toLowerCase().includes('hero') ? 'main' : `featured-${index + 1}`,
           suggestion_data: {
@@ -77,6 +76,16 @@ Article data: {articles_data}`;
           confidence_score: info.confidence_score,
           priority: this.calculatePriority(info.confidence_score, 0.95, info.confidence_score),
           expires_at: new Date(Date.now() + 12 * 60 * 60 * 1000)
+        };
+
+        suggestions.push({
+          ...baseSuggestion,
+          reasoning_steps: [{ step: 'AI Analysis', evidence: [info.reasoning], confidence: info.confidence_score, weight: 1 }],
+          alternative_approaches: this.generateAlternativeApproaches(baseSuggestion),
+          potential_risks: this.identifyPotentialRisks(baseSuggestion, context),
+          implementation_complexity: 'medium',
+          expected_impact: info.confidence_score > 0.8 ? 'high' : 'medium',
+          related_suggestions: [],
         });
       }
     });
@@ -84,7 +93,7 @@ Article data: {articles_data}`;
     // Suggestion for future predictions
     if (predictionsFromAI.length > 0) {
       const prediction = predictionsFromAI[0];
-      suggestions.push({
+      const baseSuggestion: AgentSuggestion = {
         target_type: 'strategic_insight',
         target_id: 'content_strategy',
         suggestion_data: {
@@ -95,6 +104,16 @@ Article data: {articles_data}`;
         confidence_score: prediction.confidence_score,
         priority: 1, // Highest priority strategic insight
         expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+      };
+      
+      suggestions.push({
+        ...baseSuggestion,
+        reasoning_steps: [{ step: 'AI Trend Prediction', evidence: [baseSuggestion.reasoning], confidence: prediction.confidence_score, weight: 1 }],
+        alternative_approaches: ['Develop a content series on this topic', 'Monitor competitors for related content'],
+        potential_risks: ['Trend may be short-lived', 'Market may be saturated by the time content is produced'],
+        implementation_complexity: 'high',
+        expected_impact: 'high',
+        related_suggestions: [],
       });
     }
 

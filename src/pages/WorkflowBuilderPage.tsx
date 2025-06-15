@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -161,7 +160,6 @@ const WorkflowBuilderPage = () => {
     toast({ title: 'Node Disconnected', description: 'All outgoing connections have been removed.' });
   };
 
-
   const runWorkflow = async () => {
     setIsRunning(true);
     setExecutionLog(['Workflow started...']);
@@ -272,10 +270,43 @@ const WorkflowBuilderPage = () => {
             previousNodeOutput = { ...previousNodeOutput };
             break;
 
-          case 'email-sender':
-            log(`Email Sender node is not fully implemented yet. Skipping.`);
+          case 'email-sender': {
+            if (!previousNodeOutput.article?.title || !previousNodeOutput.article?.slug) {
+              throw new Error('Email Sender requires an article with a title and slug from the previous node.');
+            }
+            const article = previousNodeOutput.article;
+            const articleUrl = `${window.location.origin}/article/${article.slug}`;
+
+            const subject = (currentNode.config.subject || '')
+              .replace(/{{article.title}}/g, article.title)
+              .replace(/{{article.url}}/g, articleUrl);
+              
+            const body = (currentNode.config.body || '')
+              .replace(/{{article.title}}/g, article.title)
+              .replace(/{{article.url}}/g, articleUrl)
+              .replace(/\n/g, '<br />');
+            
+            const recipient = currentNode.config.recipient;
+            if (!recipient) {
+              throw new Error('Email Sender has no recipient configured.');
+            }
+
+            log(`Sending email to ${recipient}...`);
+
+            const { error: emailError } = await supabase.functions.invoke('send-email', {
+              body: {
+                to: recipient,
+                subject: subject,
+                body: body,
+              },
+            });
+
+            if (emailError) throw emailError;
+
+            log(`Email sent successfully to ${recipient}.`);
             previousNodeOutput = { ...previousNodeOutput };
             break;
+          }
 
           case 'image-generator':
             log(`Image Generator node is not fully implemented yet. Skipping.`);

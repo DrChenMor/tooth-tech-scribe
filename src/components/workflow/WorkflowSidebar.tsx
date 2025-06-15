@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -5,8 +6,9 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { Clock, Globe, Brain, Filter, Send, Plus, Share2, Mail, ImagePlay, SearchCheck, Languages } from 'lucide-react';
+import { Clock, Globe, Brain, Filter, Send, Plus, Share2, Mail, ImagePlay, SearchCheck, Languages, Eye } from 'lucide-react';
 import { WorkflowNode } from '@/pages/WorkflowBuilderPage';
+import { EmailPreviewDialog } from './EmailPreviewDialog';
 
 interface WorkflowSidebarProps {
   selectedNode: WorkflowNode | null;
@@ -83,6 +85,8 @@ const WorkflowSidebar = ({ selectedNode, onAddNode, onUpdateNodeConfig }: Workfl
 };
 
 const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpdateConfig: (nodeId: string, newConfig: Partial<WorkflowNode['config']>) => void }) => {
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+
   const getNodeIcon = (type: WorkflowNode['type']) => {
     const icons = {
       trigger: Clock,
@@ -103,6 +107,15 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
 
   const handleConfigChange = (key: string, value: any) => {
     onUpdateConfig(node.id, { [key]: value });
+  };
+
+  const getInterpolatedValue = (template: string) => {
+    if (!template) return '';
+    // This is a mock interpolation for preview.
+    return template
+      .replace(/{{article.title}}/g, 'Example Article Title')
+      .replace(/{{article.url}}/g, 'https://example.com/article/example-slug')
+      .replace(/{{article.excerpt}}/g, 'This is an example excerpt of the article content.');
   };
 
   return (
@@ -320,6 +333,16 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
               Placeholders are supported here as well.
             </p>
           </div>
+          <Button variant="outline" onClick={() => setIsPreviewOpen(true)} className="w-full flex items-center gap-2">
+            <Eye className="h-4 w-4" /> Preview Email
+          </Button>
+          <EmailPreviewDialog 
+            isOpen={isPreviewOpen}
+            onOpenChange={setIsPreviewOpen}
+            recipient={node.config.recipient || ''}
+            subject={getInterpolatedValue(node.config.subject || '')}
+            body={getInterpolatedValue(node.config.body || '').replace(/\n/g, '<br />')}
+          />
         </div>
       )}
 

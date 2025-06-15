@@ -1,16 +1,8 @@
 
 import { Link, useLocation } from "react-router-dom";
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Home, Workflow, Sparkles, Code, Settings, Newspaper } from "lucide-react";
-
-const navLinks = [
-  { href: "/admin", label: "Dashboard", icon: Home },
-  { href: "/admin/workflow-builder", label: "Workflow Builder", icon: Workflow },
-  { href: "/admin/ai-generator", label: "AI Generator", icon: Sparkles },
-  { href: "/admin/ai-agent-advanced", label: "Python Agent", icon: Code },
-  { href: "/admin/settings", label: "Settings", icon: Settings },
-];
+import { Newspaper } from "lucide-react";
+import { navLinks } from "./adminNavLinks";
 
 const AdminSidebar = () => {
   const location = useLocation();

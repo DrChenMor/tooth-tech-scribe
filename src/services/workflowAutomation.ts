@@ -1,5 +1,6 @@
 
-import { supabase } from '@/integrations/supabase/client';
+// Mock service for workflow automation - until database tables are created
+// This provides the same interface but uses mock data instead of database calls
 
 export interface WorkflowRule {
   id: string;
@@ -13,8 +14,7 @@ export interface WorkflowRule {
     value: any;
   }>;
   actions: Array<{
-    type: 'create_agent' | 'send_notification' | 'update_config' | 'run_analysis';
-    config: Record<string, any>;
+    type: 'create_agent' | 'send_notification' | 'update_config' | 'run_analysis';    config: Record<string, any>;
   }>;
   enabled: boolean;
   created_at: string;
@@ -44,133 +44,123 @@ export interface ExternalIntegration {
   error_count: number;
 }
 
+// Mock data storage
+const mockRules: WorkflowRule[] = [
+  {
+    id: '1',
+    name: 'Auto-Create Performance Agent',
+    description: 'Creates a new performance monitoring agent when suggestion volume is high',
+    trigger_type: 'condition',
+    trigger_config: { threshold: 100, timeframe: '1h' },
+    conditions: [
+      { field: 'suggestion_count', operator: 'gt', value: 100 }
+    ],
+    actions: [
+      { type: 'create_agent', config: { type: 'performance-monitor', priority: 'high' } }
+    ],
+    enabled: true,
+    created_at: '2024-01-01T00:00:00Z',
+    updated_at: '2024-01-15T10:30:00Z',
+    last_executed: '2024-01-15T10:30:00Z',
+    execution_count: 15
+  }
+];
+
+const mockIntegrations: ExternalIntegration[] = [
+  {
+    id: '1',
+    name: 'Slack Notifications',
+    type: 'slack',
+    config: { webhook_url: 'https://hooks.slack.com/...', channel: '#ai-copilot' },
+    enabled: true,
+    last_used: '2024-01-15T10:30:00Z',
+    success_count: 45,
+    error_count: 2
+  }
+];
+
 // Workflow Rules Management
 export async function getWorkflowRules(): Promise<WorkflowRule[]> {
-  const { data, error } = await supabase
-    .from('workflow_rules')
-    .select('*')
-    .order('created_at', { ascending: false });
-
-  if (error) throw error;
-  return data || [];
+  // Return mock data instead of database call
+  return Promise.resolve([...mockRules]);
 }
 
 export async function createWorkflowRule(rule: Omit<WorkflowRule, 'id' | 'created_at' | 'updated_at' | 'execution_count'>): Promise<WorkflowRule> {
-  const { data, error } = await supabase
-    .from('workflow_rules')
-    .insert([{
-      ...rule,
-      execution_count: 0
-    }])
-    .select()
-    .single();
-
-  if (error) throw error;
-  return data;
+  const newRule: WorkflowRule = {
+    ...rule,
+    id: Date.now().toString(),
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    execution_count: 0
+  };
+  
+  mockRules.push(newRule);
+  return Promise.resolve(newRule);
 }
 
 export async function updateWorkflowRule(id: string, updates: Partial<WorkflowRule>): Promise<WorkflowRule> {
-  const { data, error } = await supabase
-    .from('workflow_rules')
-    .update({
-      ...updates,
-      updated_at: new Date().toISOString()
-    })
-    .eq('id', id)
-    .select()
-    .single();
-
-  if (error) throw error;
-  return data;
+  const ruleIndex = mockRules.findIndex(r => r.id === id);
+  if (ruleIndex === -1) throw new Error('Rule not found');
+  
+  mockRules[ruleIndex] = {
+    ...mockRules[ruleIndex],
+    ...updates,
+    updated_at: new Date().toISOString()
+  };
+  
+  return Promise.resolve(mockRules[ruleIndex]);
 }
 
 export async function deleteWorkflowRule(id: string): Promise<void> {
-  const { error } = await supabase
-    .from('workflow_rules')
-    .delete()
-    .eq('id', id);
-
-  if (error) throw error;
+  const ruleIndex = mockRules.findIndex(r => r.id === id);
+  if (ruleIndex === -1) throw new Error('Rule not found');
+  
+  mockRules.splice(ruleIndex, 1);
+  return Promise.resolve();
 }
 
 export async function toggleWorkflowRule(id: string, enabled: boolean): Promise<void> {
-  const { error } = await supabase
-    .from('workflow_rules')
-    .update({ enabled, updated_at: new Date().toISOString() })
-    .eq('id', id);
-
-  if (error) throw error;
+  const rule = mockRules.find(r => r.id === id);
+  if (!rule) throw new Error('Rule not found');
+  
+  rule.enabled = enabled;
+  rule.updated_at = new Date().toISOString();
+  return Promise.resolve();
 }
 
 // Workflow Execution
 export async function executeWorkflowRule(ruleId: string): Promise<WorkflowExecution> {
-  const execution = {
+  const rule = mockRules.find(r => r.id === ruleId);
+  if (!rule) throw new Error('Rule not found');
+
+  const execution: WorkflowExecution = {
+    id: Date.now().toString(),
     rule_id: ruleId,
     started_at: new Date().toISOString(),
-    status: 'running' as const
+    status: 'running'
   };
 
-  const { data, error } = await supabase
-    .from('workflow_executions')
-    .insert([execution])
-    .select()
-    .single();
-
-  if (error) throw error;
-
-  // Simulate workflow execution (replace with actual implementation)
+  // Simulate workflow execution
   try {
-    const rule = await getWorkflowRule(ruleId);
     const result = await processWorkflowActions(rule.actions);
     
     // Update execution as completed
-    const { data: completedExecution, error: updateError } = await supabase
-      .from('workflow_executions')
-      .update({
-        completed_at: new Date().toISOString(),
-        status: 'completed',
-        result
-      })
-      .eq('id', data.id)
-      .select()
-      .single();
-
-    if (updateError) throw updateError;
+    execution.completed_at = new Date().toISOString();
+    execution.status = 'completed';
+    execution.result = result;
 
     // Increment execution count
-    await supabase
-      .from('workflow_rules')
-      .update({
-        execution_count: rule.execution_count + 1,
-        last_executed: new Date().toISOString()
-      })
-      .eq('id', ruleId);
+    rule.execution_count += 1;
+    rule.last_executed = new Date().toISOString();
 
-    return completedExecution;
+    return execution;
   } catch (error) {
     // Update execution as failed
-    await supabase
-      .from('workflow_executions')
-      .update({
-        completed_at: new Date().toISOString(),
-        status: 'failed',
-        error_message: error instanceof Error ? error.message : 'Unknown error'
-      })
-      .eq('id', data.id);
-
+    execution.completed_at = new Date().toISOString();
+    execution.status = 'failed';
+    execution.error_message = error instanceof Error ? error.message : 'Unknown error';
     throw error;
   }
-}
-
-async function getWorkflowRule(id: string): Promise<WorkflowRule> {
-  const { data, error } = await supabase
-    .from('workflow_rules')
-    .select('*')
-    .eq('id', id)
-    .single();
-
-  if (error) throw error;
-  return data;
 }
 
 async function processWorkflowActions(actions: WorkflowRule['actions']): Promise<Record<string, any>> {
@@ -222,44 +212,32 @@ async function runAnalysisAction(config: Record<string, any>): Promise<any> {
 
 // External Integrations
 export async function getIntegrations(): Promise<ExternalIntegration[]> {
-  const { data, error } = await supabase
-    .from('external_integrations')
-    .select('*')
-    .order('name');
-
-  if (error) throw error;
-  return data || [];
+  return Promise.resolve([...mockIntegrations]);
 }
 
 export async function createIntegration(integration: Omit<ExternalIntegration, 'id' | 'success_count' | 'error_count'>): Promise<ExternalIntegration> {
-  const { data, error } = await supabase
-    .from('external_integrations')
-    .insert([{
-      ...integration,
-      success_count: 0,
-      error_count: 0
-    }])
-    .select()
-    .single();
-
-  if (error) throw error;
-  return data;
+  const newIntegration: ExternalIntegration = {
+    ...integration,
+    id: Date.now().toString(),
+    success_count: 0,
+    error_count: 0
+  };
+  
+  mockIntegrations.push(newIntegration);
+  return Promise.resolve(newIntegration);
 }
 
 export async function updateIntegration(id: string, updates: Partial<ExternalIntegration>): Promise<ExternalIntegration> {
-  const { data, error } = await supabase
-    .from('external_integrations')
-    .update(updates)
-    .eq('id', id)
-    .select()
-    .single();
-
-  if (error) throw error;
-  return data;
+  const integrationIndex = mockIntegrations.findIndex(i => i.id === id);
+  if (integrationIndex === -1) throw new Error('Integration not found');
+  
+  mockIntegrations[integrationIndex] = { ...mockIntegrations[integrationIndex], ...updates };
+  return Promise.resolve(mockIntegrations[integrationIndex]);
 }
 
 export async function testIntegration(id: string): Promise<{ success: boolean; message: string }> {
-  const integration = await getIntegration(id);
+  const integration = mockIntegrations.find(i => i.id === id);
+  if (!integration) throw new Error('Integration not found');
   
   try {
     let result: { success: boolean; message: string };
@@ -283,40 +261,17 @@ export async function testIntegration(id: string): Promise<{ success: boolean; m
 
     // Update success/error counts
     if (result.success) {
-      await supabase
-        .from('external_integrations')
-        .update({
-          success_count: integration.success_count + 1,
-          last_used: new Date().toISOString()
-        })
-        .eq('id', id);
+      integration.success_count += 1;
+      integration.last_used = new Date().toISOString();
     } else {
-      await supabase
-        .from('external_integrations')
-        .update({ error_count: integration.error_count + 1 })
-        .eq('id', id);
+      integration.error_count += 1;
     }
 
     return result;
   } catch (error) {
-    await supabase
-      .from('external_integrations')
-      .update({ error_count: integration.error_count + 1 })
-      .eq('id', id);
-    
+    integration.error_count += 1;
     throw error;
   }
-}
-
-async function getIntegration(id: string): Promise<ExternalIntegration> {
-  const { data, error } = await supabase
-    .from('external_integrations')
-    .select('*')
-    .eq('id', id)
-    .single();
-
-  if (error) throw error;
-  return data;
 }
 
 async function testWebhook(url: string): Promise<{ success: boolean; message: string }> {
@@ -356,17 +311,21 @@ async function testZapier(config: Record<string, any>): Promise<{ success: boole
 
 // Workflow Execution History
 export async function getWorkflowExecutions(ruleId?: string): Promise<WorkflowExecution[]> {
-  let query = supabase
-    .from('workflow_executions')
-    .select('*')
-    .order('started_at', { ascending: false });
+  // Mock execution history
+  const mockExecutions: WorkflowExecution[] = [
+    {
+      id: '1',
+      rule_id: '1',
+      started_at: '2024-01-15T10:30:00Z',
+      completed_at: '2024-01-15T10:31:00Z',
+      status: 'completed',
+      result: { success: true, agent_id: 'agent-123' }
+    }
+  ];
 
   if (ruleId) {
-    query = query.eq('rule_id', ruleId);
+    return Promise.resolve(mockExecutions.filter(e => e.rule_id === ruleId));
   }
 
-  const { data, error } = await query.limit(100);
-
-  if (error) throw error;
-  return data || [];
+  return Promise.resolve(mockExecutions);
 }

@@ -13,17 +13,23 @@ import AgentManagementCard from './AgentManagementCard';
 import AgentManagementDialog from './AgentManagementDialog';
 import IntegrationStatusCard from './IntegrationStatusCard';
 import { useQuery } from '@tanstack/react-query';
-import { getAIAgents } from '@/services/aiAgents';
+import { fetchAIAgents, AIAgent } from '@/services/aiAgents';
+import { getSystemMetrics } from '@/services/advancedAnalytics';
 import { useToast } from '@/components/ui/use-toast';
 
 const AICoPilotDashboard = () => {
   const [showCreateAgent, setShowCreateAgent] = useState(false);
-  const [selectedAgent, setSelectedAgent] = useState(null);
+  const [selectedAgent, setSelectedAgent] = useState<AIAgent | null>(null);
   const { toast } = useToast();
 
   const { data: agents = [], isLoading: agentsLoading } = useQuery({
     queryKey: ['ai-agents'],
-    queryFn: getAIAgents,
+    queryFn: fetchAIAgents,
+  });
+
+  const { data: systemMetrics } = useQuery({
+    queryKey: ['system-metrics'],
+    queryFn: getSystemMetrics,
   });
 
   // Mock integration data
@@ -77,6 +83,9 @@ const AICoPilotDashboard = () => {
     toast({ title: 'Opening Configuration', description: 'Integration settings will open' });
   };
 
+  const activeAgents = Array.isArray(agents) ? agents.filter(a => a.is_active) : [];
+  const totalAgents = Array.isArray(agents) ? agents.length : 0;
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -113,9 +122,9 @@ const AICoPilotDashboard = () => {
                   <Users className="h-4 w-4 text-blue-600" />
                   <span className="text-sm font-medium">Active Agents</span>
                 </div>
-                <div className="text-2xl font-bold">{agents.filter(a => a.enabled).length}</div>
+                <div className="text-2xl font-bold">{activeAgents.length}</div>
                 <p className="text-xs text-muted-foreground">
-                  {agents.length} total agents
+                  {totalAgents} total agents
                 </p>
               </CardContent>
             </Card>
@@ -151,7 +160,7 @@ const AICoPilotDashboard = () => {
             </Card>
           </div>
 
-          <SystemMetricsDashboard />
+          {systemMetrics && <SystemMetricsDashboard metrics={systemMetrics} />}
         </TabsContent>
 
         <TabsContent value="agents" className="space-y-6">
@@ -169,7 +178,7 @@ const AICoPilotDashboard = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {agentsLoading ? (
               <div className="col-span-full text-center py-8">Loading agents...</div>
-            ) : agents.length === 0 ? (
+            ) : totalAgents === 0 ? (
               <div className="col-span-full text-center py-8">
                 <div className="text-muted-foreground">No agents created yet</div>
                 <Button className="mt-4" onClick={() => setShowCreateAgent(true)}>
@@ -177,7 +186,7 @@ const AICoPilotDashboard = () => {
                 </Button>
               </div>
             ) : (
-              agents.map(agent => (
+              Array.isArray(agents) && agents.map(agent => (
                 <AgentManagementCard
                   key={agent.id}
                   agent={agent}
@@ -255,7 +264,7 @@ const AICoPilotDashboard = () => {
       </Tabs>
 
       <AgentManagementDialog
-        open={showCreateAgent || !!selectedAgent}
+        isOpen={showCreateAgent || !!selectedAgent}
         onClose={() => {
           setShowCreateAgent(false);
           setSelectedAgent(null);

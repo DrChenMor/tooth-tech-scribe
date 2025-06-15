@@ -12,7 +12,6 @@ import { Separator } from '@/components/ui/separator';
 import { Play, Pause, Settings, Plus, Workflow, Clock, Zap, ExternalLink } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/components/ui/use-toast';
-import { supabase } from '@/integrations/supabase/client';
 
 interface AutomationRule {
   id: string;
@@ -49,7 +48,7 @@ const WorkflowAutomationDashboard = () => {
   // Mock data - replace with real API calls
   const { data: rules = [], isLoading: rulesLoading } = useQuery({
     queryKey: ['automation-rules'],
-    queryFn: async () => {
+    queryFn: async (): Promise<AutomationRule[]> => {
       // Mock automation rules
       return [
         {
@@ -105,7 +104,7 @@ const WorkflowAutomationDashboard = () => {
 
   const { data: integrations = [], isLoading: integrationsLoading } = useQuery({
     queryKey: ['integrations'],
-    queryFn: async () => {
+    queryFn: async (): Promise<Integration[]> => {
       // Mock integrations
       return [
         {

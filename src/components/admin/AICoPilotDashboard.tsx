@@ -1,17 +1,18 @@
-
 import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Brain, Users, BarChart3, Settings, Workflow, Zap, Plus } from 'lucide-react';
+import { Brain, Users, BarChart3, Settings, Workflow, Zap, Plus, Activity } from 'lucide-react';
 import AgentAnalyticsDashboard from './AgentAnalyticsDashboard';
 import PredictiveAnalyticsDashboard from './PredictiveAnalyticsDashboard';
 import SystemMetricsDashboard from './SystemMetricsDashboard';
 import WorkflowAutomationDashboard from './WorkflowAutomationDashboard';
+import PerformanceDashboard from './PerformanceDashboard';
 import AgentManagementCard from './AgentManagementCard';
 import AgentManagementDialog from './AgentManagementDialog';
 import IntegrationStatusCard from './IntegrationStatusCard';
+import NotificationCenter from './NotificationCenter';
 import { useQuery } from '@tanstack/react-query';
 import { fetchAIAgents, AIAgent } from '@/services/aiAgents';
 import { getSystemMetrics } from '@/services/advancedAnalytics';
@@ -98,20 +99,24 @@ const AICoPilotDashboard = () => {
             Monitor, manage, and optimize your AI agents and automation workflows
           </p>
         </div>
-        <Button onClick={() => setShowCreateAgent(true)} className="flex items-center gap-2">
-          <Plus className="h-4 w-4" />
-          Create Agent
-        </Button>
+        <div className="flex items-center gap-2">
+          <NotificationCenter />
+          <Button onClick={() => setShowCreateAgent(true)} className="flex items-center gap-2">
+            <Plus className="h-4 w-4" />
+            Create Agent
+          </Button>
+        </div>
       </div>
 
       <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="agents">Agents</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
           <TabsTrigger value="predictive">Predictive</TabsTrigger>
           <TabsTrigger value="automation">Automation</TabsTrigger>
           <TabsTrigger value="integrations">Integrations</TabsTrigger>
+          <TabsTrigger value="performance">Performance</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
@@ -260,6 +265,10 @@ const AICoPilotDashboard = () => {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="performance">
+          <PerformanceDashboard />
         </TabsContent>
       </Tabs>
 

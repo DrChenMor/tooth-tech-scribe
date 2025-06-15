@@ -1,14 +1,21 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 const googleApiKey = Deno.env.get('GOOGLE_API_KEY');
+const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+const getProviderForModel = (model: string): string => {
+    if (model.startsWith('gpt-')) return 'OpenAI';
+    if (model.startsWith('gemini-')) return 'Google';
+    if (model.startsWith('claude-')) return 'Anthropic';
+    return 'Google'; // Default fallback to Google
+}
 
 const handleOpenAIRequest = async (model: string, prompt: string) => {
   if (!openAIApiKey) {
@@ -79,6 +86,46 @@ const handleGoogleRequest = async (model: string, prompt: string) => {
   return data.candidates[0].content.parts[0].text;
 };
 
+const handleAnthropicRequest = async (model: string, prompt: string) => {
+  if (!anthropicApiKey) {
+    throw new Error("ANTHROPIC_API_KEY is not set in Supabase secrets.");
+  }
+
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'x-api-key': anthropicApiKey,
+      'anthropic-version': '2023-06-01',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: model,
+      max_tokens: 4096,
+      messages: [
+        { role: 'user', content: `You are an expert analysis assistant. Respond with only the requested JSON object. Do not include any markdown formatting like \`\`\`json. Here is the user request: ${prompt}` }
+      ],
+    }),
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    throw new Error(`Anthropic API request failed: ${response.status} ${response.statusText} - ${errorBody}`);
+  }
+
+  const data = await response.json();
+
+  if (!data.content || data.content.length === 0 || !data.content[0].text) {
+    console.error("Anthropic AI response is missing content:", JSON.stringify(data, null, 2));
+    throw new Error("Anthropic AI returned no content.");
+  }
+
+  let text = data.content[0].text;
+  if (text.startsWith('```json')) {
+    text = text.substring(7, text.length - 3).trim();
+  }
+  return text;
+};
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -87,8 +134,8 @@ serve(async (req) => {
 
   try {
     const { prompt, agentConfig } = await req.json();
-    const model = agentConfig?.ai_model || 'gpt-4o-mini';
-    const provider = agentConfig?.provider || 'OpenAI'; // Default to OpenAI
+    const model = agentConfig?.ai_model || 'gemini-1.5-flash-latest';
+    const provider = agentConfig?.provider || getProviderForModel(model);
 
     let analysis;
     
@@ -96,6 +143,8 @@ serve(async (req) => {
 
     if (provider === 'Google') {
       analysis = await handleGoogleRequest(model, prompt);
+    } else if (provider === 'Anthropic') {
+      analysis = await handleAnthropicRequest(model, prompt);
     } else { // Default to OpenAI
       analysis = await handleOpenAIRequest(model, prompt);
     }

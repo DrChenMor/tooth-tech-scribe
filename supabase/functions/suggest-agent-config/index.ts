@@ -14,7 +14,7 @@ const getSystemPrompt = (agentType: string) => {
 
 The JSON object should be well-structured and contain relevant parameters for the specified agent type.
 The most important keys are "ai_model" and "prompt_template".
-For "ai_model", choose between 'gpt-4o-mini' (for simple tasks) or 'gpt-4o' (for complex analysis).
+For "ai_model", choose from 'gemini-1.5-flash-latest' (for simple tasks) or 'gemini-1.5-pro-latest' (for complex analysis), or specific OpenAI/Anthropic models if needed.
 The "prompt_template" should be a detailed instruction for another AI.
 
 Always return ONLY the JSON object, without any markdown or extra text.
@@ -25,7 +25,7 @@ Always return ONLY the JSON object, without any markdown or extra text.
         case 'enhanced_trending':
             prompt += `
 For trending agents, the config must include:
-- "ai_model": (string)
+- "ai_model": (string) Use 'gemini-1.5-pro-latest' for 'enhanced_trending' and 'gemini-1.5-flash-latest' for 'trending'.
 - "prompt_template": (string) A detailed prompt to identify trending content. It MUST ask for a JSON response with a "trending_articles" array. The placeholder {articles_data} will be replaced with article data.
 - It can optionally include other parameters like "min_views_threshold": (number) or "trending_window_hours": (number).
 `;
@@ -33,7 +33,7 @@ For trending agents, the config must include:
         case 'content_gap':
             prompt += `
 For content gap agents, the config must include:
-- "ai_model": (string)
+- "ai_model": (string) 'gemini-1.5-flash-latest' is a good choice.
 - "prompt_template": (string) A prompt to analyze content for gaps.
 - "analysis_depth": (string, e.g., 'medium' or 'high')
 `;
@@ -41,7 +41,7 @@ For content gap agents, the config must include:
         case 'summarization':
             prompt += `
 For summarization agents, the config must include:
-- "ai_model": (string)
+- "ai_model": (string) 'gemini-1.5-flash-latest' is a good choice.
 - "prompt_template": (string) A prompt to summarize text.
 - "max_summary_length": (number)
 `;

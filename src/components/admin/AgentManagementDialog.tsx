@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -43,7 +43,7 @@ const AgentManagementDialog = ({ isOpen, onClose, agent, mode }: AgentManagement
   const [configJson, setConfigJson] = useState(JSON.stringify(agent?.config || {}, null, 2));
 
   // Handle specific config fields separately for better UX
-  const [selectedModel, setSelectedModel] = useState(agent?.config?.ai_model || 'gpt-4o-mini');
+  const [selectedModel, setSelectedModel] = useState(agent?.config?.ai_model || 'gemini-1.5-flash-latest');
   const [promptTemplate, setPromptTemplate] = useState(agent?.config?.prompt_template || '');
 
   const [isSuggestingConfig, setIsSuggestingConfig] = useState(false);
@@ -163,28 +163,28 @@ const AgentManagementDialog = ({ isOpen, onClose, agent, mode }: AgentManagement
     switch (type) {
       case 'trending':
         return {
-          ai_model: 'gpt-4o-mini',
+          ai_model: 'gemini-1.5-flash-latest',
           prompt_template: 'Analyze the provided articles based on views and creation date to identify the top 3 trending ones. Return a JSON object with a key "trending_articles", containing an array of objects. Each object must include "article_id", "reasoning", and "confidence_score". If none are trending, return an empty array.',
           min_views_threshold: 100,
           trending_window_hours: 24,
         };
       case 'content_gap':
         return {
-          ai_model: 'gpt-4o-mini',
+          ai_model: 'gemini-1.5-flash-latest',
           prompt_template: 'Analyze the following content to find gaps and suggest new topics. Format the response as a JSON object.',
           analysis_depth: 'medium',
           topic_similarity_threshold: 0.6,
         };
       case 'summarization':
         return {
-          ai_model: 'gpt-4o-mini',
+          ai_model: 'gemini-1.5-flash-latest',
           prompt_template: 'Summarize the provided text into a concise overview. Format the response as a JSON object with a "summary" key.',
           max_summary_length: 200,
           key_points_count: 5,
         };
       case 'enhanced_trending':
         return {
-          ai_model: 'gpt-4o',
+          ai_model: 'gemini-1.5-pro-latest',
           prompt_template: `As an expert data scientist, perform an advanced trend analysis on the provided articles. Consider metrics like engagement, freshness, quality, and trending scores. Identify up to 3 articles with the highest potential to go viral or become top performers. Also, provide one high-level "future_prediction" about content trends based on the data.
 
 Return a JSON object with two keys:
@@ -197,7 +197,7 @@ Article data: {articles_data}`,
         };
       default:
         return {
-          ai_model: 'gpt-4o-mini',
+          ai_model: 'gemini-1.5-flash-latest',
           prompt_template: ''
         };
     }
@@ -300,11 +300,30 @@ Article data: {articles_data}`,
                       <SelectValue placeholder="Select AI model" />
                     </SelectTrigger>
                     <SelectContent>
-                      {AVAILABLE_MODELS.map((model) => (
-                        <SelectItem key={model.id} value={model.id}>
-                          {model.name} ({model.provider})
-                        </SelectItem>
-                      ))}
+                      <SelectGroup>
+                        <SelectLabel>Google</SelectLabel>
+                        {AVAILABLE_MODELS.filter(m => m.provider === 'Google').map((model) => (
+                          <SelectItem key={model.id} value={model.id}>
+                            {model.name}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                      <SelectGroup>
+                        <SelectLabel>OpenAI</SelectLabel>
+                        {AVAILABLE_MODELS.filter(m => m.provider === 'OpenAI').map((model) => (
+                          <SelectItem key={model.id} value={model.id}>
+                            {model.name}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                      <SelectGroup>
+                        <SelectLabel>Anthropic</SelectLabel>
+                        {AVAILABLE_MODELS.filter(m => m.provider === 'Anthropic').map((model) => (
+                          <SelectItem key={model.id} value={model.id}>
+                            {model.name}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
                     </SelectContent>
                   </Select>
                 </div>

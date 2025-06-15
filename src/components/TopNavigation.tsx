@@ -1,7 +1,9 @@
+
 import { Link, useLocation } from 'react-router-dom';
-import { Mail } from 'lucide-react';
+import { Mail, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import SearchCommand from './SearchCommand';
+import { SidebarTrigger } from './ui/sidebar';
 
 const TopNavigation = () => {
   const location = useLocation();
@@ -13,12 +15,19 @@ const TopNavigation = () => {
   ];
 
   return (
-    <nav className="bg-background py-4 px-6">
+    <nav className="bg-background py-4 px-6 border-b">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
-        {/* Logo */}
-        <Link to="/" className="text-2xl font-bold text-foreground">
-          Blogle
-        </Link>
+        <div className="flex items-center gap-4">
+          {/* Hamburger Menu Trigger for mobile/tablet */}
+          <div className="block lg:hidden">
+            <SidebarTrigger />
+          </div>
+
+          {/* Logo */}
+          <Link to="/" className="text-2xl font-bold text-foreground">
+            Blogle
+          </Link>
+        </div>
         
         {/* Navigation Menu */}
         <div className="hidden md:flex items-center space-x-8">
@@ -37,11 +46,21 @@ const TopNavigation = () => {
           ))}
         </div>
 
-        {/* Search and Subscribe */}
-        <div className="flex items-center gap-4">
-          {/* Search Bar */}
-          <div className="hidden md:block">
+        {/* Actions */}
+        <div className="flex items-center gap-2 md:gap-4">
+          {/* Desktop Search Bar */}
+          <div className="hidden lg:block">
             <SearchCommand />
+          </div>
+
+          {/* Mobile Search Icon */}
+          <div className="block lg:hidden">
+            <Button variant="ghost" size="icon" asChild>
+                <Link to="/articles">
+                    <Search className="w-5 h-5" />
+                    <span className="sr-only">Search</span>
+                </Link>
+            </Button>
           </div>
           
           {/* Shopping Cart Icon */}
@@ -52,9 +71,9 @@ const TopNavigation = () => {
           </div>
 
           {/* Subscribe Button */}
-          <Button className="bg-primary hover:bg-primary/90 text-white px-6 py-2 rounded-lg font-medium">
-            <Mail className="w-4 h-4 mr-2" />
-            Subscribe
+          <Button className="bg-primary hover:bg-primary/90 text-white rounded-lg font-medium p-2 lg:px-6">
+            <Mail className="w-4 h-4 lg:mr-2" />
+            <span className="hidden lg:inline">Subscribe</span>
           </Button>
         </div>
       </div>

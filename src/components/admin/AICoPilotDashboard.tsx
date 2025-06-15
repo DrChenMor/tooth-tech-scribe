@@ -12,6 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import SuggestionReviewCard from './SuggestionReviewCard';
 import RealtimeActivityFeed from './RealtimeActivityFeed';
 import AgentAnalyticsDashboard from './AgentAnalyticsDashboard';
+import PredictiveAnalyticsDashboard from './PredictiveAnalyticsDashboard';
 
 const AICoPilotDashboard = () => {
   const queryClient = useQueryClient();
@@ -271,6 +272,7 @@ const AICoPilotDashboard = () => {
           <TabsTrigger value="trending">Trending</TabsTrigger>
           <TabsTrigger value="activity">Real-time Activity</TabsTrigger>
           <TabsTrigger value="analytics">Performance Analytics</TabsTrigger>
+          <TabsTrigger value="predictions">Predictive Analytics</TabsTrigger>
           <TabsTrigger value="agents">Agents</TabsTrigger>
         </TabsList>
 
@@ -346,6 +348,10 @@ const AICoPilotDashboard = () => {
 
         <TabsContent value="analytics" className="space-y-4">
           <AgentAnalyticsDashboard />
+        </TabsContent>
+
+        <TabsContent value="predictions" className="space-y-4">
+          <PredictiveAnalyticsDashboard />
         </TabsContent>
 
         <TabsContent value="agents" className="space-y-4">

@@ -4,9 +4,8 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 console.log("translator function booting");
 
 const googleApiKey = Deno.env.get("GOOGLE_API_KEY");
-if (!googleApiKey) {
-  console.error("GOOGLE_API_KEY is not set.");
-}
+const openaiApiKey = Deno.env.get("OPENAI_API_KEY");
+const anthropicApiKey = Deno.env.get("ANTHROPIC_API_KEY");
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -17,7 +16,184 @@ const corsHeaders = {
 interface TranslateRequest {
   content: string;
   targetLanguage: string;
-  model: string;
+  provider: 'google' | 'openai' | 'claude' | 'gemini';
+}
+
+async function translateWithGoogle(content: string, targetLanguage: string): Promise<string> {
+  if (!googleApiKey) {
+    throw new Error("Google API key not configured");
+  }
+
+  const apiUrl = `https://translation.googleapis.com/language/translate/v2?key=${googleApiKey}`;
+  
+  const response = await fetch(apiUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      q: content,
+      target: targetLanguage,
+      format: 'html',
+    }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    console.error("Google Translate API error response:", errorData);
+    const errorMessage = errorData.error?.message || "Google Translation failed";
+    throw new Error(errorMessage);
+  }
+
+  const result = await response.json();
+  return result.data.translations[0].translatedText;
+}
+
+async function translateWithOpenAI(content: string, targetLanguage: string): Promise<string> {
+  if (!openaiApiKey) {
+    throw new Error("OpenAI API key not configured");
+  }
+
+  const languageMap: Record<string, string> = {
+    'es': 'Spanish',
+    'fr': 'French',
+    'de': 'German',
+    'ja': 'Japanese',
+    'pt': 'Portuguese',
+    'he': 'Hebrew',
+    'zh': 'Chinese',
+    'ru': 'Russian',
+    'it': 'Italian',
+    'ko': 'Korean'
+  };
+
+  const targetLanguageName = languageMap[targetLanguage] || targetLanguage;
+
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${openaiApiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: `You are a professional translator. Translate the following text to ${targetLanguageName}. Preserve the original formatting, HTML tags, and structure. Only respond with the translated text, nothing else.`
+        },
+        {
+          role: 'user',
+          content: content
+        }
+      ],
+      max_tokens: 4000,
+      temperature: 0.3,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error?.message || 'OpenAI translation failed');
+  }
+
+  const data = await response.json();
+  return data.choices[0].message.content;
+}
+
+async function translateWithClaude(content: string, targetLanguage: string): Promise<string> {
+  if (!anthropicApiKey) {
+    throw new Error("Anthropic API key not configured");
+  }
+
+  const languageMap: Record<string, string> = {
+    'es': 'Spanish',
+    'fr': 'French',
+    'de': 'German',
+    'ja': 'Japanese',
+    'pt': 'Portuguese',
+    'he': 'Hebrew',
+    'zh': 'Chinese',
+    'ru': 'Russian',
+    'it': 'Italian',
+    'ko': 'Korean'
+  };
+
+  const targetLanguageName = languageMap[targetLanguage] || targetLanguage;
+
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${anthropicApiKey}`,
+      'Content-Type': 'application/json',
+      'anthropic-version': '2023-06-01',
+    },
+    body: JSON.stringify({
+      model: 'claude-3-5-haiku-20241022',
+      max_tokens: 4000,
+      system: `You are a professional translator. Translate the following text to ${targetLanguageName}. Preserve the original formatting, HTML tags, and structure. Only respond with the translated text, nothing else.`,
+      messages: [
+        {
+          role: 'user',
+          content: content
+        }
+      ],
+    }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error?.message || 'Claude translation failed');
+  }
+
+  const data = await response.json();
+  return data.content[0].text;
+}
+
+async function translateWithGemini(content: string, targetLanguage: string): Promise<string> {
+  if (!googleApiKey) {
+    throw new Error("Google API key not configured");
+  }
+
+  const languageMap: Record<string, string> = {
+    'es': 'Spanish',
+    'fr': 'French',
+    'de': 'German',
+    'ja': 'Japanese',
+    'pt': 'Portuguese',
+    'he': 'Hebrew',
+    'zh': 'Chinese',
+    'ru': 'Russian',
+    'it': 'Italian',
+    'ko': 'Korean'
+  };
+
+  const targetLanguageName = languageMap[targetLanguage] || targetLanguage;
+  const prompt = `Translate the following text to ${targetLanguageName}. Preserve the original formatting, HTML tags, and structure. Only respond with the translated text, nothing else.\n\nText to translate:\n${content}`;
+
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${googleApiKey}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      contents: [{
+        parts: [{ text: prompt }]
+      }],
+      generationConfig: {
+        maxOutputTokens: 4000,
+        temperature: 0.3,
+      },
+    }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error?.message || 'Gemini translation failed');
+  }
+
+  const data = await response.json();
+  return data.candidates[0].content.parts[0].text;
 }
 
 serve(async (req: Request) => {
@@ -28,7 +204,7 @@ serve(async (req: Request) => {
   }
 
   try {
-    const { content, targetLanguage, model }: TranslateRequest = await req.json();
+    const { content, targetLanguage, provider }: TranslateRequest = await req.json();
 
     if (!content || !targetLanguage) {
       return new Response(
@@ -37,31 +213,26 @@ serve(async (req: Request) => {
       );
     }
 
-    console.log(`Translating to ${targetLanguage} using ${model || 'default'} model...`);
+    console.log(`Translating to ${targetLanguage} using ${provider}...`);
 
-    const apiUrl = `https://translation.googleapis.com/language/translate/v2?key=${googleApiKey}`;
-    
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        q: content,
-        target: targetLanguage,
-        format: 'html', // Preserves basic HTML formatting
-      }),
-    });
+    let translatedText: string;
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error("Google Translate API error response:", errorData);
-      const errorMessage = errorData.error?.message || "Translation failed due to an API error.";
-      throw new Error(errorMessage);
+    switch (provider) {
+      case 'google':
+        translatedText = await translateWithGoogle(content, targetLanguage);
+        break;
+      case 'openai':
+        translatedText = await translateWithOpenAI(content, targetLanguage);
+        break;
+      case 'claude':
+        translatedText = await translateWithClaude(content, targetLanguage);
+        break;
+      case 'gemini':
+        translatedText = await translateWithGemini(content, targetLanguage);
+        break;
+      default:
+        throw new Error(`Unsupported translation provider: ${provider}`);
     }
-
-    const result = await response.json();
-    const translatedText = result.data.translations[0].translatedText;
 
     console.log("Translation successful.");
     return new Response(JSON.stringify({ content: translatedText }), {
@@ -82,4 +253,3 @@ serve(async (req: Request) => {
     );
   }
 });
-

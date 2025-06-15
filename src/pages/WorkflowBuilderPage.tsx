@@ -100,7 +100,7 @@ const WorkflowBuilderPage = () => {
       'email-sender': { recipient: '', subject: 'New Article Published: {{article.title}}', body: 'Read it here: {{article.url}}' },
       'image-generator': { prompt: 'A futuristic image related to: {{article.title}}', provider: 'dall-e-3' },
       'seo-analyzer': { keywords: [], targetScore: 80 },
-      'translator': { targetLanguage: 'es', provider: 'google' }
+      'translator': { targetLanguage: 'es', provider: 'openai' }
     };
     return configs[type];
   };
@@ -332,19 +332,19 @@ const WorkflowBuilderPage = () => {
             if (!contentToTranslate) {
               throw new Error('Translator has no content to translate. Make sure it follows a node that provides content or an article.');
             }
-            log(`Translating content to ${currentNode.config.targetLanguage}...`);
+            log(`Translating content to ${currentNode.config.targetLanguage} using ${currentNode.config.provider}...`);
 
             const { data: translatorData, error: translatorError } = await supabase.functions.invoke('translator', {
               body: {
                 content: contentToTranslate,
                 targetLanguage: currentNode.config.targetLanguage,
-                model: currentNode.config.provider,
+                provider: currentNode.config.provider,
               },
             });
 
             if (translatorError) {
               console.error('Translator function invocation error:', translatorError);
-              throw translatorError; // Throw the original error to be caught by the catch block
+              throw translatorError;
             }
             
             if (translatorData.error) {
@@ -356,12 +356,11 @@ const WorkflowBuilderPage = () => {
 
             const translatedContent = translatorData.content;
             previousNodeOutput = { ...previousNodeOutput, content: translatedContent };
-            // If an article was being translated, update its content as well to avoid stale data
             if (previousNodeOutput.article) {
                 previousNodeOutput.article.content = translatedContent;
             }
 
-            log(`Translation successful.`);
+            log(`Translation successful using ${currentNode.config.provider}.`);
             break;
           }
         }

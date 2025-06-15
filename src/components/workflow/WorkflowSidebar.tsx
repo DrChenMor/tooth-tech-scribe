@@ -404,20 +404,26 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
       {node.type === 'translator' && (
         <div className="space-y-4">
           <div>
-            <Label>AI Provider</Label>
+            <Label>Translation Provider</Label>
             <Select
-              value={node.config.provider || 'google'}
+              value={node.config.provider || 'openai'}
               onValueChange={(value) => handleConfigChange('provider', value)}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select a provider" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="google">Google Translate (Gemini)</SelectItem>
+                <SelectItem value="openai">OpenAI GPT (Cost-effective)</SelectItem>
+                <SelectItem value="claude">Anthropic Claude (High quality)</SelectItem>
+                <SelectItem value="gemini">Google Gemini (Fast)</SelectItem>
+                <SelectItem value="google">Google Translate API (Most accurate)</SelectItem>
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground mt-1">
-              Currently using Google's translation model.
+              {node.config.provider === 'google' 
+                ? 'Professional translation service - requires Cloud Translation API enabled'
+                : 'AI-powered translation - more cost-effective and good quality'
+              }
             </p>
           </div>
           <div>
@@ -436,6 +442,10 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
                 <SelectItem value="ja">Japanese</SelectItem>
                 <SelectItem value="pt">Portuguese</SelectItem>
                 <SelectItem value="he">Hebrew</SelectItem>
+                <SelectItem value="zh">Chinese</SelectItem>
+                <SelectItem value="ru">Russian</SelectItem>
+                <SelectItem value="it">Italian</SelectItem>
+                <SelectItem value="ko">Korean</SelectItem>
               </SelectContent>
             </Select>
           </div>

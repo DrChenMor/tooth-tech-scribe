@@ -1,4 +1,3 @@
-
 import Footer from '@/components/Footer';
 import ArticleCard from '@/components/ArticleCard';
 import { Link } from 'react-router-dom';
@@ -51,19 +50,6 @@ const Index = () => {
     if (!selectedCategory) return articles;
     return articles.filter(article => article.category === selectedCategory);
   }, [articles, selectedCategory]);
-  
-  const categoryCounts = useMemo(() => {
-    if (!articles) return {};
-    return articles.reduce((acc, article) => {
-      if (article.category) {
-        acc[article.category] = (acc[article.category] || 0) + 1;
-      }
-      return acc;
-    }, {} as Record<string, number>);
-  }, [articles]);
-
-  const totalArticleCount = useMemo(() => articles?.length || 0, [articles]);
-
 
   if (isLoading) {
     return (
@@ -128,24 +114,24 @@ const Index = () => {
   const otherArticles = filteredArticles?.slice(3) || [];
 
   if (!filteredArticles || filteredArticles.length === 0) {
-    return (
-       <div className="flex flex-col flex-grow">
-        <main className="flex-grow flex items-center justify-center">
-          <div className="text-center px-4">
-            <h2 className="text-2xl font-bold">No articles found {selectedCategory ? `in ${selectedCategory}` : ''}</h2>
-            <p className="text-muted-foreground">
-              {selectedCategory ? 'Try another category or clear the filter.' : 'Check back later for new content!'}
-            </p>
-            {selectedCategory && (
-              <Button onClick={() => setSelectedCategory(null)} className="mt-4">
-                Show All Articles
-              </Button>
-            )}
-          </div>
-        </main>
-        <Footer />
-      </div>
-    );
+       return (
+        <div className="flex flex-col flex-grow">
+         <main className="flex-grow flex items-center justify-center">
+           <div className="text-center px-4">
+             <h2 className="text-2xl font-bold">No articles found {selectedCategory ? `in ${selectedCategory}` : ''}</h2>
+             <p className="text-muted-foreground">
+               {selectedCategory ? 'Try another category or clear the filter.' : 'Check back later for new content!'}
+             </p>
+             {selectedCategory && (
+               <Button onClick={() => setSelectedCategory(null)} className="mt-4">
+                 Show All Articles
+               </Button>
+             )}
+           </div>
+         </main>
+         <Footer />
+       </div>
+     );
   }
 
   return (
@@ -197,15 +183,6 @@ const Index = () => {
                 <CarouselPrevious className="hidden md:flex" />
                 <CarouselNext className="hidden md:flex" />
               </Carousel>
-              {selectedCategory && (
-                <div className="text-center mt-6">
-                  <Button asChild variant="link">
-                    <Link to={`/category/${selectedCategory.toLowerCase().replace(/\s+/g, '-')}`}>
-                      View all articles in {selectedCategory}
-                    </Link>
-                  </Button>
-                </div>
-              )}
             </div>
           )}
           
@@ -220,7 +197,7 @@ const Index = () => {
                 !selectedCategory ? 'bg-primary text-primary-foreground hover:bg-primary/90' : 'hover:bg-accent'
               )}
             >
-              All ({totalArticleCount})
+              All
             </Button>
             {isLoadingCategories ? (
               [...Array(3)].map((_, i) => <Skeleton key={i} className="h-8 w-24 rounded-full" />)
@@ -236,7 +213,7 @@ const Index = () => {
                     selectedCategory === category ? 'bg-primary text-primary-foreground hover:bg-primary/90' : 'hover:bg-accent'
                   )}
                 >
-                  {category} ({categoryCounts[category] || 0})
+                  {category}
                 </Button>
               ))
             )}

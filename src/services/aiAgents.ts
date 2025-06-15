@@ -66,7 +66,7 @@ export async function getActiveAgents(): Promise<AIAgent[]> {
   })) as AIAgent[];
 }
 
-export async function fetchAIAgents(): Promise<AIAgent[]> {
+export async function getAIAgents(): Promise<AIAgent[]> {
   const { data, error } = await supabase
     .from('ai_agents')
     .select('*')
@@ -79,6 +79,9 @@ export async function fetchAIAgents(): Promise<AIAgent[]> {
     config: parseJsonSafely(agent.config)
   })) as AIAgent[];
 }
+
+// Alias for consistency
+export const fetchAIAgents = getAIAgents;
 
 export async function getPendingSuggestions(): Promise<AISuggestion[]> {
   const { data, error } = await supabase

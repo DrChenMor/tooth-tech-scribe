@@ -93,6 +93,7 @@ const AIAgentManagementPage = () => {
         isOpen={isCreateDialogOpen || !!editingAgent}
         onClose={handleCloseDialog}
         agent={editingAgent}
+        mode={editingAgent ? 'edit' : 'create'}
       />
     </div>
   );

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -15,6 +16,44 @@ interface ApiKeyStatus {
   configured: boolean;
   description: string;
 }
+
+type Theme = {
+  '--primary': string;
+  '--background': string;
+  '--foreground': string;
+  '--card': string;
+  '--muted': string;
+  '--border': string;
+  '--font-main': string;
+  '--font-secondary': string;
+  '--radius': string;
+  '--p-font-size': string;
+  '--h1-font-size': string;
+  '--h2-font-size': string;
+  '--h3-font-size': string;
+  '--h4-font-size': string;
+  '--h5-font-size': string;
+  '--h6-font-size': string;
+};
+
+const initialTheme: Theme = {
+  '--primary': '',
+  '--background': '',
+  '--foreground': '',
+  '--card': '',
+  '--muted': '',
+  '--border': '',
+  '--font-main': '',
+  '--font-secondary': '',
+  '--radius': '',
+  '--p-font-size': '',
+  '--h1-font-size': '',
+  '--h2-font-size': '',
+  '--h3-font-size': '',
+  '--h4-font-size': '',
+  '--h5-font-size': '',
+  '--h6-font-size': '',
+};
 
 const AdminSettingsPage = () => {
   const [apiKeys, setApiKeys] = useState({
@@ -44,34 +83,14 @@ const AdminSettingsPage = () => {
     }
   ]);
 
-  const [theme, setTheme] = useState({
-    // Colors
-    '--primary': '',
-    '--background': '',
-    '--foreground': '',
-    '--card': '',
-    '--muted': '',
-    '--border': '',
-    // Typography & Sizing
-    '--font-main': '',
-    '--font-secondary': '',
-    '--radius': '',
-    '--p-font-size': '',
-    '--h1-font-size': '',
-    '--h2-font-size': '',
-    '--h3-font-size': '',
-    '--h4-font-size': '',
-    '--h5-font-size': '',
-    '--h6-font-size': '',
-  });
+  const [theme, setTheme] = useState<Theme>(initialTheme);
 
   // Load theme from localStorage or CSS variables on initial render
   useEffect(() => {
     const rootStyle = getComputedStyle(document.documentElement);
-    const getDefaultTheme = () => {
-      const defaultTheme: { [key: string]: string } = {};
-      Object.keys(theme).forEach(key => {
-        // For fonts, we need to handle quotes
+    const getDefaultTheme = (): Theme => {
+      const defaultTheme = { ...initialTheme };
+      (Object.keys(defaultTheme) as Array<keyof Theme>).forEach(key => {
         const value = rootStyle.getPropertyValue(key).trim();
         defaultTheme[key] = value.includes('"') ? value.replace(/"/g, '') : value;
       });
@@ -79,16 +98,18 @@ const AdminSettingsPage = () => {
     };
 
     const savedTheme = localStorage.getItem('app-theme');
+    const defaultTheme = getDefaultTheme();
+
     if (savedTheme) {
       try {
         const parsedTheme = JSON.parse(savedTheme);
-        setTheme({ ...getDefaultTheme(), ...parsedTheme });
+        setTheme({ ...defaultTheme, ...parsedTheme });
       } catch (error) {
         console.error("Failed to parse theme from localStorage", error);
-        setTheme(getDefaultTheme());
+        setTheme(defaultTheme);
       }
     } else {
-      setTheme(getDefaultTheme());
+      setTheme(defaultTheme);
     }
   }, []);
 
@@ -103,7 +124,7 @@ const AdminSettingsPage = () => {
     });
   }, [theme]);
   
-  const handleThemeChange = (key: string, value: string) => {
+  const handleThemeChange = (key: keyof Theme, value: string) => {
     setTheme(prev => ({ ...prev, [key]: value }));
   };
   
@@ -165,9 +186,9 @@ const AdminSettingsPage = () => {
     { key: '--h6-font-size', label: 'Heading 6 Size', placeholder: 'e.g., 1rem' },
     { key: '--p-font-size', label: 'Paragraph Size', placeholder: 'e.g., 1rem' },
     { key: '--radius', label: 'Border Radius', placeholder: 'e.g., 0.5rem' },
-  ];
+  ] as const;
   
-  const colorFields = Object.keys(theme).filter(key => 
+  const colorFields = (Object.keys(theme) as Array<keyof Theme>).filter(key => 
     !typographyAndSizingFields.some(f => f.key === key) && 
     key !== '--font-main' && 
     key !== '--font-secondary'
@@ -302,11 +323,11 @@ const AdminSettingsPage = () => {
                   <div className="flex items-center gap-2 mt-1">
                     <div 
                       className="w-8 h-8 rounded-md border" 
-                      style={{ backgroundColor: `hsl(${theme[key as keyof typeof theme]})` }}
+                      style={{ backgroundColor: `hsl(${theme[key]})` }}
                     ></div>
                     <Input
                       id={`theme-${key}`}
-                      value={theme[key as keyof typeof theme]}
+                      value={theme[key]}
                       onChange={(e) => handleThemeChange(key, e.target.value)}
                       placeholder="e.g., 217 91% 60%"
                     />
@@ -363,7 +384,7 @@ const AdminSettingsPage = () => {
                       <Label htmlFor={`theme-${key}`}>{label}</Label>
                       <Input
                           id={`theme-${key}`}
-                          value={theme[key as keyof typeof theme]}
+                          value={theme[key]}
                           onChange={(e) => handleThemeChange(key, e.target.value)}
                           placeholder={placeholder}
                           className="mt-1"

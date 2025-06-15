@@ -1,8 +1,8 @@
 
 import { Link, useLocation } from 'react-router-dom';
-import { Search, Mail } from 'lucide-react';
+import { Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import SearchCommand from './SearchCommand';
 
 const TopNavigation = () => {
   const location = useLocation();
@@ -41,12 +41,8 @@ const TopNavigation = () => {
         {/* Search and Subscribe */}
         <div className="flex items-center gap-4">
           {/* Search Bar */}
-          <div className="relative hidden md:block">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-            <Input
-              placeholder="Search for..."
-              className="pl-10 w-64 bg-muted/50 border-border"
-            />
+          <div className="hidden md:block">
+            <SearchCommand />
           </div>
           
           {/* Shopping Cart Icon */}

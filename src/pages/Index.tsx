@@ -7,6 +7,10 @@ import { Article } from '@/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
+import { useCategories } from '@/hooks/use-categories';
+import { useMemo, useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 const fetchArticles = async (): Promise<Article[]> => {
   const { data, error } = await supabase
@@ -26,6 +30,14 @@ const Index = () => {
     queryKey: ['articles'],
     queryFn: fetchArticles,
   });
+  const { data: categories, isLoading: isLoadingCategories } = useCategories();
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+
+  const filteredArticles = useMemo(() => {
+    if (!articles) return [];
+    if (!selectedCategory) return articles;
+    return articles.filter(article => article.category === selectedCategory);
+  }, [articles, selectedCategory]);
 
   if (isLoading) {
     return (
@@ -86,16 +98,23 @@ const Index = () => {
     );
   }
 
-  const featuredArticle = articles?.[0];
-  const otherArticles = articles?.slice(1) || [];
+  const featuredArticle = filteredArticles?.[0];
+  const otherArticles = filteredArticles?.slice(1) || [];
 
   if (!featuredArticle) {
     return (
        <div className="flex flex-col flex-grow">
         <main className="flex-grow flex items-center justify-center">
-          <div className="text-center">
-            <h2 className="text-2xl font-bold">No articles found</h2>
-            <p className="text-muted-foreground">Check back later for new content!</p>
+          <div className="text-center px-4">
+            <h2 className="text-2xl font-bold">No articles found {selectedCategory ? `in ${selectedCategory}` : ''}</h2>
+            <p className="text-muted-foreground">
+              {selectedCategory ? 'Try another category or clear the filter.' : 'Check back later for new content!'}
+            </p>
+            {selectedCategory && (
+              <Button onClick={() => setSelectedCategory(null)} className="mt-4">
+                Show All Articles
+              </Button>
+            )}
           </div>
         </main>
         <Footer />
@@ -112,6 +131,39 @@ const Index = () => {
             <p className="mt-4 max-w-2xl mx-auto text-lg text-muted-foreground">
               Your source for the latest in AI and Dentistry Technology, from industry news to groundbreaking research and clinical tools.
             </p>
+          </div>
+
+          {/* Category Filters */}
+          <div className="flex justify-center flex-wrap gap-2 mb-12">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSelectedCategory(null)}
+              className={cn(
+                "rounded-full",
+                !selectedCategory ? 'bg-primary text-primary-foreground hover:bg-primary/90' : 'hover:bg-accent'
+              )}
+            >
+              All
+            </Button>
+            {isLoadingCategories ? (
+              [...Array(3)].map((_, i) => <Skeleton key={i} className="h-8 w-24 rounded-full" />)
+            ) : (
+              categories?.map((category) => (
+                <Button
+                  key={category}
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelectedCategory(category)}
+                  className={cn(
+                    "rounded-full",
+                    selectedCategory === category ? 'bg-primary text-primary-foreground hover:bg-primary/90' : 'hover:bg-accent'
+                  )}
+                >
+                  {category}
+                </Button>
+              ))
+            )}
           </div>
 
           {/* Featured Article */}

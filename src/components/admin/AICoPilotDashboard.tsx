@@ -1,438 +1,266 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+
+import { useState } from 'react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Brain, TrendingUp, FileText, AlertTriangle, Clock, CheckCircle, XCircle, Zap, Activity } from 'lucide-react';
-import { fetchPendingSuggestions, fetchAIAgents, updateSuggestionStatus, runAllActiveAgents, AIAgent, AISuggestion } from '@/services/aiAgents';
-import { toast } from '@/components/ui/use-toast';
-import { format } from 'date-fns';
-import { supabase } from '@/integrations/supabase/client';
-import SuggestionReviewCard from './SuggestionReviewCard';
-import RealtimeActivityFeed from './RealtimeActivityFeed';
+import { Brain, Users, BarChart3, Settings, Workflow, Zap, Plus } from 'lucide-react';
 import AgentAnalyticsDashboard from './AgentAnalyticsDashboard';
 import PredictiveAnalyticsDashboard from './PredictiveAnalyticsDashboard';
-import AgentManagementDialog from './AgentManagementDialog';
+import SystemMetricsDashboard from './SystemMetricsDashboard';
+import WorkflowAutomationDashboard from './WorkflowAutomationDashboard';
 import AgentManagementCard from './AgentManagementCard';
+import AgentManagementDialog from './AgentManagementDialog';
+import IntegrationStatusCard from './IntegrationStatusCard';
+import { useQuery } from '@tanstack/react-query';
+import { getAIAgents } from '@/services/aiAgents';
+import { useToast } from '@/components/ui/use-toast';
 
 const AICoPilotDashboard = () => {
-  const queryClient = useQueryClient();
-  const [realtimeStats, setRealtimeStats] = useState({
-    newSuggestionsCount: 0,
-    activeAgentsRunning: 0,
-    lastActivity: null as string | null
-  });
-
-  // Add agent management state
-  const [agentDialogOpen, setAgentDialogOpen] = useState(false);
-  const [selectedAgent, setSelectedAgent] = useState<AIAgent | null>(null);
-  const [agentDialogMode, setAgentDialogMode] = useState<'create' | 'edit'>('create');
-
-  const { data: suggestions = [], isLoading: suggestionsLoading } = useQuery({
-    queryKey: ['ai-suggestions'],
-    queryFn: fetchPendingSuggestions,
-    refetchInterval: 30000, // Refresh every 30 seconds
-  });
+  const [showCreateAgent, setShowCreateAgent] = useState(false);
+  const [selectedAgent, setSelectedAgent] = useState(null);
+  const { toast } = useToast();
 
   const { data: agents = [], isLoading: agentsLoading } = useQuery({
     queryKey: ['ai-agents'],
-    queryFn: fetchAIAgents,
+    queryFn: getAIAgents,
   });
 
-  // Real-time subscription for new suggestions
-  useEffect(() => {
-    const channel = supabase
-      .channel('ai-suggestions-realtime')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'ai_suggestions'
-        },
-        (payload) => {
-          console.log('New AI suggestion received:', payload);
-          
-          // Update realtime stats
-          setRealtimeStats(prev => ({
-            ...prev,
-            newSuggestionsCount: prev.newSuggestionsCount + 1,
-            lastActivity: new Date().toISOString()
-          }));
-
-          // Show toast notification
-          toast({
-            title: "New AI Suggestion",
-            description: "A new AI suggestion has been generated and is ready for review.",
-            duration: 5000,
-          });
-
-          // Invalidate queries to refresh data
-          queryClient.invalidateQueries({ queryKey: ['ai-suggestions'] });
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'ai_suggestions'
-        },
-        (payload) => {
-          console.log('AI suggestion updated:', payload);
-          
-          setRealtimeStats(prev => ({
-            ...prev,
-            lastActivity: new Date().toISOString()
-          }));
-
-          // Invalidate queries to refresh data
-          queryClient.invalidateQueries({ queryKey: ['ai-suggestions'] });
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [queryClient]);
-
-  const runAgentsMutation = useMutation({
-    mutationFn: runAllActiveAgents,
-    onMutate: () => {
-      setRealtimeStats(prev => ({
-        ...prev,
-        activeAgentsRunning: (agents as AIAgent[]).filter(a => a.is_active).length
-      }));
+  // Mock integration data
+  const integrations = [
+    {
+      id: '1',
+      name: 'OpenAI API',
+      type: 'api' as const,
+      status: 'connected' as const,
+      lastSync: '2024-01-15T10:30:00Z',
+      endpoint: 'https://api.openai.com/v1',
+      requestCount: 1247,
+      successRate: 98.5
     },
-    onSuccess: () => {
-      toast({ title: "AI Analysis Complete", description: "All active agents have been run successfully." });
-      queryClient.invalidateQueries({ queryKey: ['ai-suggestions'] });
-      setRealtimeStats(prev => ({
-        ...prev,
-        activeAgentsRunning: 0,
-        lastActivity: new Date().toISOString()
-      }));
+    {
+      id: '2',
+      name: 'Slack Notifications',
+      type: 'webhook' as const,
+      status: 'connected' as const,
+      lastSync: '2024-01-15T09:15:00Z',
+      endpoint: 'https://hooks.slack.com/...',
+      requestCount: 89,
+      successRate: 100
     },
-    onError: (error) => {
-      toast({ title: "Analysis Failed", description: error.message, variant: "destructive" });
-      setRealtimeStats(prev => ({
-        ...prev,
-        activeAgentsRunning: 0
-      }));
+    {
+      id: '3',
+      name: 'Email Service',
+      type: 'api' as const,
+      status: 'warning' as const,
+      lastSync: '2024-01-14T14:20:00Z',
+      errorMessage: 'Rate limit approaching',
+      requestCount: 456,
+      successRate: 92.1
+    },
+    {
+      id: '4',
+      name: 'Database Sync',
+      type: 'database' as const,
+      status: 'error' as const,
+      errorMessage: 'Connection timeout',
+      requestCount: 23,
+      successRate: 45.2
     }
-  });
+  ];
 
-  const activeAgents = (agents as AIAgent[]).filter(agent => agent.is_active);
-  const typedSuggestions = suggestions as AISuggestion[];
-  const suggestionsByType = typedSuggestions.reduce((acc, suggestion) => {
-    const type = suggestion.target_type;
-    if (!acc[type]) acc[type] = [];
-    acc[type].push(suggestion);
-    return acc;
-  }, {} as Record<string, AISuggestion[]>);
-
-  const prioritySuggestions = typedSuggestions
-    .filter(s => s.priority && s.priority <= 2)
-    .sort((a, b) => (a.priority || 5) - (b.priority || 5));
-
-  if (suggestionsLoading || agentsLoading) {
-    return <div>Loading AI Co-Pilot Dashboard...</div>;
-  }
-
-  const handleCreateAgent = () => {
-    setSelectedAgent(null);
-    setAgentDialogMode('create');
-    setAgentDialogOpen(true);
+  const handleRefreshIntegration = (id: string) => {
+    toast({ title: 'Refreshing...', description: 'Integration status is being updated' });
   };
 
-  const handleEditAgent = (agent: AIAgent) => {
-    setSelectedAgent(agent);
-    setAgentDialogMode('edit');
-    setAgentDialogOpen(true);
-  };
-
-  const handleCloseDialog = () => {
-    setAgentDialogOpen(false);
-    setSelectedAgent(null);
+  const handleConfigureIntegration = (id: string) => {
+    toast({ title: 'Opening Configuration', description: 'Integration settings will open' });
   };
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">
             <Brain className="h-8 w-8" />
-            AI Co-Pilot Dashboard
-            {realtimeStats.activeAgentsRunning > 0 && (
-              <Badge variant="default" className="animate-pulse">
-                <Activity className="h-3 w-3 mr-1" />
-                Analyzing
-              </Badge>
-            )}
+            AI CoPilot Control Center
           </h1>
-          <p className="text-muted-foreground mt-2">
-            Review AI suggestions and manage intelligent content workflows
-            {realtimeStats.lastActivity && (
-              <span className="ml-2 text-sm">
-                • Last activity: {format(new Date(realtimeStats.lastActivity), 'HH:mm:ss')}
-              </span>
-            )}
+          <p className="text-muted-foreground">
+            Monitor, manage, and optimize your AI agents and automation workflows
           </p>
         </div>
-        <Button 
-          onClick={() => runAgentsMutation.mutate()}
-          disabled={runAgentsMutation.isPending}
-        >
-          {runAgentsMutation.isPending ? 'Running Analysis...' : 'Run AI Analysis'}
+        <Button onClick={() => setShowCreateAgent(true)} className="flex items-center gap-2">
+          <Plus className="h-4 w-4" />
+          Create Agent
         </Button>
       </div>
 
-      {/* Real-time Activity Banner */}
-      {realtimeStats.newSuggestionsCount > 0 && (
-        <Card className="border-green-200 bg-green-50">
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-2">
-              <Zap className="h-4 w-4 text-green-600" />
-              <span className="text-green-800 font-medium">
-                {realtimeStats.newSuggestionsCount} new suggestion{realtimeStats.newSuggestionsCount !== 1 ? 's' : ''} received since last refresh
-              </span>
-              <Button 
-                size="sm" 
-                variant="outline" 
-                onClick={() => {
-                  queryClient.invalidateQueries({ queryKey: ['ai-suggestions'] });
-                  setRealtimeStats(prev => ({ ...prev, newSuggestionsCount: 0 }));
-                }}
-              >
-                Refresh Now
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      <Tabs defaultValue="overview" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-6">
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="agents">Agents</TabsTrigger>
+          <TabsTrigger value="analytics">Analytics</TabsTrigger>
+          <TabsTrigger value="predictive">Predictive</TabsTrigger>
+          <TabsTrigger value="automation">Automation</TabsTrigger>
+          <TabsTrigger value="integrations">Integrations</TabsTrigger>
+        </TabsList>
 
-      {/* Overview Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending Suggestions</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{typedSuggestions.length}</div>
-            <p className="text-xs text-muted-foreground">
-              {prioritySuggestions.length} high priority
-              {realtimeStats.newSuggestionsCount > 0 && (
-                <span className="text-green-600 ml-1">
-                  (+{realtimeStats.newSuggestionsCount} new)
-                </span>
-              )}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Agents</CardTitle>
-            <Brain className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold flex items-center gap-2">
-              {activeAgents.length}
-              {realtimeStats.activeAgentsRunning > 0 && (
-                <Activity className="h-4 w-4 text-blue-600 animate-pulse" />
-              )}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              of {(agents as AIAgent[]).length} total agents
-              {realtimeStats.activeAgentsRunning > 0 && (
-                <span className="text-blue-600 ml-1">
-                  ({realtimeStats.activeAgentsRunning} running)
-                </span>
-              )}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Content Suggestions</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {suggestionsByType.article?.length || 0}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Article improvements
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Trending Insights</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {suggestionsByType.hero_section?.length || 0}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Featured content ideas
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Main Content with Improved Tab Layout */}
-      <Tabs defaultValue="priority" className="space-y-4">
-        <div className="w-full overflow-x-auto">
-          <TabsList className="w-full h-auto p-1 grid grid-cols-7 lg:flex lg:w-auto">
-            <TabsTrigger value="priority" className="text-xs lg:text-sm whitespace-nowrap">Priority</TabsTrigger>
-            <TabsTrigger value="content" className="text-xs lg:text-sm whitespace-nowrap">Content</TabsTrigger>
-            <TabsTrigger value="trending" className="text-xs lg:text-sm whitespace-nowrap">Trending</TabsTrigger>
-            <TabsTrigger value="activity" className="text-xs lg:text-sm whitespace-nowrap">Activity</TabsTrigger>
-            <TabsTrigger value="analytics" className="text-xs lg:text-sm whitespace-nowrap">Analytics</TabsTrigger>
-            <TabsTrigger value="predictions" className="text-xs lg:text-sm whitespace-nowrap">Predictions</TabsTrigger>
-            <TabsTrigger value="agents" className="text-xs lg:text-sm whitespace-nowrap">Agents</TabsTrigger>
-          </TabsList>
-        </div>
-
-        <TabsContent value="priority" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>High Priority Suggestions</CardTitle>
-              <CardDescription>
-                Review the most important AI recommendations requiring immediate attention
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {prioritySuggestions.length === 0 ? (
-                <p className="text-muted-foreground">No high priority suggestions at this time.</p>
-              ) : (
-                <div className="space-y-4">
-                  {prioritySuggestions.map((suggestion) => (
-                    <SuggestionReviewCard key={suggestion.id} suggestion={suggestion} />
-                  ))}
+        <TabsContent value="overview" className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center space-x-2">
+                  <Users className="h-4 w-4 text-blue-600" />
+                  <span className="text-sm font-medium">Active Agents</span>
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="content" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Content Suggestions</CardTitle>
-              <CardDescription>
-                AI recommendations for article improvements and content optimization
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {suggestionsByType.article?.length === 0 ? (
-                <p className="text-muted-foreground">No content suggestions available.</p>
-              ) : (
-                <div className="space-y-4">
-                  {suggestionsByType.article?.map((suggestion) => (
-                    <SuggestionReviewCard key={suggestion.id} suggestion={suggestion} />
-                  ))}
+                <div className="text-2xl font-bold">{agents.filter(a => a.enabled).length}</div>
+                <p className="text-xs text-muted-foreground">
+                  {agents.length} total agents
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center space-x-2">
+                  <BarChart3 className="h-4 w-4 text-green-600" />
+                  <span className="text-sm font-medium">Avg Performance</span>
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="trending" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Trending Content</CardTitle>
-              <CardDescription>
-                AI-identified trending articles and featured content recommendations
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {suggestionsByType.hero_section?.length === 0 ? (
-                <p className="text-muted-foreground">No trending suggestions available.</p>
-              ) : (
-                <div className="space-y-4">
-                  {suggestionsByType.hero_section?.map((suggestion) => (
-                    <SuggestionReviewCard key={suggestion.id} suggestion={suggestion} />
-                  ))}
+                <div className="text-2xl font-bold">87.3%</div>
+                <p className="text-xs text-muted-foreground">+2.1% from last week</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center space-x-2">
+                  <Workflow className="h-4 w-4 text-purple-600" />
+                  <span className="text-sm font-medium">Automations</span>
                 </div>
-              )}
-            </CardContent>
-          </Card>
+                <div className="text-2xl font-bold">12</div>
+                <p className="text-xs text-muted-foreground">8 active workflows</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center space-x-2">
+                  <Zap className="h-4 w-4 text-orange-600" />
+                  <span className="text-sm font-medium">Daily Actions</span>
+                </div>
+                <div className="text-2xl font-bold">1,247</div>
+                <p className="text-xs text-muted-foreground">+15% today</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <SystemMetricsDashboard />
         </TabsContent>
 
-        <TabsContent value="activity" className="space-y-4">
-          <RealtimeActivityFeed />
+        <TabsContent value="agents" className="space-y-6">
+          <div className="flex justify-between items-center">
+            <div>
+              <h2 className="text-2xl font-bold">Agent Management</h2>
+              <p className="text-muted-foreground">Create, configure, and monitor AI agents</p>
+            </div>
+            <Button onClick={() => setShowCreateAgent(true)} className="flex items-center gap-2">
+              <Plus className="h-4 w-4" />
+              New Agent
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {agentsLoading ? (
+              <div className="col-span-full text-center py-8">Loading agents...</div>
+            ) : agents.length === 0 ? (
+              <div className="col-span-full text-center py-8">
+                <div className="text-muted-foreground">No agents created yet</div>
+                <Button className="mt-4" onClick={() => setShowCreateAgent(true)}>
+                  Create Your First Agent
+                </Button>
+              </div>
+            ) : (
+              agents.map(agent => (
+                <AgentManagementCard
+                  key={agent.id}
+                  agent={agent}
+                  onEdit={(agent) => setSelectedAgent(agent)}
+                />
+              ))
+            )}
+          </div>
         </TabsContent>
 
-        <TabsContent value="analytics" className="space-y-4">
+        <TabsContent value="analytics">
           <AgentAnalyticsDashboard />
         </TabsContent>
 
-        <TabsContent value="predictions" className="space-y-4">
+        <TabsContent value="predictive">
           <PredictiveAnalyticsDashboard />
         </TabsContent>
 
-        <TabsContent value="agents" className="space-y-4">
+        <TabsContent value="automation">
+          <WorkflowAutomationDashboard />
+        </TabsContent>
+
+        <TabsContent value="integrations" className="space-y-6">
+          <div>
+            <h2 className="text-2xl font-bold">System Integrations</h2>
+            <p className="text-muted-foreground">Monitor and manage external service connections</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {integrations.map(integration => (
+              <IntegrationStatusCard
+                key={integration.id}
+                integration={integration}
+                onRefresh={handleRefreshIntegration}
+                onConfigure={handleConfigureIntegration}
+              />
+            ))}
+          </div>
+
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>AI Agent Management</CardTitle>
-                  <CardDescription>
-                    Create, configure, and manage your AI agents
-                  </CardDescription>
-                </div>
-                <Button onClick={handleCreateAgent}>
-                  <Brain className="h-4 w-4 mr-2" />
-                  Create New Agent
-                </Button>
-              </div>
+              <CardTitle>Integration Health Summary</CardTitle>
+              <CardDescription>Overall system integration status</CardDescription>
             </CardHeader>
             <CardContent>
-              {(agents as AIAgent[]).length === 0 ? (
-                <div className="text-center py-8">
-                  <Brain className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-                  <h3 className="text-lg font-semibold mb-2">No AI Agents</h3>
-                  <p className="text-muted-foreground mb-4">
-                    Create your first AI agent to start analyzing content and generating suggestions.
-                  </p>
-                  <Button onClick={handleCreateAgent}>
-                    <Brain className="h-4 w-4 mr-2" />
-                    Create Your First Agent
-                  </Button>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-green-600">
+                    {integrations.filter(i => i.status === 'connected').length}
+                  </div>
+                  <p className="text-sm text-muted-foreground">Connected</p>
                 </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {(agents as AIAgent[]).map((agent) => (
-                    <AgentManagementCard 
-                      key={agent.id} 
-                      agent={agent} 
-                      onEdit={handleEditAgent}
-                      isRunning={realtimeStats.activeAgentsRunning > 0 && agent.is_active}
-                    />
-                  ))}
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-yellow-600">
+                    {integrations.filter(i => i.status === 'warning').length}
+                  </div>
+                  <p className="text-sm text-muted-foreground">Warnings</p>
                 </div>
-              )}
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-red-600">
+                    {integrations.filter(i => i.status === 'error').length}
+                  </div>
+                  <p className="text-sm text-muted-foreground">Errors</p>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-blue-600">
+                    {integrations.reduce((sum, i) => sum + i.requestCount, 0).toLocaleString()}
+                  </div>
+                  <p className="text-sm text-muted-foreground">Total Requests</p>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
 
-      {/* Agent Management Dialog */}
       <AgentManagementDialog
-        isOpen={agentDialogOpen}
-        onClose={handleCloseDialog}
+        open={showCreateAgent || !!selectedAgent}
+        onClose={() => {
+          setShowCreateAgent(false);
+          setSelectedAgent(null);
+        }}
         agent={selectedAgent}
-        mode={agentDialogMode}
       />
     </div>
   );

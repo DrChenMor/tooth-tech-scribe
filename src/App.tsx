@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Outlet } from "react-router-dom";
 import Index from "./pages/Index";
 import ArticlePage from "./pages/ArticlePage";
 import AuthPage from "./pages/AuthPage";
@@ -18,6 +18,7 @@ import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AboutPage from "./pages/AboutPage";
 import ContactPage from "./pages/ContactPage";
+import AdminLayout from "./layouts/AdminLayout";
 
 const queryClient = new QueryClient();
 
@@ -34,62 +35,25 @@ const App = () => (
             <Route path="/auth" element={<AuthPage />} />
             <Route path="/about" element={<AboutPage />} />
             <Route path="/contact" element={<ContactPage />} />
-            <Route 
-              path="/admin"
+
+            <Route
               element={
                 <ProtectedRoute>
-                  <AdminPage />
+                  <AdminLayout>
+                    <Outlet />
+                  </AdminLayout>
                 </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/admin/settings"
-              element={
-                <ProtectedRoute>
-                  <AdminSettingsPage />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/admin/workflow-builder"
-              element={
-                <ProtectedRoute>
-                  <WorkflowBuilderPage />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/admin/editor"
-              element={
-                <ProtectedRoute>
-                  <ArticleEditorPage />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/admin/editor/:articleId"
-              element={
-                <ProtectedRoute>
-                  <ArticleEditorPage />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/admin/ai-generator"
-              element={
-                <ProtectedRoute>
-                  <AIContentGeneratorPage />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/admin/ai-agent-advanced"
-              element={
-                <ProtectedRoute>
-                  <AIAgentAdvancedPage />
-                </ProtectedRoute>
-              } 
-            />
+              }
+            >
+              <Route path="/admin" element={<AdminPage />} />
+              <Route path="/admin/settings" element={<AdminSettingsPage />} />
+              <Route path="/admin/workflow-builder" element={<WorkflowBuilderPage />} />
+              <Route path="/admin/editor" element={<ArticleEditorPage />} />
+              <Route path="/admin/editor/:articleId" element={<ArticleEditorPage />} />
+              <Route path="/admin/ai-generator" element={<AIContentGeneratorPage />} />
+              <Route path="/admin/ai-agent-advanced" element={<AIAgentAdvancedPage />} />
+            </Route>
+            
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

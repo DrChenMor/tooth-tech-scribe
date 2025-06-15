@@ -1,4 +1,3 @@
-
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -8,8 +7,6 @@ import { ArrowLeft } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/use-toast";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
 import ArticleForm from "@/components/admin/ArticleForm";
 import ArticleEditorSkeleton from "@/components/admin/ArticleEditorSkeleton";
 import { articleSchema, ArticleFormValues } from "@/lib/schemas";
@@ -102,23 +99,19 @@ const ArticleEditorPage = () => {
   }
 
   return (
-    <div className="flex flex-col min-h-screen">
-      <Header />
-      <main className="flex-grow container mx-auto px-4 py-8">
-        <Button variant="ghost" onClick={() => navigate('/admin')} className="mb-4">
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to Admin
-        </Button>
-        <h1 className="text-3xl font-bold mb-6">{isEditMode ? 'Edit Article' : 'Create New Article'}</h1>
-        <ArticleForm 
-          form={form}
-          onSubmit={onSubmit}
-          isPending={mutation.isPending}
-          isEditMode={isEditMode}
-        />
-      </main>
-      <Footer />
-    </div>
+    <>
+      <Button variant="ghost" onClick={() => navigate('/admin')} className="mb-4">
+        <ArrowLeft className="mr-2 h-4 w-4" />
+        Back to Admin
+      </Button>
+      <h1 className="text-3xl font-bold mb-6">{isEditMode ? 'Edit Article' : 'Create New Article'}</h1>
+      <ArticleForm 
+        form={form}
+        onSubmit={onSubmit}
+        isPending={mutation.isPending}
+        isEditMode={isEditMode}
+      />
+    </>
   );
 };
 

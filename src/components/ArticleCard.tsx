@@ -16,8 +16,14 @@ const ArticleCard = ({ article, index }: ArticleCardProps) => {
   };
 
   const handleImageLoad = () => {
-    console.log('Image loaded successfully:', article.image_url);
+    // This is useful for confirming when an image *does* load.
+    // console.log('Image loaded successfully:', article.image_url);
   };
+  
+  // Debugging log to inspect the URL being passed to the img tag
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`Article "${article.title}" is using image URL: ${article.image_url}`);
+  }
 
   return (
     <div className="animate-fade-in" style={{ animationDelay: `${(index + 1) * 100}ms` }}>

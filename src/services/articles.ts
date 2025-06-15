@@ -35,3 +35,8 @@ export const upsertArticle = async ({ id, values, author }: { id?: number; value
     if (error) throw new Error(error.message);
   }
 };
+
+export const deleteArticle = async (id: number): Promise<void> => {
+  const { error } = await supabase.from("articles").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+};

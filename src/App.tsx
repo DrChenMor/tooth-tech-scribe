@@ -27,6 +27,7 @@ import SitemapPage from "./pages/SitemapPage";
 import AICoPilotPage from "./pages/AICoPilotPage";
 import PerformanceAnalyticsPage from './pages/PerformanceAnalyticsPage';
 import AutomatedWorkflowsPage from './pages/AutomatedWorkflowsPage';
+import AnalyticsPage from './pages/AnalyticsPage';
 
 const queryClient = new QueryClient();
 
@@ -64,6 +65,7 @@ function App() {
               >
                 <Route path="/admin" element={<AdminPage />} />
                 <Route path="/admin/ai-copilot" element={<AICoPilotPage />} />
+                <Route path="/admin/analytics" element={<AnalyticsPage />} />
                 <Route path="/admin/settings" element={<AdminSettingsPage />} />
                 <Route path="/admin/workflow-builder" element={<WorkflowBuilderPage />} />
                 <Route path="/admin/editor" element={<ArticleEditorPage />} />

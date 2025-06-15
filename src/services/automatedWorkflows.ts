@@ -65,7 +65,7 @@ export interface WorkflowExecution {
 export class AutomatedWorkflowService {
   static async createWorkflowRule(rule: Omit<WorkflowRule, 'id' | 'created_at' | 'updated_at' | 'execution_count' | 'success_rate'>): Promise<WorkflowRule> {
     const { data, error } = await supabase
-      .from('workflow_rules' as any)
+      .from('workflow_rules')
       .insert([{
         ...rule,
         execution_count: 0,
@@ -75,17 +75,17 @@ export class AutomatedWorkflowService {
       .single();
 
     if (error) throw error;
-    return data;
+    return data as WorkflowRule;
   }
 
   static async getWorkflowRules(): Promise<WorkflowRule[]> {
     const { data, error } = await supabase
-      .from('workflow_rules' as any)
+      .from('workflow_rules')
       .select('*')
       .order('priority', { ascending: false });
 
     if (error) throw error;
-    return data || [];
+    return (data || []) as WorkflowRule[];
   }
 
   static async evaluateSuggestionForWorkflows(suggestion: AISuggestion): Promise<WorkflowExecution[]> {
@@ -157,7 +157,7 @@ export class AutomatedWorkflowService {
     };
 
     const { data: executionData, error } = await supabase
-      .from('workflow_executions' as any)
+      .from('workflow_executions')
       .insert([execution])
       .select()
       .single();
@@ -185,7 +185,7 @@ export class AutomatedWorkflowService {
       throw error;
     }
 
-    return executionData;
+    return executionData as WorkflowExecution;
   }
 
   private static async executeAction(action: WorkflowAction, suggestion: AISuggestion, executionId: string): Promise<void> {
@@ -226,7 +226,7 @@ export class AutomatedWorkflowService {
         reviewDate.setMinutes(reviewDate.getMinutes() + (action.parameters.delay_minutes || 60));
         
         await supabase
-          .from('scheduled_reviews' as any)
+          .from('scheduled_reviews')
           .insert([{
             suggestion_id: suggestion.id,
             scheduled_for: reviewDate.toISOString(),
@@ -236,7 +236,7 @@ export class AutomatedWorkflowService {
 
       case 'create_task':
         await supabase
-          .from('admin_tasks' as any)
+          .from('admin_tasks')
           .insert([{
             title: action.parameters.title || `Review suggestion: ${suggestion.title || 'Untitled'}`,
             description: action.parameters.description || suggestion.reasoning,
@@ -270,7 +270,7 @@ export class AutomatedWorkflowService {
     execution_id: string;
   }): Promise<void> {
     await supabase
-      .from('admin_notifications' as any)
+      .from('admin_notifications')
       .insert([notification]);
   }
 
@@ -295,14 +295,14 @@ export class AutomatedWorkflowService {
     }
 
     await supabase
-      .from('workflow_executions' as any)
+      .from('workflow_executions')
       .update(updates)
       .eq('id', executionId);
   }
 
   private static async updateRuleStats(ruleId: string, success: boolean): Promise<void> {
     const { data: rule } = await supabase
-      .from('workflow_rules' as any)
+      .from('workflow_rules')
       .select('execution_count, success_rate')
       .eq('id', ruleId)
       .single();
@@ -314,7 +314,7 @@ export class AutomatedWorkflowService {
       const newSuccessRate = (newSuccesses / newExecutionCount) * 100;
 
       await supabase
-        .from('workflow_rules' as any)
+        .from('workflow_rules')
         .update({
           execution_count: newExecutionCount,
           success_rate: newSuccessRate,
@@ -326,7 +326,7 @@ export class AutomatedWorkflowService {
 
   static async getWorkflowExecutions(limit = 50): Promise<WorkflowExecution[]> {
     const { data, error } = await supabase
-      .from('workflow_executions' as any)
+      .from('workflow_executions')
       .select(`
         *,
         workflow_rules(name),
@@ -336,12 +336,12 @@ export class AutomatedWorkflowService {
       .limit(limit);
 
     if (error) throw error;
-    return data || [];
+    return (data || []) as WorkflowExecution[];
   }
 
   static async toggleWorkflowRule(ruleId: string, enabled: boolean): Promise<void> {
     const { error } = await supabase
-      .from('workflow_rules' as any)
+      .from('workflow_rules')
       .update({ enabled, updated_at: new Date().toISOString() })
       .eq('id', ruleId);
 
@@ -350,7 +350,7 @@ export class AutomatedWorkflowService {
 
   static async deleteWorkflowRule(ruleId: string): Promise<void> {
     const { error } = await supabase
-      .from('workflow_rules' as any)
+      .from('workflow_rules')
       .delete()
       .eq('id', ruleId);
 

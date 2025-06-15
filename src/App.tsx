@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -5,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Outlet } from "react-router-dom";
 import Index from "./pages/Index";
 import ArticlePage from "./pages/ArticlePage";
+import ArticlesPage from "./pages/ArticlesPage";
 import AuthPage from "./pages/AuthPage";
 import AdminPage from "./pages/AdminPage";
 import ArticleEditorPage from "./pages/ArticleEditorPage";
@@ -33,6 +35,7 @@ const App = () => (
           <Routes>
             <Route element={<MainLayout />}>
               <Route path="/" element={<Index />} />
+              <Route path="/articles" element={<ArticlesPage />} />
               <Route path="/article/:slug" element={<ArticlePage />} />
               <Route path="/about" element={<AboutPage />} />
               <Route path="/contact" element={<ContactPage />} />

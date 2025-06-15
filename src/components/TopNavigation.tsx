@@ -8,7 +8,7 @@ const TopNavigation = () => {
   const location = useLocation();
 
   const navItems = [
-    { title: 'Articles', href: '/' },
+    { title: 'Articles', href: '/articles' },
     { title: 'Categories', href: '/categories' },
     { title: 'Contact', href: '/contact' },
   ];

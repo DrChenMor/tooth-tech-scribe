@@ -11,6 +11,7 @@ interface CreateArticleRequest {
   content: string;
   category?: string;
   provider: string;
+  status?: 'draft' | 'published';
 }
 
 function extractTitleFromContent(content: string): string {
@@ -76,6 +77,9 @@ serve(async (req) => {
     const finalSlug = existingArticle 
       ? `${slug}-${Date.now()}` 
       : slug;
+      
+    const status = request.status || 'draft';
+    const published_date = status === 'published' ? new Date().toISOString() : new Date(0).toISOString();
 
     // Create the article
     const { data, error } = await supabase
@@ -89,8 +93,8 @@ serve(async (req) => {
           category: request.category || 'AI Generated',
           author_name: `AI Content Generator (${request.provider})`,
           author_avatar_url: null,
-          status: 'draft',
-          published_date: new Date().toISOString(),
+          status: status,
+          published_date: published_date,
         }
       ])
       .select()
@@ -103,7 +107,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({ 
       success: true, 
       article: data,
-      message: 'Article created successfully as draft'
+      message: `Article created successfully as ${status}`
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
@@ -119,3 +123,4 @@ serve(async (req) => {
     );
   }
 });
+

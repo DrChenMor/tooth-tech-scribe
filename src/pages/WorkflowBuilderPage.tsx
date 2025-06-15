@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -187,13 +188,15 @@ const WorkflowBuilderPage = () => {
                 content: previousNodeOutput.content,
                 provider: previousNodeOutput.provider || 'AI',
                 category: currentNode.config.category,
+                status: currentNode.config.status,
               },
             });
             if (articleError) throw articleError;
             if (articleData.error) throw new Error(articleData.error);
 
             previousNodeOutput = { article: articleData.article };
-            log(`Article created as draft: ${articleData.article.title}`);
+            const finalStatus = currentNode.config.status || 'draft';
+            log(`Article created as ${finalStatus}: ${articleData.article.title}`);
             break;
           }
             

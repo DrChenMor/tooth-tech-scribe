@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { Clock, Globe, Brain, Filter, Send, Plus, Share2, Mail, ImagePlay, SearchCheck, Languages, Eye, Award, TrendingUp, HeartPulse } from 'lucide-react';
+import { Clock, Globe, Brain, Filter, Send, Plus, Share2, Mail, ImagePlay, SearchCheck, Languages, Eye, Award, TrendingUp, HeartPulse, Rss } from 'lucide-react';
 import { WorkflowNode } from '@/pages/WorkflowBuilderPage';
 import { EmailPreviewDialog } from './EmailPreviewDialog';
 
@@ -20,6 +20,7 @@ const WorkflowSidebar = ({ selectedNode, onAddNode, onUpdateNodeConfig }: Workfl
   const nodeTypes = [
     { type: 'trigger', icon: Clock, label: 'Trigger', description: 'Start workflows' },
     { type: 'scraper', icon: Globe, label: 'Web Scraper', description: 'Extract content' },
+    { type: 'rss-aggregator', icon: Rss, label: 'RSS Aggregator', description: 'Fetch content from RSS feeds' },
     { type: 'ai-processor', icon: Brain, label: 'AI Processor', description: 'Generate content' },
     { type: 'filter', icon: Filter, label: 'Filter', description: 'Quality control' },
     { type: 'publisher', icon: Send, label: 'Publisher', description: 'Publish articles' },
@@ -47,7 +48,7 @@ const WorkflowSidebar = ({ selectedNode, onAddNode, onUpdateNodeConfig }: Workfl
                     key={nodeType.type}
                     variant="outline"
                     className="w-full justify-start h-auto p-3"
-                    onClick={() => onAddNode(nodeType.type as any)}
+                    onClick={() => onAddNode(nodeType.type)}
                   >
                     <div className="flex items-center gap-3">
                       <Icon className="h-5 w-5" />
@@ -94,6 +95,7 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
     const icons = {
       trigger: Clock,
       scraper: Globe,
+      'rss-aggregator': Rss,
       'ai-processor': Brain,
       filter: Filter,
       publisher: Send,
@@ -458,7 +460,21 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
         </div>
       )}
 
-      {(node.type as any) === 'content-quality-analyzer' && (
+      {node.type === 'rss-aggregator' && (
+        <div className="space-y-4">
+          <div>
+            <Label>RSS Feed URLs (one per line)</Label>
+            <Textarea
+              placeholder="https://example.com/feed.xml&#10;https://another-site.com/rss"
+              rows={4}
+              value={Array.isArray(node.config.urls) ? node.config.urls.join('\n') : ''}
+              onChange={(e) => handleConfigChange('urls', e.target.value.split('\n').filter(url => url.trim() !== ''))}
+            />
+          </div>
+        </div>
+      )}
+
+      {node.type === 'content-quality-analyzer' && (
         <div className="space-y-2">
           <p className="text-sm text-muted-foreground">
             This node uses the Content Quality AI Agent to analyze articles. It will generate suggestions for articles with a quality score below 70.
@@ -469,7 +485,7 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
         </div>
       )}
 
-      {(node.type as any) === 'ai-seo-optimizer' && (
+      {node.type === 'ai-seo-optimizer' && (
         <div className="space-y-2">
           <p className="text-sm text-muted-foreground">
             This node uses the AI SEO Optimizer Agent to analyze articles. It will generate SEO keywords, meta descriptions, and other on-page improvements.
@@ -480,7 +496,7 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
         </div>
       )}
 
-      {(node.type as any) === 'engagement-forecaster' && (
+      {node.type === 'engagement-forecaster' && (
         <div className="space-y-2">
           <p className="text-sm text-muted-foreground">
             This node uses the Engagement Forecaster AI Agent to predict engagement. For articles with high predicted engagement, it will suggest a social media post.

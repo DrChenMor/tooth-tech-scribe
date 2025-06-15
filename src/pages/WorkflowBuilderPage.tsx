@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 
 export interface WorkflowNode {
   id: string;
-  type: 'trigger' | 'scraper' | 'ai-processor' | 'filter' | 'publisher' | 'social-poster' | 'email-sender' | 'image-generator' | 'seo-analyzer' | 'translator';
+  type: 'trigger' | 'scraper' | 'ai-processor' | 'filter' | 'publisher' | 'social-poster' | 'email-sender' | 'image-generator' | 'seo-analyzer' | 'translator' | 'content-quality-analyzer' | 'ai-seo-optimizer' | 'engagement-forecaster' | 'rss-aggregator';
   label: string;
   position: { x: number; y: number };
   config: Record<string, any>;
@@ -108,7 +108,11 @@ const WorkflowBuilderPage = () => {
       'email-sender': 'Email Sender',
       'image-generator': 'Image Generator',
       'seo-analyzer': 'SEO Analyzer',
-      'translator': 'Translator'
+      'translator': 'Translator',
+      'content-quality-analyzer': 'Content Quality Analyzer',
+      'ai-seo-optimizer': 'AI SEO Optimizer',
+      'engagement-forecaster': 'Engagement Forecaster',
+      'rss-aggregator': 'RSS Aggregator',
     };
     return labels[type];
   };
@@ -124,7 +128,11 @@ const WorkflowBuilderPage = () => {
       'email-sender': { recipient: '', subject: 'New Article Published: {{article.title}}', body: 'Read it here: {{article.url}}' },
       'image-generator': { prompt: 'A futuristic image related to: {{article.title}}', provider: 'dall-e-3' },
       'seo-analyzer': { keywords: [], targetScore: 80 },
-      'translator': { targetLanguage: 'es', provider: 'openai' }
+      'translator': { targetLanguage: 'es', provider: 'openai' },
+      'rss-aggregator': { urls: [] },
+      'content-quality-analyzer': {},
+      'ai-seo-optimizer': {},
+      'engagement-forecaster': {},
     };
     return configs[type];
   };
@@ -414,6 +422,27 @@ const WorkflowBuilderPage = () => {
             if (outputData.article) {
                 outputData.article.content = translatedContent;
             }
+            break;
+          }
+
+          case 'rss-aggregator': {
+            const urls = currentNode.config.urls as string[];
+            if (!urls || urls.length === 0) {
+              throw new Error('RSS Aggregator node has no URLs configured.');
+            }
+            log(`Aggregating RSS feeds from ${urls.length} sources...`);
+
+            const { data: rssData, error: rssError } = await supabase.functions.invoke('rss-aggregator', {
+              body: { urls },
+            });
+
+            if (rssError) throw rssError;
+            if (rssData.error) throw new Error(rssData.error);
+            
+            const aggregatedContent = rssData.articles.map((article: any) => `Title: ${article.title}\nLink: ${article.link}\nDescription: ${article.description || ''}`).join('\n\n---\n\n');
+
+            outputData = { ...inputData, content: aggregatedContent, articles: rssData.articles };
+            log(`Successfully aggregated ${rssData.articles.length} articles from RSS feeds.`);
             break;
           }
 

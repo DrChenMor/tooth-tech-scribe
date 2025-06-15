@@ -1,4 +1,3 @@
-
 import Footer from '@/components/Footer';
 import ArticleCard from '@/components/ArticleCard';
 import { Link } from 'react-router-dom';
@@ -56,7 +55,7 @@ const Index = () => {
     return (
       <div className="flex flex-col flex-grow">
         <main className="flex-grow">
-          <div className="container mx-auto px-4">
+          <div className="container mx-auto px-6 lg:px-12">
             <div className="pt-12 pb-16 text-center">
               <Skeleton className="h-16 w-3/4 mx-auto" />
               <Skeleton className="h-6 w-1/2 mx-auto mt-4" />
@@ -138,7 +137,7 @@ const Index = () => {
   return (
     <div className="flex flex-col flex-grow">
       <main className="flex-grow">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-6 lg:px-12">
           <div className="pt-12 pb-16 text-center animate-fade-in">
             <h1 className="text-5xl md:text-6xl font-serif font-bold leading-tight">Exploring the Future of Dentistry</h1>
             <p className="mt-4 max-w-2xl mx-auto text-lg text-muted-foreground">
@@ -244,4 +243,3 @@ const Index = () => {
 };
 
 export default Index;
-

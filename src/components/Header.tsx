@@ -1,12 +1,16 @@
 
 import { SidebarTrigger } from '@/components/ui/sidebar';
+import TopNavigation from '@/components/TopNavigation';
 
 const Header = () => {
   return (
-    <header className="flex h-14 items-center gap-4 border-b bg-background px-4 lg:h-[60px] lg:px-6">
-      <SidebarTrigger />
-      {/* We can add breadcrumbs or a search bar here in the future */}
-    </header>
+    <div className="flex flex-col">
+      <TopNavigation />
+      <header className="flex h-14 items-center gap-4 border-b bg-background px-4 lg:h-[60px] lg:px-6 md:hidden">
+        <SidebarTrigger />
+        {/* Mobile menu trigger - only shown on mobile */}
+      </header>
+    </div>
   );
 };
 

@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -32,7 +33,7 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 217 91% 60%;
 
-    --sidebar: 0 0% 98%;
+    --sidebar: 0 0% 100%; /* White sidebar */
     --sidebar-foreground: 224 71% 4%;
     --sidebar-primary: 217 91% 60%;
     --sidebar-primary-foreground: 0 0% 100%;
@@ -86,19 +87,30 @@
   transition-delay: 0.1s;
 }
 
-/* Ensure icons are always visible and properly sized */
+/* Ensure icons are always visible and properly sized in collapsed state */
 .group[data-collapsible="icon"] [data-sidebar="menu-button"] svg {
   opacity: 1 !important;
-  min-width: 16px !important;
-  width: 16px !important;
-  height: 16px !important;
+  min-width: 20px !important;
+  width: 20px !important;
+  height: 20px !important;
   flex-shrink: 0 !important;
+}
+
+/* Center icons in collapsed sidebar */
+.group[data-collapsible="icon"] [data-sidebar="menu-button"] {
+  justify-content: center !important;
+  padding: 0.75rem !important;
+}
+
+.group[data-collapsible="icon"]:hover [data-sidebar="menu-button"] {
+  justify-content: flex-start !important;
+  padding: 0.75rem !important;
 }
 
 /* Improved mobile sidebar styles */
 @media (max-width: 768px) {
   [data-sidebar="sidebar"][data-mobile="true"] {
-    background: hsl(var(--sidebar)) !important;
+    background: white !important;
   }
 }
 

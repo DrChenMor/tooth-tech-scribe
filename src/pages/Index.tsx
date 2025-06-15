@@ -1,3 +1,4 @@
+
 import Footer from '@/components/Footer';
 import ArticleCard from '@/components/ArticleCard';
 import { Link } from 'react-router-dom';
@@ -42,7 +43,7 @@ const Index = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   const autoplayPlugin = useRef(
-    Autoplay({ delay: 13000, stopOnInteraction: true })
+    Autoplay({ delay: 5000, stopOnInteraction: true })
   );
 
   const filteredArticles = useMemo(() => {
@@ -150,7 +151,7 @@ const Index = () => {
             <div className="mb-8 animate-fade-in" style={{ animationDelay: '200ms' }}>
               <Carousel
                 plugins={[autoplayPlugin.current]}
-                className="w-full"
+                className="w-full relative"
                 onMouseEnter={autoplayPlugin.current.stop}
                 onMouseLeave={autoplayPlugin.current.reset}
                 opts={{
@@ -161,7 +162,7 @@ const Index = () => {
                   {heroArticles.map((article) => (
                     <CarouselItem key={article.id}>
                       <Link to={`/article/${article.slug}`} className="group block md:grid md:grid-cols-2 gap-8 items-center">
-                        <div className="overflow-hidden rounded-lg h-64 md:h-[450px] mb-4 md:mb-0">
+                        <div className="overflow-hidden rounded-lg h-64 md:h-[350px] mb-4 md:mb-0">
                           <img src={article.image_url || 'https://placehold.co/1280x720/EEE/BDBDBD?text=Denti-AI'} alt={article.title} className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-300 ease-in-out" />
                         </div>
                         <div>
@@ -180,8 +181,8 @@ const Index = () => {
                     </CarouselItem>
                   ))}
                 </CarouselContent>
-                <CarouselPrevious className="hidden md:flex" />
-                <CarouselNext className="hidden md:flex" />
+                <CarouselPrevious className="left-4 bottom-4 top-auto translate-y-0" />
+                <CarouselNext className="left-16 bottom-4 top-auto translate-y-0" />
               </Carousel>
             </div>
           )}
@@ -243,3 +244,4 @@ const Index = () => {
 };
 
 export default Index;
+

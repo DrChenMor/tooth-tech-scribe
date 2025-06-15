@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -26,7 +26,7 @@ interface AdvancedConfigProps {
   onChange: (config: Record<string, any>) => void;
 }
 
-const AdvancedAgentConfig = ({ config, onChange }: AdvancedConfigProps) => {
+const AdvancedAgentConfig: React.FC<AdvancedConfigProps> = ({ config, onChange }) => {
   const [activeSection, setActiveSection] = useState('behavior');
 
   const updateConfig = (key: string, value: any) => {
@@ -380,9 +380,9 @@ const AdvancedAgentConfig = ({ config, onChange }: AdvancedConfigProps) => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Content</SelectItem>
-                  <SelectItem value="short">Short Articles (< 500 words)</SelectItem>
+                  <SelectItem value="short">Short Articles (&lt; 500 words)</SelectItem>
                   <SelectItem value="medium">Medium Articles (500-2000 words)</SelectItem>
-                  <SelectItem value="long">Long Articles (> 2000 words)</SelectItem>
+                  <SelectItem value="long">Long Articles (&gt; 2000 words)</SelectItem>
                 </SelectContent>
               </Select>
             </div>

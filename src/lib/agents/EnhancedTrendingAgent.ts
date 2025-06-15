@@ -1,5 +1,5 @@
-
 import { EnhancedBaseAgent, EnhancedAnalysisContext, EnhancedSuggestion, ReasoningStep } from './EnhancedBaseAgent';
+import { AgentSuggestion } from './BaseAgent';
 
 export class EnhancedTrendingAgent extends EnhancedBaseAgent {
   constructor(name: string, type: string, config: any = {}) {

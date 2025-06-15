@@ -67,6 +67,20 @@ export async function getActiveAgents(): Promise<AIAgent[]> {
   })) as AIAgent[];
 }
 
+export async function fetchAIAgents(): Promise<AIAgent[]> {
+  const { data, error } = await supabase
+    .from('ai_agents')
+    .select('*')
+    .order('name');
+
+  if (error) throw error;
+  
+  return data.map(agent => ({
+    ...agent,
+    config: parseJsonSafely(agent.config)
+  })) as AIAgent[];
+}
+
 export async function getPendingSuggestions(): Promise<AISuggestion[]> {
   const { data, error } = await supabase
     .from('ai_suggestions')
@@ -81,6 +95,10 @@ export async function getPendingSuggestions(): Promise<AISuggestion[]> {
     ...suggestion,
     suggestion_data: parseJsonSafely(suggestion.suggestion_data)
   })) as AISuggestion[];
+}
+
+export async function fetchPendingSuggestions(): Promise<AISuggestion[]> {
+  return getPendingSuggestions();
 }
 
 export async function createSuggestion(suggestion: Omit<AISuggestion, 'id' | 'created_at' | 'reviewed_at' | 'reviewed_by'>): Promise<AISuggestion> {
@@ -186,5 +204,30 @@ export async function runAgent(agentName: string, context: AgentAnalysisContext)
   } catch (error) {
     console.error(`Error running agent ${agentName}:`, error);
     throw error;
+  }
+}
+
+export async function runAllActiveAgents(): Promise<void> {
+  const agents = await getActiveAgents();
+  
+  // Get articles for context
+  const { data: articles } = await supabase
+    .from('articles')
+    .select('*')
+    .eq('status', 'published');
+
+  const context: AgentAnalysisContext = {
+    articles: articles || []
+  };
+
+  // Run each active agent
+  for (const agent of agents) {
+    try {
+      await runAgent(agent.name, context);
+      console.log(`Successfully ran agent: ${agent.name}`);
+    } catch (error) {
+      console.error(`Failed to run agent ${agent.name}:`, error);
+      // Continue with other agents even if one fails
+    }
   }
 }

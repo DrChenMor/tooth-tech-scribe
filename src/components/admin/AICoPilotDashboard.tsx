@@ -1,11 +1,10 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Brain, TrendingUp, FileText, AlertTriangle, Clock, CheckCircle, XCircle } from 'lucide-react';
-import { fetchPendingSuggestions, fetchAIAgents, updateSuggestionStatus, runAllActiveAgents } from '@/services/aiAgents';
+import { fetchPendingSuggestions, fetchAIAgents, updateSuggestionStatus, runAllActiveAgents, AIAgent, AISuggestion } from '@/services/aiAgents';
 import { toast } from '@/components/ui/use-toast';
 import { format } from 'date-fns';
 import SuggestionReviewCard from './SuggestionReviewCard';
@@ -35,15 +34,16 @@ const AICoPilotDashboard = () => {
     }
   });
 
-  const activeAgents = agents.filter(agent => agent.is_active);
-  const suggestionsByType = suggestions.reduce((acc, suggestion) => {
+  const activeAgents = (agents as AIAgent[]).filter(agent => agent.is_active);
+  const typedSuggestions = suggestions as AISuggestion[];
+  const suggestionsByType = typedSuggestions.reduce((acc, suggestion) => {
     const type = suggestion.target_type;
     if (!acc[type]) acc[type] = [];
     acc[type].push(suggestion);
     return acc;
-  }, {} as Record<string, typeof suggestions>);
+  }, {} as Record<string, AISuggestion[]>);
 
-  const prioritySuggestions = suggestions
+  const prioritySuggestions = typedSuggestions
     .filter(s => s.priority && s.priority <= 2)
     .sort((a, b) => (a.priority || 5) - (b.priority || 5));
 
@@ -80,7 +80,7 @@ const AICoPilotDashboard = () => {
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{suggestions.length}</div>
+            <div className="text-2xl font-bold">{typedSuggestions.length}</div>
             <p className="text-xs text-muted-foreground">
               {prioritySuggestions.length} high priority
             </p>
@@ -95,7 +95,7 @@ const AICoPilotDashboard = () => {
           <CardContent>
             <div className="text-2xl font-bold">{activeAgents.length}</div>
             <p className="text-xs text-muted-foreground">
-              of {agents.length} total agents
+              of {(agents as AIAgent[]).length} total agents
             </p>
           </CardContent>
         </Card>
@@ -216,7 +216,7 @@ const AICoPilotDashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {agents.map((agent) => (
+                {(agents as AIAgent[]).map((agent) => (
                   <div key={agent.id} className="flex items-center justify-between p-4 border rounded-lg">
                     <div>
                       <h3 className="font-semibold">{agent.name}</h3>

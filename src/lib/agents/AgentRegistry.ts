@@ -4,10 +4,12 @@ import { TrendingContentAgent } from './TrendingContentAgent';
 import { SummarizationAgent } from './SummarizationAgent';
 import { ContentGapAgent } from './ContentGapAgent';
 
+type AgentConstructor = new (name: string, type: string, config: AgentConfig) => BaseAgent;
+
 export class AgentRegistry {
   private static instance: AgentRegistry;
   private agents: Map<string, BaseAgent> = new Map();
-  private agentTypes: Map<string, typeof BaseAgent> = new Map();
+  private agentTypes: Map<string, AgentConstructor> = new Map();
 
   private constructor() {
     this.registerAgentTypes();
@@ -21,9 +23,12 @@ export class AgentRegistry {
   }
 
   private registerAgentTypes(): void {
-    this.agentTypes.set('trending-content-agent', TrendingContentAgent as any);
-    this.agentTypes.set('summarization-agent', SummarizationAgent as any);
-    this.agentTypes.set('content-gap-agent', ContentGapAgent as any);
+    this.agentTypes.set('trending-content-agent', TrendingContentAgent);
+    this.agentTypes.set('trending', TrendingContentAgent);
+    this.agentTypes.set('summarization-agent', SummarizationAgent);
+    this.agentTypes.set('content', SummarizationAgent);
+    this.agentTypes.set('content-gap-agent', ContentGapAgent);
+    this.agentTypes.set('quality', ContentGapAgent);
   }
 
   createAgent(name: string, type: string, config: AgentConfig = {}): BaseAgent | null {

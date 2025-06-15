@@ -206,14 +206,15 @@ const WorkflowBuilderPage = () => {
           }
 
           case 'ai-processor': {
-            if (previousNodeOutput.content === undefined) {
-              throw new Error('AI Processor has no content to process.');
+            const contentToProcess = previousNodeOutput.content || previousNodeOutput.article?.content;
+            if (contentToProcess === undefined) {
+              throw new Error('AI Processor has no content to process. Make sure it follows a node that provides content.');
             }
             log(`Sending content to ${currentNode.config.provider}...`);
 
             const { data: aiData, error: aiError } = await supabase.functions.invoke('ai-content-generator', {
               body: {
-                content: previousNodeOutput.content,
+                content: contentToProcess,
                 provider: currentNode.config.provider,
                 contentType: currentNode.config.contentType,
                 prompt: currentNode.config.prompt,
@@ -222,21 +223,28 @@ const WorkflowBuilderPage = () => {
             if (aiError) throw aiError;
             if (aiData.error) throw new Error(aiData.error);
             if (!aiData.content) throw new Error('AI Processor returned no content.');
+            
+            const processedContent = aiData.content;
+            previousNodeOutput = { ...previousNodeOutput, content: processedContent, provider: currentNode.config.provider };
+            // If an article was being processed, update its content as well to avoid stale data
+            if (previousNodeOutput.article) {
+              previousNodeOutput.article.content = processedContent;
+            }
 
-            previousNodeOutput = { ...previousNodeOutput, content: aiData.content, provider: currentNode.config.provider };
             log(`AI processing successful.`);
             break;
           }
 
           case 'publisher': {
-            if (!previousNodeOutput.content) {
-              throw new Error('Publisher has no content to publish.');
+            const contentToPublish = previousNodeOutput.content || previousNodeOutput.article?.content;
+            if (!contentToPublish) {
+              throw new Error('Publisher has no content to publish. Make sure it follows a node that provides content.');
             }
             log(`Publishing article...`);
 
             const { data: articleData, error: articleError } = await supabase.functions.invoke('create-article-from-ai', {
               body: {
-                content: previousNodeOutput.content,
+                content: contentToPublish,
                 provider: previousNodeOutput.provider || 'AI',
                 category: currentNode.config.category,
                 status: currentNode.config.status,
@@ -245,7 +253,8 @@ const WorkflowBuilderPage = () => {
             if (articleError) throw articleError;
             if (articleData.error) throw new Error(articleData.error);
 
-            previousNodeOutput = { article: articleData.article };
+            // We replace the previous output, but also pass along the content for the next node.
+            previousNodeOutput = { article: articleData.article, content: articleData.article.content };
             const finalStatus = currentNode.config.status || 'draft';
             log(`Article created as ${finalStatus}: ${articleData.article.title}`);
             break;
@@ -319,14 +328,15 @@ const WorkflowBuilderPage = () => {
             break;
 
           case 'translator': {
-            if (!previousNodeOutput.content) {
-              throw new Error('Translator has no content to translate.');
+            const contentToTranslate = previousNodeOutput.content || previousNodeOutput.article?.content;
+            if (!contentToTranslate) {
+              throw new Error('Translator has no content to translate. Make sure it follows a node that provides content or an article.');
             }
             log(`Translating content to ${currentNode.config.targetLanguage}...`);
 
             const { data: translatorData, error: translatorError } = await supabase.functions.invoke('translator', {
               body: {
-                content: previousNodeOutput.content,
+                content: contentToTranslate,
                 targetLanguage: currentNode.config.targetLanguage,
                 model: currentNode.config.provider,
               },
@@ -344,7 +354,13 @@ const WorkflowBuilderPage = () => {
               throw new Error('Translator returned no content.');
             }
 
-            previousNodeOutput = { ...previousNodeOutput, content: translatorData.content };
+            const translatedContent = translatorData.content;
+            previousNodeOutput = { ...previousNodeOutput, content: translatedContent };
+            // If an article was being translated, update its content as well to avoid stale data
+            if (previousNodeOutput.article) {
+                previousNodeOutput.article.content = translatedContent;
+            }
+
             log(`Translation successful.`);
             break;
           }

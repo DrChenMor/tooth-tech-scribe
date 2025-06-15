@@ -1,3 +1,4 @@
+import { getAIAnalysis } from '@/services/aiModelService';
 
 export interface AgentConfig {
   [key: string]: any;
@@ -57,6 +58,26 @@ export abstract class BaseAgent {
 
   updateConfig(newConfig: Partial<AgentConfig>): void {
     this.config = { ...this.config, ...newConfig };
+  }
+
+  protected async performAIAnalysis(prompt: string): Promise<any> {
+    if (!this.config.ai_model) {
+      throw new Error("AI model is not configured for this agent.");
+    }
+    
+    try {
+      const result = await getAIAnalysis(prompt, this.config);
+      // The edge function returns a JSON string in the 'analysis' property
+      const analysisData = JSON.parse(result.analysis);
+      return analysisData;
+    } catch (error) {
+      console.error('Error performing AI analysis:', error);
+      if (error instanceof SyntaxError) {
+        // This means the AI response was not valid JSON
+        throw new Error("AI returned an invalid response format. Please check the AI's output or prompt.");
+      }
+      throw error;
+    }
   }
 
   protected generateConfidenceScore(factors: number[]): number {

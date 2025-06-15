@@ -1,5 +1,4 @@
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -13,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Brain, Settings, Target, Clock } from 'lucide-react';
 import { createAIAgent, updateAIAgent, AIAgent } from '@/services/aiAgents';
+import { AVAILABLE_MODELS } from '@/services/aiModelService';
 import { toast } from '@/components/ui/use-toast';
 
 interface AgentManagementDialogProps {
@@ -40,6 +40,40 @@ const AgentManagementDialog = ({ isOpen, onClose, agent, mode }: AgentManagement
   });
 
   const [configJson, setConfigJson] = useState(JSON.stringify(agent?.config || {}, null, 2));
+
+  // Handle specific config fields separately for better UX
+  const [selectedModel, setSelectedModel] = useState(agent?.config?.ai_model || 'gpt-4o-mini');
+  const [promptTemplate, setPromptTemplate] = useState(agent?.config?.prompt_template || '');
+
+  useEffect(() => {
+    // Sync dedicated fields with the main config JSON
+    try {
+      const currentConfig = JSON.parse(configJson || '{}');
+      const newConfig = { ...currentConfig, ai_model: selectedModel, prompt_template: promptTemplate };
+      
+      // Avoid feedback loop if JSON is manually edited
+      if (JSON.stringify(currentConfig, null, 2) !== JSON.stringify(newConfig, null, 2)) {
+         setConfigJson(JSON.stringify(newConfig, null, 2));
+      }
+    } catch (e) {
+      // Ignore parse errors while user is typing in textarea
+    }
+  }, [selectedModel, promptTemplate]);
+
+  useEffect(() => {
+    // Update dedicated fields if configJson changes (e.g., manual edit)
+    try {
+      const config = JSON.parse(configJson);
+      if (config.ai_model && config.ai_model !== selectedModel) {
+        setSelectedModel(config.ai_model);
+      }
+      if (config.prompt_template && config.prompt_template !== promptTemplate) {
+        setPromptTemplate(config.prompt_template);
+      }
+    } catch (e) {
+      // Ignore
+    }
+  }, [configJson]);
 
   const createMutation = useMutation({
     mutationFn: createAIAgent,
@@ -95,34 +129,37 @@ const AgentManagementDialog = ({ isOpen, onClose, agent, mode }: AgentManagement
     switch (type) {
       case 'trending':
         return {
+          ai_model: 'gpt-4o-mini',
+          prompt_template: 'Analyze the provided articles based on views and creation date to identify the top 3 trending ones. Return a JSON object with a key "trending_articles", containing an array of objects. Each object must include "article_id", "reasoning", and "confidence_score". If none are trending, return an empty array.',
           min_views_threshold: 100,
           trending_window_hours: 24,
-          confidence_threshold: 0.7
         };
       case 'content_gap':
         return {
+          ai_model: 'gpt-4o-mini',
+          prompt_template: 'Analyze the following content to find gaps and suggest new topics. Format the response as a JSON object.',
           analysis_depth: 'medium',
           topic_similarity_threshold: 0.6,
-          min_gap_size: 5
         };
       case 'summarization':
         return {
+          ai_model: 'gpt-4o-mini',
+          prompt_template: 'Summarize the provided text into a concise overview. Format the response as a JSON object with a "summary" key.',
           max_summary_length: 200,
           key_points_count: 5,
-          include_sentiment: true
         };
       case 'enhanced_trending':
         return {
+          ai_model: 'gpt-4o',
+          prompt_template: 'Perform advanced trend analysis on the provided content, considering engagement velocity and predictive signals. Return a JSON object with "trending_articles" and "future_predictions".',
           prediction_window_hours: 48,
           ml_confidence_threshold: 0.8,
-          feature_weights: {
-            views: 0.4,
-            engagement: 0.3,
-            recency: 0.3
-          }
         };
       default:
-        return {};
+        return {
+          ai_model: 'gpt-4o-mini',
+          prompt_template: ''
+        };
     }
   };
 
@@ -130,6 +167,8 @@ const AgentManagementDialog = ({ isOpen, onClose, agent, mode }: AgentManagement
     setFormData(prev => ({ ...prev, type: newType }));
     const defaultConfig = getDefaultConfig(newType);
     setConfigJson(JSON.stringify(defaultConfig, null, 2));
+    setSelectedModel(defaultConfig.ai_model);
+    setPromptTemplate(defaultConfig.prompt_template);
   };
 
   return (
@@ -197,6 +236,24 @@ const AgentManagementDialog = ({ isOpen, onClose, agent, mode }: AgentManagement
                 </Card>
               )}
 
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>AI Model</Label>
+                  <Select value={selectedModel} onValueChange={setSelectedModel}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select AI model" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {AVAILABLE_MODELS.map((model) => (
+                        <SelectItem key={model.id} value={model.id}>
+                          {model.name} ({model.provider})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="description">Description</Label>
                 <Textarea
@@ -220,7 +277,22 @@ const AgentManagementDialog = ({ isOpen, onClose, agent, mode }: AgentManagement
 
             <TabsContent value="config" className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="config">Agent Configuration (JSON)</Label>
+                <Label htmlFor="prompt_template">Prompt Template</Label>
+                <Textarea
+                  id="prompt_template"
+                  value={promptTemplate}
+                  onChange={(e) => setPromptTemplate(e.target.value)}
+                  placeholder="Enter the prompt template for the AI..."
+                  rows={8}
+                  className="font-mono text-sm"
+                />
+                <p className="text-xs text-muted-foreground">
+                  This template will be used to instruct the AI. Use it to define the analysis task and desired JSON output format.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="config">Full Configuration (JSON)</Label>
                 <Textarea
                   id="config"
                   value={configJson}
@@ -230,28 +302,9 @@ const AgentManagementDialog = ({ isOpen, onClose, agent, mode }: AgentManagement
                   className="font-mono text-sm"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Configure the agent's behavior and parameters using JSON format.
+                  Advanced agent parameters. Changes to the fields above will be reflected here.
                 </p>
               </div>
-
-              {formData.type && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-sm flex items-center gap-2">
-                      <Settings className="h-4 w-4" />
-                      Configuration Help
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-sm space-y-2">
-                      <p className="font-medium">Common settings for {selectedAgentType?.label}:</p>
-                      <pre className="bg-muted p-2 rounded text-xs overflow-x-auto">
-                        {JSON.stringify(getDefaultConfig(formData.type), null, 2)}
-                      </pre>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
             </TabsContent>
 
             <TabsContent value="preview" className="space-y-4">

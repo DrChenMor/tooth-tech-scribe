@@ -3,240 +3,201 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { Brain, Play, RefreshCw, TrendingUp, FileText, CheckCircle, Clock, Zap } from 'lucide-react';
-import { realAIExecution, RealTimeAgentStats } from '@/services/realAIAgentExecution';
+import { Separator } from '@/components/ui/separator';
+import { 
+  Play, 
+  Pause, 
+  RefreshCw, 
+  Settings, 
+  Activity,
+  Clock,
+  CheckCircle2,
+  AlertTriangle
+} from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { getPendingSuggestions, getRealtimeStats } from '@/services/aiAgents';
+import { realAIExecution } from '@/services/realAIAgentExecution';
 import { toast } from '@/components/ui/use-toast';
+import ActionableSuggestionCard from './ActionableSuggestionCard';
 
 const RealAIControlPanel = () => {
-  const [isRunning, setIsRunning] = useState(false);
-  const [stats, setStats] = useState<RealTimeAgentStats>({
-    totalArticles: 0,
-    analyzedArticles: 0,
-    pendingSuggestions: 0,
-    lastRunTime: null,
-    activeAgents: 0,
-    recentApprovals: 0
+  const [isAnalysisRunning, setIsAnalysisRunning] = useState(false);
+  const queryClient = useQueryClient();
+
+  const { data: suggestions, isLoading: loadingSuggestions } = useQuery({
+    queryKey: ['ai-suggestions'],
+    queryFn: getPendingSuggestions,
+    refetchInterval: 5000 // Refresh every 5 seconds
   });
 
-  const [autoRefresh, setAutoRefresh] = useState(true);
+  const { data: stats } = useQuery({
+    queryKey: ['realtime-stats'],
+    queryFn: getRealtimeStats,
+    refetchInterval: 3000 // Refresh every 3 seconds
+  });
 
-  useEffect(() => {
-    loadStats();
-    
-    if (autoRefresh) {
-      const interval = setInterval(loadStats, 10000); // Refresh every 10 seconds
-      return () => clearInterval(interval);
-    }
-  }, [autoRefresh]);
-
-  const loadStats = async () => {
-    try {
-      const newStats = await realAIExecution.getRealTimeStats();
-      setStats(newStats);
-      setIsRunning(realAIExecution.isAnalysisRunning());
-    } catch (error) {
-      console.error('Failed to load stats:', error);
-    }
-  };
-
-  const handleRunAnalysis = async () => {
-    if (isRunning) {
+  const runAnalysisMutation = useMutation({
+    mutationFn: async () => {
+      setIsAnalysisRunning(true);
+      await realAIExecution.executeRealAnalysis();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ai-suggestions'] });
+      queryClient.invalidateQueries({ queryKey: ['realtime-stats'] });
       toast({
-        title: "Analysis In Progress",
-        description: "Please wait for the current analysis to complete.",
+        title: "Analysis Complete!",
+        description: "AI agents have finished analyzing your content."
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Analysis Failed",
+        description: error.message,
         variant: "destructive"
       });
-      return;
+    },
+    onSettled: () => {
+      setIsAnalysisRunning(false);
     }
+  });
 
-    setIsRunning(true);
-    await realAIExecution.executeRealAnalysis();
-    await loadStats();
-    setIsRunning(false);
-  };
+  useEffect(() => {
+    const checkRunningStatus = () => {
+      setIsAnalysisRunning(realAIExecution.isAnalysisRunning());
+    };
 
-  const getAnalysisProgress = () => {
-    if (stats.totalArticles === 0) return 0;
-    return Math.round((stats.analyzedArticles / stats.totalArticles) * 100);
-  };
+    const interval = setInterval(checkRunningStatus, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
-  const formatLastRun = (lastRunTime: string | null) => {
-    if (!lastRunTime) return 'Never';
+  const formatLastRun = () => {
+    const lastRun = realAIExecution.getLastRunTime();
+    if (!lastRun) return 'Never';
     
-    const date = new Date(lastRunTime);
     const now = new Date();
-    const diffMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
+    const diffMs = now.getTime() - lastRun.getTime();
+    const diffMinutes = Math.floor(diffMs / (1000 * 60));
     
     if (diffMinutes < 1) return 'Just now';
     if (diffMinutes < 60) return `${diffMinutes}m ago`;
-    if (diffMinutes < 1440) return `${Math.floor(diffMinutes / 60)}h ago`;
-    return date.toLocaleDateString();
+    const diffHours = Math.floor(diffMinutes / 60);
+    if (diffHours < 24) return `${diffHours}h ago`;
+    const diffDays = Math.floor(diffHours / 24);
+    return `${diffDays}d ago`;
   };
 
   return (
     <div className="space-y-6">
-      {/* Main Control Panel */}
-      <Card className="border-l-4 border-l-blue-500">
+      {/* Control Panel Header */}
+      <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <Brain className="h-5 w-5 text-blue-600" />
-                Real AI Agent Control Panel
-              </CardTitle>
-              <CardDescription>
-                Live analysis of your {stats.totalArticles} published articles
-              </CardDescription>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                onClick={handleRunAnalysis}
-                disabled={isRunning}
-                className="bg-blue-600 hover:bg-blue-700"
-              >
-                {isRunning ? (
-                  <>
-                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                    Analyzing...
-                  </>
-                ) : (
-                  <>
-                    <Play className="h-4 w-4 mr-2" />
-                    Run Analysis
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
+          <CardTitle className="flex items-center gap-2">
+            <Settings className="h-5 w-5" />
+            AI Agent Control Panel
+          </CardTitle>
+          <CardDescription>
+            Execute AI analysis and manage suggestions in real-time
+          </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Analysis Progress */}
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span>Analysis Progress</span>
-              <span>{getAnalysisProgress()}%</span>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-blue-600">{stats?.activeAgents || 0}</div>
+              <p className="text-sm text-muted-foreground">Active Agents</p>
             </div>
-            <Progress value={getAnalysisProgress()} className="w-full" />
-            <p className="text-xs text-muted-foreground">
-              {stats.analyzedArticles} of {stats.totalArticles} articles analyzed
-            </p>
-          </div>
-
-          {/* Real-time Stats Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-blue-50 p-4 rounded-lg">
-              <div className="flex items-center gap-2 mb-2">
-                <FileText className="h-4 w-4 text-blue-600" />
-                <span className="text-sm font-medium">Articles</span>
-              </div>
-              <div className="text-2xl font-bold text-blue-600">{stats.totalArticles}</div>
-              <p className="text-xs text-muted-foreground">Published & Active</p>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-orange-600">{stats?.pendingCount || 0}</div>
+              <p className="text-sm text-muted-foreground">Pending Reviews</p>
             </div>
-
-            <div className="bg-green-50 p-4 rounded-lg">
-              <div className="flex items-center gap-2 mb-2">
-                <Brain className="h-4 w-4 text-green-600" />
-                <span className="text-sm font-medium">Active Agents</span>
-              </div>
-              <div className="text-2xl font-bold text-green-600">{stats.activeAgents}</div>
-              <p className="text-xs text-muted-foreground">Running Analysis</p>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-green-600">{stats?.recentActivity || 0}</div>
+              <p className="text-sm text-muted-foreground">Recent Activity</p>
             </div>
-
-            <div className="bg-orange-50 p-4 rounded-lg">
-              <div className="flex items-center gap-2 mb-2">
-                <Clock className="h-4 w-4 text-orange-600" />
-                <span className="text-sm font-medium">Pending</span>
+            <div className="text-center">
+              <div className="text-sm font-medium flex items-center justify-center gap-1">
+                <Clock className="h-3 w-3" />
+                {formatLastRun()}
               </div>
-              <div className="text-2xl font-bold text-orange-600">{stats.pendingSuggestions}</div>
-              <p className="text-xs text-muted-foreground">Suggestions</p>
-            </div>
-
-            <div className="bg-purple-50 p-4 rounded-lg">
-              <div className="flex items-center gap-2 mb-2">
-                <CheckCircle className="h-4 w-4 text-purple-600" />
-                <span className="text-sm font-medium">Approved</span>
-              </div>
-              <div className="text-2xl font-bold text-purple-600">{stats.recentApprovals}</div>
-              <p className="text-xs text-muted-foreground">Last 24h</p>
+              <p className="text-sm text-muted-foreground">Last Analysis</p>
             </div>
           </div>
 
-          {/* Status Information */}
-          <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-            <div className="flex items-center gap-3">
-              <div className={`w-2 h-2 rounded-full ${isRunning ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`} />
+          <Separator className="my-4" />
+
+          <div className="flex items-center gap-4">
+            <Button
+              onClick={() => runAnalysisMutation.mutate()}
+              disabled={isAnalysisRunning || runAnalysisMutation.isPending}
+              className="flex items-center gap-2"
+            >
+              {isAnalysisRunning ? (
+                <>
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                  Running Analysis...
+                </>
+              ) : (
+                <>
+                  <Play className="h-4 w-4" />
+                  Run AI Analysis
+                </>
+              )}
+            </Button>
+
+            <div className="flex items-center gap-2">
+              <Activity className="h-4 w-4" />
               <span className="text-sm">
-                Status: {isRunning ? 'Analyzing Articles...' : 'Ready'}
+                Status: {isAnalysisRunning ? (
+                  <Badge variant="default" className="ml-1">Running</Badge>
+                ) : (
+                  <Badge variant="secondary" className="ml-1">Ready</Badge>
+                )}
               </span>
-              <Badge variant={isRunning ? 'default' : 'secondary'}>
-                {isRunning ? 'ACTIVE' : 'IDLE'}
-              </Badge>
             </div>
-            <div className="text-sm text-muted-foreground">
-              Last run: {formatLastRun(stats.lastRunTime)}
-            </div>
-          </div>
-
-          {/* Quick Actions */}
-          <div className="flex items-center gap-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={loadStats}
-              className="flex items-center gap-2"
-            >
-              <RefreshCw className="h-3 w-3" />
-              Refresh Stats
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => setAutoRefresh(!autoRefresh)}
-              className="flex items-center gap-2"
-            >
-              <Zap className="h-3 w-3" />
-              Auto-refresh: {autoRefresh ? 'ON' : 'OFF'}
-            </Button>
           </div>
         </CardContent>
       </Card>
 
-      {/* Performance Insights */}
-      {stats.totalArticles > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5" />
-              Performance Insights
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Article Coverage</span>
-                <Badge variant={getAnalysisProgress() === 100 ? 'default' : 'secondary'}>
-                  {getAnalysisProgress()}% Complete
-                </Badge>
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Agent Efficiency</span>
-                <Badge variant={stats.activeAgents > 0 ? 'default' : 'destructive'}>
-                  {stats.activeAgents > 0 ? 'Optimal' : 'Needs Agents'}
-                </Badge>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Suggestion Pipeline</span>
-                <Badge variant={stats.pendingSuggestions > 0 ? 'default' : 'secondary'}>
-                  {stats.pendingSuggestions} Pending Review
-                </Badge>
-              </div>
+      {/* Pending Suggestions */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5" />
+            Pending AI Suggestions
+            <Badge variant="outline">{suggestions?.length || 0}</Badge>
+          </CardTitle>
+          <CardDescription>
+            Review and act on AI-generated suggestions for your content
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {loadingSuggestions ? (
+            <div className="space-y-4">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="animate-pulse">
+                  <div className="h-32 bg-gray-200 rounded"></div>
+                </div>
+              ))}
             </div>
-          </CardContent>
-        </Card>
-      )}
+          ) : suggestions && suggestions.length > 0 ? (
+            <div className="space-y-4">
+              {suggestions.map((suggestion) => (
+                <ActionableSuggestionCard
+                  key={suggestion.id}
+                  suggestion={suggestion}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto mb-4" />
+              <h3 className="text-lg font-medium">No pending suggestions</h3>
+              <p className="text-muted-foreground">
+                Run an AI analysis to generate new suggestions for your content.
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };

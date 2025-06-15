@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -5,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Brain, TrendingUp, Settings, Activity, BarChart3, Zap } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
-import { fetchAIAgents, fetchAISuggestions } from '@/services/aiAgents';
+import { fetchAIAgents, getPendingSuggestions } from '@/services/aiAgents';
 import RealAIControlPanel from './RealAIControlPanel';
 import RealSystemMetrics from './RealSystemMetrics';
 import RealtimeActivityFeed from './RealtimeActivityFeed';
@@ -22,12 +23,12 @@ const AICoPilotDashboard = () => {
 
   const { data: suggestions, isLoading: isLoadingSuggestions } = useQuery({
     queryKey: ['ai-suggestions'],
-    queryFn: fetchAISuggestions
+    queryFn: getPendingSuggestions
   });
 
   const totalAgents = agents?.length || 0;
   const activeAgents = agents?.filter(agent => agent.is_active).length || 0;
-  const pendingSuggestions = suggestions?.filter(suggestion => suggestion.status === 'pending').length || 0;
+  const pendingSuggestions = suggestions?.length || 0;
 
   return (
     <div className="w-full">

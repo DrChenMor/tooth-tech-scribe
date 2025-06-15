@@ -13,12 +13,6 @@ import {
 } from '@/components/ui/command';
 import { useNavigate } from 'react-router-dom';
 import { Search } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
 
 const fetchArticlesForSearch = async (): Promise<Article[]> => {
   const { data, error } = await supabase
@@ -34,8 +28,8 @@ const fetchArticlesForSearch = async (): Promise<Article[]> => {
 };
 
 const SearchCommand = () => {
-  const [open, setOpen] = useState(false);
   const [searchValue, setSearchValue] = useState('');
+  const [showResults, setShowResults] = useState(false);
   const navigate = useNavigate();
 
   const { data: articles } = useQuery({
@@ -54,59 +48,67 @@ const SearchCommand = () => {
 
   const handleSelect = (slug: string) => {
     navigate(`/article/${slug}`);
-    setOpen(false);
     setSearchValue('');
+    setShowResults(false);
+  };
+
+  const handleInputFocus = () => {
+    setShowResults(true);
+  };
+
+  const handleInputBlur = () => {
+    // Delay hiding results to allow for clicks
+    setTimeout(() => setShowResults(false), 200);
   };
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          role="combobox"
-          aria-expanded={open}
-          className="w-64 justify-start text-muted-foreground bg-muted/50 border-border hover:bg-muted/70"
-        >
-          <Search className="mr-2 h-4 w-4" />
-          Search for...
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-64 p-0" align="start">
-        <Command>
-          <CommandInput 
-            placeholder="Search articles..." 
-            value={searchValue}
-            onValueChange={setSearchValue}
-          />
-          <CommandList>
-            <CommandEmpty>
-              {searchValue ? 'No articles found.' : 'Start typing to search...'}
-            </CommandEmpty>
-            {filteredArticles.length > 0 && (
-              <CommandGroup heading="Articles">
-                {filteredArticles.map((article) => (
-                  <CommandItem
-                    key={article.id}
-                    value={article.slug}
-                    onSelect={() => handleSelect(article.slug)}
-                    className="cursor-pointer"
-                  >
-                    <div className="flex flex-col gap-1">
-                      <span className="font-medium text-sm">{article.title}</span>
-                      {article.category && (
-                        <span className="text-xs text-muted-foreground">
-                          in {article.category}
-                        </span>
-                      )}
-                    </div>
-                  </CommandItem>
-                ))}
-              </CommandGroup>
-            )}
-          </CommandList>
-        </Command>
-      </PopoverContent>
-    </Popover>
+    <div className="relative w-64">
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <input
+          type="text"
+          placeholder="Search articles..."
+          value={searchValue}
+          onChange={(e) => setSearchValue(e.target.value)}
+          onFocus={handleInputFocus}
+          onBlur={handleInputBlur}
+          className="w-full pl-10 pr-4 py-2 text-sm border border-border rounded-md bg-muted/50 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+        />
+      </div>
+      
+      {showResults && (searchValue || filteredArticles.length > 0) && (
+        <div className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-md z-50">
+          <Command>
+            <CommandList className="max-h-[300px]">
+              <CommandEmpty>
+                {searchValue ? 'No articles found.' : 'Start typing to search...'}
+              </CommandEmpty>
+              {filteredArticles.length > 0 && (
+                <CommandGroup heading="Articles">
+                  {filteredArticles.map((article) => (
+                    <CommandItem
+                      key={article.id}
+                      value={article.slug}
+                      onSelect={() => handleSelect(article.slug)}
+                      className="cursor-pointer"
+                    >
+                      <div className="flex flex-col gap-1">
+                        <span className="font-medium text-sm">{article.title}</span>
+                        {article.category && (
+                          <span className="text-xs text-muted-foreground">
+                            in {article.category}
+                          </span>
+                        )}
+                      </div>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              )}
+            </CommandList>
+          </Command>
+        </div>
+      )}
+    </div>
   );
 };
 

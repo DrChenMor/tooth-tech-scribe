@@ -43,6 +43,13 @@ const AdminPage = () => {
       queryClient.invalidateQueries({ queryKey: ['all-articles'] });
     },
     onSettled: () => setMutating(null),
+    onError: (error) => {
+      toast({
+        title: "Error updating status",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
   });
 
   const deleteMutation = useMutation({

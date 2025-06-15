@@ -1,11 +1,25 @@
 import { supabase } from "@/integrations/supabase/client";
-import { Article } from "@/types";
+import { Article, ArticleStatus } from "@/types";
 import { ArticleFormValues } from "@/lib/schemas";
 
 export const fetchArticleById = async (id: number): Promise<Article | null> => {
   const { data, error } = await supabase.from("articles").select("*").eq("id", id).single();
   if (error && error.code !== "PGRST116") throw new Error(error.message);
   return data;
+};
+
+export const updateArticleStatus = async ({ id, status }: { id: number; status: ArticleStatus }): Promise<void> => {
+  // We mirror the logic in upsertArticle for consistency:
+  // 'published' gets the current timestamp, other statuses get epoch time
+  // which helps with sorting.
+  const published_date = (status === "published" ? new Date().toISOString() : new Date(0).toISOString());
+
+  const { error } = await supabase
+    .from("articles")
+    .update({ status: status, published_date: published_date })
+    .eq("id", id);
+    
+  if (error) throw new Error(error.message);
 };
 
 export const upsertArticle = async ({ id, values, author }: { id?: number; values: ArticleFormValues; author: { name: string | null; avatar_url: string | null } }) => {

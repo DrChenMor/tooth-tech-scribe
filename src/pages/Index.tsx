@@ -8,9 +8,17 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { useCategories } from '@/hooks/use-categories';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
+import Autoplay from "embla-carousel-autoplay";
 
 const fetchArticles = async (): Promise<Article[]> => {
   const { data, error } = await supabase
@@ -32,6 +40,10 @@ const Index = () => {
   });
   const { data: categories, isLoading: isLoadingCategories } = useCategories();
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+
+  const autoplayPlugin = useRef(
+    Autoplay({ delay: 13000, stopOnInteraction: true })
+  );
 
   const filteredArticles = useMemo(() => {
     if (!articles) return [];
@@ -98,10 +110,10 @@ const Index = () => {
     );
   }
 
-  const featuredArticle = filteredArticles?.[0];
-  const otherArticles = filteredArticles?.slice(1) || [];
+  const heroArticles = filteredArticles?.slice(0, 3) || [];
+  const otherArticles = filteredArticles?.slice(3) || [];
 
-  if (!featuredArticle) {
+  if (!filteredArticles || filteredArticles.length === 0) {
     return (
        <div className="flex flex-col flex-grow">
         <main className="flex-grow flex items-center justify-center">
@@ -133,6 +145,47 @@ const Index = () => {
             </p>
           </div>
 
+          {/* Hero Articles Carousel */}
+          {heroArticles.length > 0 && (
+            <div className="mb-16 animate-fade-in" style={{ animationDelay: '200ms' }}>
+              <Carousel
+                plugins={[autoplayPlugin.current]}
+                className="w-full"
+                onMouseEnter={autoplayPlugin.current.stop}
+                onMouseLeave={autoplayPlugin.current.reset}
+                opts={{
+                  loop: true,
+                }}
+              >
+                <CarouselContent>
+                  {heroArticles.map((article) => (
+                    <CarouselItem key={article.id}>
+                      <Link to={`/article/${article.slug}`} className="group block md:grid md:grid-cols-2 gap-8 items-center">
+                        <div className="overflow-hidden rounded-lg aspect-video mb-4 md:mb-0">
+                          <img src={article.image_url || 'https://placehold.co/1280x720/EEE/BDBDBD?text=Denti-AI'} alt={article.title} className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-300 ease-in-out" />
+                        </div>
+                        <div>
+                          {article.category && <Badge variant="outline">{article.category}</Badge>}
+                          <h2 className="text-3xl md:text-4xl font-serif font-bold mt-2 text-foreground group-hover:text-primary transition-colors">{article.title}</h2>
+                          <p className="mt-4 text-muted-foreground">{article.excerpt}</p>
+                           <div className="flex items-center mt-4">
+                            <img src={article.author_avatar_url || undefined} alt={article.author_name || ''} className="w-10 h-10 rounded-full mr-3" />
+                            <div className="text-sm">
+                              <p className="font-semibold text-foreground">{article.author_name}</p>
+                              <p className="text-muted-foreground">{format(new Date(article.published_date), 'MMMM d, yyyy')}</p>
+                            </div>
+                          </div>
+                        </div>
+                      </Link>
+                    </CarouselItem>
+                  ))}
+                </CarouselContent>
+                <CarouselPrevious className="hidden md:flex" />
+                <CarouselNext className="hidden md:flex" />
+              </Carousel>
+            </div>
+          )}
+          
           {/* Category Filters */}
           <div className="flex justify-center flex-wrap gap-2 mb-12">
             <Button
@@ -165,29 +218,6 @@ const Index = () => {
               ))
             )}
           </div>
-
-          {/* Featured Article */}
-          {featuredArticle && (
-            <div className="mb-16 animate-fade-in" style={{ animationDelay: '200ms' }}>
-              <Link to={`/article/${featuredArticle.slug}`} className="group block md:grid md:grid-cols-2 gap-8 items-center">
-                <div className="overflow-hidden rounded-lg">
-                  <img src={featuredArticle.image_url || 'https://placehold.co/1280x720/EEE/BDBDBD?text=Denti-AI'} alt={featuredArticle.title} className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-300 ease-in-out" />
-                </div>
-                <div>
-                  {featuredArticle.category && <Badge variant="outline">{featuredArticle.category}</Badge>}
-                  <h2 className="text-3xl md:text-4xl font-serif font-bold mt-2 text-foreground group-hover:text-primary transition-colors">{featuredArticle.title}</h2>
-                  <p className="mt-4 text-muted-foreground">{featuredArticle.excerpt}</p>
-                   <div className="flex items-center mt-4">
-                    <img src={featuredArticle.author_avatar_url || undefined} alt={featuredArticle.author_name || ''} className="w-10 h-10 rounded-full mr-3" />
-                    <div className="text-sm">
-                      <p className="font-semibold text-foreground">{featuredArticle.author_name}</p>
-                      <p className="text-muted-foreground">{format(new Date(featuredArticle.published_date), 'MMMM d, yyyy')}</p>
-                    </div>
-                  </div>
-                </div>
-              </Link>
-            </div>
-          )}
           
           {/* Article Grid */}
           <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">

@@ -10,11 +10,12 @@ import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Brain, Settings, Target, Clock, Sparkles } from 'lucide-react';
+import { Brain, Settings, Target, Clock, Sparkles, Zap } from 'lucide-react';
 import { createAIAgent, updateAIAgent, AIAgent } from '@/services/aiAgents';
 import { AVAILABLE_MODELS } from '@/services/aiModelService';
 import { toast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import AdvancedAgentConfig from './AdvancedAgentConfig';
 
 interface AgentManagementDialogProps {
   isOpen: boolean;
@@ -44,11 +45,8 @@ const AgentManagementDialog = ({ isOpen, onClose, agent, mode }: AgentManagement
   });
 
   const [configJson, setConfigJson] = useState(JSON.stringify(agent?.config || {}, null, 2));
-
-  // Handle specific config fields separately for better UX
   const [selectedModel, setSelectedModel] = useState(agent?.config?.ai_model || 'gemini-1.5-flash-latest');
   const [promptTemplate, setPromptTemplate] = useState(agent?.config?.prompt_template || '');
-
   const [isSuggestingConfig, setIsSuggestingConfig] = useState(false);
 
   useEffect(() => {
@@ -257,9 +255,14 @@ Article data: {articles_data}`,
     });
   };
 
+  const handleAdvancedConfigChange = (newConfig: Record<string, any>) => {
+    setFormData(prev => ({ ...prev, config: newConfig }));
+    setConfigJson(JSON.stringify(newConfig, null, 2));
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Brain className="h-5 w-5" />
@@ -267,17 +270,18 @@ Article data: {articles_data}`,
           </DialogTitle>
           <DialogDescription>
             {mode === 'create' 
-              ? 'Configure a new AI agent to analyze your content and generate suggestions.'
-              : 'Modify the configuration and settings of your AI agent.'
+              ? 'Configure a new AI agent with advanced behavior settings to analyze your content and generate suggestions.'
+              : 'Modify the configuration and advanced settings of your AI agent.'
             }
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <Tabs defaultValue="basic" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="basic">Basic Settings</TabsTrigger>
               <TabsTrigger value="config">Configuration</TabsTrigger>
+              <TabsTrigger value="advanced">Advanced</TabsTrigger>
               <TabsTrigger value="preview">Preview</TabsTrigger>
             </TabsList>
 
@@ -424,6 +428,26 @@ Article data: {articles_data}`,
               </div>
             </TabsContent>
 
+            <TabsContent value="advanced" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Zap className="h-4 w-4" />
+                    Advanced Agent Configuration
+                  </CardTitle>
+                  <CardDescription>
+                    Fine-tune agent behavior, scheduling, triggers, and collaboration settings for optimal performance.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <AdvancedAgentConfig
+                    config={formData.config}
+                    onChange={handleAdvancedConfigChange}
+                  />
+                </CardContent>
+              </Card>
+            </TabsContent>
+
             <TabsContent value="preview" className="space-y-4">
               <Card>
                 <CardHeader>
@@ -437,6 +461,12 @@ Article data: {articles_data}`,
                         {formData.is_active ? "Active" : "Inactive"}
                       </Badge>
                       <Badge variant="outline">{selectedAgentType?.label || formData.type}</Badge>
+                      {formData.config.auto_run_enabled && (
+                        <Badge variant="secondary">Auto-Run</Badge>
+                      )}
+                      {formData.config.collaboration_enabled && (
+                        <Badge variant="outline">Collaborative</Badge>
+                      )}
                     </div>
                   </CardTitle>
                   <CardDescription>
@@ -450,7 +480,25 @@ Article data: {articles_data}`,
                         <Target className="h-4 w-4" />
                         Configuration Summary
                       </h4>
-                      <div className="bg-muted p-3 rounded text-xs">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div className="space-y-2">
+                          <p className="text-xs text-muted-foreground">Confidence Threshold</p>
+                          <p className="text-sm font-medium">{((formData.config.confidence_threshold || 0.7) * 100).toFixed(0)}%</p>
+                        </div>
+                        <div className="space-y-2">
+                          <p className="text-xs text-muted-foreground">Max Suggestions</p>
+                          <p className="text-sm font-medium">{formData.config.max_suggestions || 5}</p>
+                        </div>
+                        <div className="space-y-2">
+                          <p className="text-xs text-muted-foreground">Run Frequency</p>
+                          <p className="text-sm font-medium">{formData.config.run_frequency || 'Manual'}</p>
+                        </div>
+                        <div className="space-y-2">
+                          <p className="text-xs text-muted-foreground">Analysis Window</p>
+                          <p className="text-sm font-medium">{formData.config.analysis_window_hours || 24}h</p>
+                        </div>
+                      </div>
+                      <div className="bg-muted p-3 rounded text-xs max-h-40 overflow-y-auto">
                         <pre>{configJson}</pre>
                       </div>
                     </div>

@@ -270,6 +270,7 @@ const AICoPilotDashboard = () => {
           setSelectedAgent(null);
         }}
         agent={selectedAgent}
+        mode={showCreateAgent ? 'create' : 'edit'}
       />
     </div>
   );

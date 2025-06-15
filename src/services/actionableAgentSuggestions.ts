@@ -90,6 +90,13 @@ export class ActionableAgentSuggestions {
     if (!articleId) return false;
 
     try {
+      // Convert string ID to number for article operations
+      const numericArticleId = parseInt(articleId, 10);
+      if (isNaN(numericArticleId)) {
+        console.error('Invalid article ID:', articleId);
+        return false;
+      }
+
       const updates: any = {};
 
       // Apply suggested improvements
@@ -106,7 +113,7 @@ export class ActionableAgentSuggestions {
         const { data: article } = await supabase
           .from('articles')
           .select('content')
-          .eq('id', articleId)
+          .eq('id', numericArticleId)
           .single();
 
         if (article && article.content) {
@@ -127,7 +134,7 @@ export class ActionableAgentSuggestions {
       const { error } = await supabase
         .from('articles')
         .update(updates)
-        .eq('id', articleId);
+        .eq('id', numericArticleId);
 
       return !error;
     } catch (error) {
@@ -152,6 +159,13 @@ export class ActionableAgentSuggestions {
     if (!articleId) return false;
 
     try {
+      // Convert string ID to number for article operations
+      const numericArticleId = parseInt(articleId, 10);
+      if (isNaN(numericArticleId)) {
+        console.error('Invalid article ID:', articleId);
+        return false;
+      }
+
       const seoUpdates: any = {};
 
       if (suggestionData.meta_title) {
@@ -170,7 +184,7 @@ export class ActionableAgentSuggestions {
       const { error } = await supabase
         .from('articles')
         .update(seoUpdates)
-        .eq('id', articleId);
+        .eq('id', numericArticleId);
 
       return !error;
     } catch (error) {
@@ -224,10 +238,17 @@ export class ActionableAgentSuggestions {
       switch (suggestion.target_type) {
         case 'article':
           if (suggestion.target_id) {
+            // Convert string ID to number for article operations
+            const numericArticleId = parseInt(suggestion.target_id, 10);
+            if (isNaN(numericArticleId)) {
+              console.error('Invalid article ID for preview:', suggestion.target_id);
+              return null;
+            }
+
             const { data: article } = await supabase
               .from('articles')
               .select('*')
-              .eq('id', suggestion.target_id)
+              .eq('id', numericArticleId)
               .single();
 
             return {

@@ -33,7 +33,7 @@ serve(async (req) => {
       deep: 'Conduct deep, multi-faceted research with detailed analysis, covering various perspectives and recent developments on: '
     };
 
-    const prompt = depthPrompts[depth as keyof typeof depthPrompts] + query;
+    let prompt = depthPrompts[depth as keyof typeof depthPrompts] + query;
     
     if (includeSources) {
       prompt += '. Please include citations and sources for all claims.';

@@ -12,7 +12,7 @@ const corsHeaders = {
 };
 
 const getProviderForModel = (model: string): string => {
-    if (model.startsWith('gpt-')) return 'OpenAI';
+    if (model.startsWith('gpt-') || model.startsWith('o3-') || model.startsWith('o4-')) return 'OpenAI';
     if (model.startsWith('gemini-')) return 'Google';
     if (model.startsWith('claude-')) return 'Anthropic';
     return 'Google';
@@ -129,7 +129,7 @@ serve(async (req) => {
       targetLength = 'medium', 
       maintainAttribution = true, 
       resolveConflicts = true,
-      aiModel = 'gemini-1.5-flash-latest'
+      aiModel = 'gemini-2.0-flash'
     } = await req.json();
     
     if (!sources || !Array.isArray(sources) || sources.length === 0) {

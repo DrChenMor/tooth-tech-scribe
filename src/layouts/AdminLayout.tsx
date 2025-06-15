@@ -13,10 +13,12 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
     <SidebarProvider>
       <div className="flex flex-col min-h-screen">
         <Header />
-        <div className="flex flex-grow">
+        <div className="flex flex-grow overflow-hidden">
           <AdminSidebar />
-          <main className="flex-grow p-4 md:p-8">
-            {children}
+          <main className="flex-grow overflow-auto">
+            <div className="h-full w-full p-4 md:p-8">
+              {children}
+            </div>
           </main>
         </div>
         <Footer />

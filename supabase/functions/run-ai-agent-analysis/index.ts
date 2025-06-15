@@ -1,3 +1,4 @@
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
@@ -11,7 +12,7 @@ const corsHeaders = {
 };
 
 const getProviderForModel = (model: string): string => {
-    if (model.startsWith('gpt-')) return 'OpenAI';
+    if (model.startsWith('gpt-') || model.startsWith('o3-') || model.startsWith('o4-')) return 'OpenAI';
     if (model.startsWith('gemini-')) return 'Google';
     if (model.startsWith('claude-')) return 'Anthropic';
     return 'Google'; // Default fallback to Google
@@ -134,7 +135,7 @@ serve(async (req) => {
 
   try {
     const { prompt, agentConfig } = await req.json();
-    const model = agentConfig?.ai_model || 'gemini-1.5-flash-latest';
+    const model = agentConfig?.ai_model || 'gemini-2.0-flash';
     const provider = agentConfig?.provider || getProviderForModel(model);
 
     let analysis;

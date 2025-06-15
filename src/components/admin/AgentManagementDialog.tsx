@@ -27,7 +27,10 @@ const AGENT_TYPES = [
   { value: 'trending', label: 'Trending Content Agent', description: 'Identifies trending articles and content opportunities' },
   { value: 'content_gap', label: 'Content Gap Agent', description: 'Finds content gaps and suggests new topics' },
   { value: 'summarization', label: 'Summarization Agent', description: 'Creates summaries and extracts key insights' },
-  { value: 'enhanced_trending', label: 'Enhanced Trending Agent', description: 'Advanced trending analysis with ML predictions' }
+  { value: 'enhanced_trending', label: 'Enhanced Trending Agent', description: 'Advanced trending analysis with ML predictions' },
+  { value: 'content_quality', label: 'Content Quality Agent', description: 'Analyzes content quality, readability, and engagement.' },
+  { value: 'seo_optimization', label: 'SEO Optimization Agent', description: 'Provides SEO recommendations and keyword analysis.' },
+  { value: 'engagement_prediction', label: 'Engagement Prediction Agent', description: 'Predicts social media performance and reader engagement.' },
 ];
 
 const AgentManagementDialog = ({ isOpen, onClose, agent, mode }: AgentManagementDialogProps) => {
@@ -192,6 +195,33 @@ Return a JSON object with two keys:
 2. "future_predictions": An array with a single object containing "prediction_text" and "confidence_score".
 
 If no articles are trending and no predictions can be made, return empty arrays for both keys.
+
+Article data: {articles_data}`,
+        };
+      case 'content_quality':
+        return {
+          ai_model: 'gemini-1.5-pro-latest',
+          prompt_template: `Analyze the provided articles for content quality based on clarity, depth, and engagement potential. For each article, provide a quality score (0-100) and specific, actionable suggestions for improvement.
+
+Return a JSON object with a key "quality_analysis", containing an array of objects. Each object must include "article_id", "quality_score" (number), "reasoning" (string), and an array of "suggestions" (strings).
+
+Article data: {articles_data}`,
+        };
+      case 'seo_optimization':
+        return {
+          ai_model: 'gemini-1.5-flash-latest',
+          prompt_template: `Analyze the provided articles for SEO optimization. For each article, suggest a list of relevant keywords, a meta description, and other on-page SEO improvements.
+
+Return a JSON object with a key "seo_analysis", containing an array of objects. Each object must include "article_id", "suggested_keywords" (array of strings), "suggested_meta_description" (string), and "on_page_improvements" (array of strings).
+
+Article data: {articles_data}`,
+        };
+      case 'engagement_prediction':
+        return {
+          ai_model: 'gemini-1.5-flash-latest',
+          prompt_template: `Predict the social media and reader engagement for the provided articles. For each article, provide a predicted engagement score (low, medium, high) and suggest a social media post to maximize reach.
+
+Return a JSON object with a key "engagement_prediction", containing an array of objects. Each object must include "article_id", "predicted_engagement" (string: 'low', 'medium', or 'high'), "reasoning" (string), and "suggested_social_post" (string).
 
 Article data: {articles_data}`,
         };

@@ -1,9 +1,11 @@
-
 import { BaseAgent, AgentConfig } from './BaseAgent';
 import { TrendingContentAgent } from './TrendingContentAgent';
 import { SummarizationAgent } from './SummarizationAgent';
 import { ContentGapAgent } from './ContentGapAgent';
 import { EnhancedTrendingAgent } from './EnhancedTrendingAgent';
+import { ContentQualityAgent } from './ContentQualityAgent';
+import { SeoOptimizationAgent } from './SeoOptimizationAgent';
+import { EngagementPredictionAgent } from './EngagementPredictionAgent';
 
 type AgentConstructor = new (name: string, type: string, config: AgentConfig) => BaseAgent;
 
@@ -29,12 +31,24 @@ export class AgentRegistry {
     this.agentTypes.set('trending', TrendingContentAgent);
     this.agentTypes.set('summarization-agent', SummarizationAgent);
     this.agentTypes.set('content', SummarizationAgent);
+    this.agentTypes.set('summarization', SummarizationAgent);
     this.agentTypes.set('content-gap-agent', ContentGapAgent);
-    this.agentTypes.set('quality', ContentGapAgent);
     
     // Enhanced agents
     this.agentTypes.set('enhanced-trending-agent', EnhancedTrendingAgent);
     this.agentTypes.set('enhanced-trending', EnhancedTrendingAgent);
+
+    // New Google-powered agents
+    this.agentTypes.set('content-quality-agent', ContentQualityAgent);
+    this.agentTypes.set('content_quality', ContentQualityAgent);
+    this.agentTypes.set('quality', ContentQualityAgent); // Re-mapping 'quality' to the new, more appropriate agent
+    this.agentTypes.set('seo-optimization-agent', SeoOptimizationAgent);
+    this.agentTypes.set('seo_optimization', SeoOptimizationAgent);
+    this.agentTypes.set('engagement-prediction-agent', EngagementPredictionAgent);
+    this.agentTypes.set('engagement_prediction', EngagementPredictionAgent);
+    
+    // Legacy mapping for content_gap
+    this.agentTypes.set('content_gap', ContentGapAgent);
   }
 
   createAgent(name: string, type: string, config: AgentConfig = {}): BaseAgent | null {

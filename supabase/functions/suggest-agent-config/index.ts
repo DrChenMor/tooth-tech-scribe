@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
@@ -46,6 +45,27 @@ For summarization agents, the config must include:
 - "max_summary_length": (number)
 `;
             break;
+        case 'content_quality':
+            prompt += `
+For content quality agents, the config must include:
+- "ai_model": (string) Use 'gemini-1.5-pro-latest' for deep analysis.
+- "prompt_template": (string) A prompt to analyze content for quality, readability, and engagement. It must request a JSON response with "quality_analysis" containing scores and suggestions. The placeholder {articles_data} will be replaced.
+`;
+            break;
+        case 'seo_optimization':
+            prompt += `
+For SEO optimization agents, the config must include:
+- "ai_model": (string) 'gemini-1.5-flash-latest' is a good choice.
+- "prompt_template": (string) A prompt to suggest keywords, meta descriptions, and on-page improvements. It must request a JSON response with "seo_analysis". The placeholder {articles_data} will be replaced.
+`;
+            break;
+        case 'engagement_prediction':
+            prompt += `
+For engagement prediction agents, the config must include:
+- "ai_model": (string) 'gemini-1.5-flash-latest' is a good choice.
+- "prompt_template": (string) A prompt to predict engagement and suggest social media posts. It must request a JSON response with "engagement_prediction". The placeholder {articles_data} will be replaced.
+`;
+            break;
     }
     return prompt;
 }
@@ -78,7 +98,6 @@ const handleOpenAIRequest = async (systemPrompt: string, userPrompt: string) => 
   const data = await response.json();
   return data.choices[0].message.content;
 };
-
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {

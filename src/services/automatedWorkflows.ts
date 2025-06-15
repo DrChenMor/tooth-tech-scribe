@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 export interface AISuggestion {
@@ -66,16 +65,26 @@ export class AutomatedWorkflowService {
   static async createWorkflowRule(rule: Omit<WorkflowRule, 'id' | 'created_at' | 'updated_at' | 'execution_count' | 'success_rate'>): Promise<WorkflowRule> {
     const { data, error } = await supabase
       .from('workflow_rules')
-      .insert([{
-        ...rule,
+      .insert({
+        name: rule.name,
+        description: rule.description,
+        conditions: rule.conditions as any,
+        actions: rule.actions as any,
+        enabled: rule.enabled,
+        priority: rule.priority,
         execution_count: 0,
         success_rate: 0
-      }])
+      })
       .select()
       .single();
 
     if (error) throw error;
-    return data as WorkflowRule;
+    
+    return {
+      ...data,
+      conditions: data.conditions as WorkflowCondition[],
+      actions: data.actions as WorkflowAction[]
+    } as WorkflowRule;
   }
 
   static async getWorkflowRules(): Promise<WorkflowRule[]> {
@@ -85,7 +94,12 @@ export class AutomatedWorkflowService {
       .order('priority', { ascending: false });
 
     if (error) throw error;
-    return (data || []) as WorkflowRule[];
+    
+    return (data || []).map(rule => ({
+      ...rule,
+      conditions: rule.conditions as WorkflowCondition[],
+      actions: rule.actions as WorkflowAction[]
+    })) as WorkflowRule[];
   }
 
   static async evaluateSuggestionForWorkflows(suggestion: AISuggestion): Promise<WorkflowExecution[]> {
@@ -148,17 +162,17 @@ export class AutomatedWorkflowService {
   }
 
   private static async executeWorkflow(rule: WorkflowRule, suggestion: AISuggestion): Promise<WorkflowExecution> {
-    const execution: Omit<WorkflowExecution, 'id'> = {
+    const execution = {
       workflow_rule_id: rule.id,
       suggestion_id: suggestion.id,
-      status: 'pending',
+      status: 'pending' as const,
       started_at: new Date().toISOString(),
       result: {}
     };
 
     const { data: executionData, error } = await supabase
       .from('workflow_executions')
-      .insert([execution])
+      .insert(execution)
       .select()
       .single();
 
@@ -227,24 +241,24 @@ export class AutomatedWorkflowService {
         
         await supabase
           .from('scheduled_reviews')
-          .insert([{
+          .insert({
             suggestion_id: suggestion.id,
             scheduled_for: reviewDate.toISOString(),
             review_type: action.parameters.review_type || 'standard'
-          }]);
+          });
         break;
 
       case 'create_task':
         await supabase
           .from('admin_tasks')
-          .insert([{
+          .insert({
             title: action.parameters.title || `Review suggestion: ${suggestion.title || 'Untitled'}`,
             description: action.parameters.description || suggestion.reasoning,
             priority: action.parameters.priority || 'medium',
             related_suggestion_id: suggestion.id,
             assigned_to: action.parameters.assigned_to,
             due_date: action.parameters.due_date
-          }]);
+          });
         break;
     }
   }
@@ -271,7 +285,7 @@ export class AutomatedWorkflowService {
   }): Promise<void> {
     await supabase
       .from('admin_notifications')
-      .insert([notification]);
+      .insert(notification);
   }
 
   private static async updateExecutionStatus(

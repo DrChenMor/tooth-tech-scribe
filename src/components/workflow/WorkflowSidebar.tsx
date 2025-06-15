@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -48,7 +47,7 @@ const WorkflowSidebar = ({ selectedNode, onAddNode, onUpdateNodeConfig }: Workfl
                     key={nodeType.type}
                     variant="outline"
                     className="w-full justify-start h-auto p-3"
-                    onClick={() => onAddNode(nodeType.type)}
+                    onClick={() => onAddNode(nodeType.type as any)}
                   >
                     <div className="flex items-center gap-3">
                       <Icon className="h-5 w-5" />
@@ -459,7 +458,7 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
         </div>
       )}
 
-      {node.type === 'content-quality-analyzer' && (
+      {(node.type as any) === 'content-quality-analyzer' && (
         <div className="space-y-2">
           <p className="text-sm text-muted-foreground">
             This node uses the Content Quality AI Agent to analyze articles. It will generate suggestions for articles with a quality score below 70.
@@ -470,7 +469,7 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
         </div>
       )}
 
-      {node.type === 'ai-seo-optimizer' && (
+      {(node.type as any) === 'ai-seo-optimizer' && (
         <div className="space-y-2">
           <p className="text-sm text-muted-foreground">
             This node uses the AI SEO Optimizer Agent to analyze articles. It will generate SEO keywords, meta descriptions, and other on-page improvements.
@@ -481,7 +480,7 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
         </div>
       )}
 
-      {node.type === 'engagement-forecaster' && (
+      {(node.type as any) === 'engagement-forecaster' && (
         <div className="space-y-2">
           <p className="text-sm text-muted-foreground">
             This node uses the Engagement Forecaster AI Agent to predict engagement. For articles with high predicted engagement, it will suggest a social media post.

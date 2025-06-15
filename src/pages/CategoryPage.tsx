@@ -6,6 +6,7 @@ import { Article } from '@/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import ArticleCard from '@/components/ArticleCard';
 import Footer from '@/components/Footer';
+import { Button } from '@/components/ui/button';
 
 const fetchArticlesByCategory = async (category: string): Promise<Article[]> => {
   const { data, error } = await supabase

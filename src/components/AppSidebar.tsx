@@ -1,4 +1,3 @@
-
 import {
   Sidebar,
   SidebarContent,
@@ -83,14 +82,14 @@ export function AppSidebar() {
             {isAdmin && <Button asChild variant="outline" size="sm" className="w-full group-data-[collapsible=icon]:hidden"><Link to="/admin">Admin</Link></Button>}
             <Button onClick={handleLogout} variant="ghost" size="sm" className="w-full group-data-[collapsible=icon]:hidden">Logout</Button>
             
-            <SidebarMenuButton asChild variant="ghost" className="w-full hidden group-data-[collapsible=icon]:flex">
+            <SidebarMenuButton asChild className="w-full hidden group-data-[collapsible=icon]:flex">
                 <Link to="/admin"><User /></Link>
             </SidebarMenuButton>
           </>
         ) : (
           <>
             <Button asChild size="sm" className="w-full group-data-[collapsible=icon]:hidden"><Link to="/auth">Login</Link></Button>
-            <SidebarMenuButton asChild variant="ghost" className="w-full hidden group-data-[collapsible=icon]:flex">
+            <SidebarMenuButton asChild className="w-full hidden group-data-[collapsible=icon]:flex">
                 <Link to="/auth"><LogIn /></Link>
             </SidebarMenuButton>
           </>

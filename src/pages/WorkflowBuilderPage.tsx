@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -375,14 +374,27 @@ const WorkflowBuilderPage = () => {
       toast({ title: 'Success', description: 'Workflow executed successfully.' });
 
     } catch (error: any) {
-      let errorMessage = error.message || 'An unknown error occurred.';
-      // Try to get a more specific error from the function response
-      if (error.context && typeof error.context.error === 'string') {
-        errorMessage = error.context.error;
+      console.error("Workflow execution error:", error);
+      let errorMessage = 'An unknown error occurred during workflow execution.';
+      
+      if (error) {
+        if (error.context?.error) {
+          errorMessage = typeof error.context.error === 'string' 
+            ? error.context.error 
+            : JSON.stringify(error.context.error);
+        } else if (error.message) {
+          errorMessage = error.message;
+        } else {
+          try {
+            errorMessage = JSON.stringify(error);
+          } catch {
+            // Cannot stringify, use default message.
+          }
+        }
       }
+      
       log(`Error: ${errorMessage}`);
       toast({ title: 'Workflow Failed', description: errorMessage, variant: 'destructive' });
-      console.error("Workflow execution error:", error);
     } finally {
       // Keep log visible after run
     }

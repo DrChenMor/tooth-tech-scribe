@@ -70,9 +70,16 @@ serve(async (req: Request) => {
     });
   } catch (error) {
     console.error("Unhandled error in translator function:", error);
+    let errorMessage = error.message || "An internal server error occurred.";
+
+    if (errorMessage.includes("Cloud Translation API has not been used")) {
+      errorMessage = "Google Cloud Translation API is not enabled. Please go to your Google Cloud project, enable the API, wait a few minutes, and then try again.";
+    }
+
     return new Response(
-      JSON.stringify({ error: error.message || "An internal server error occurred." }),
+      JSON.stringify({ error: errorMessage }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
+

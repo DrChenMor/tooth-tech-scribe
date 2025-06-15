@@ -1,4 +1,5 @@
 
+import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,6 +23,7 @@ const ContactPage = () => {
 
   return (
     <div className="flex flex-col min-h-screen">
+      <Header />
       <main className="flex-grow container mx-auto px-4 py-8">
         <div className="max-w-2xl mx-auto">
           <h1 className="text-4xl font-bold text-center mb-8">Contact Us</h1>

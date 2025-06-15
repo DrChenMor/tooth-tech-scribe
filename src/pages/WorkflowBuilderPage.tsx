@@ -144,8 +144,8 @@ const WorkflowBuilderPage = () => {
   }, [nodes]);
 
   return (
-    <div className="h-full flex flex-col">
-      <div className="border-b bg-background p-4">
+    <div className="fixed inset-0 flex flex-col">
+      <div className="border-b bg-background p-4 flex-shrink-0">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold">Workflow Builder</h1>

@@ -24,56 +24,71 @@ import MainLayout from "./layouts/MainLayout";
 import CategoryPage from "./pages/CategoryPage";
 import SitemapPage from "./pages/SitemapPage";
 import AICoPilotPage from "./pages/AICoPilotPage";
+import PerformanceAnalyticsPage from './pages/PerformanceAnalyticsPage';
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <AuthProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route element={<MainLayout />}>
-              <Route path="/" element={<Index />} />
-              <Route path="/articles" element={<ArticlesPage />} />
-              <Route path="/categories" element={<CategoriesPage />} />
-              <Route path="/article/:slug" element={<ArticlePage />} />
-              <Route path="/about" element={<AboutPage />} />
-              <Route path="/contact" element={<ContactPage />} />
-              <Route path="/category/:category" element={<CategoryPage />} />
-            </Route>
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <AuthProvider>
+          <BrowserRouter>
+            <Routes>
+              <Route element={<MainLayout />}>
+                <Route path="/" element={<Index />} />
+                <Route path="/articles" element={<ArticlesPage />} />
+                <Route path="/categories" element={<CategoriesPage />} />
+                <Route path="/article/:slug" element={<ArticlePage />} />
+                <Route path="/about" element={<AboutPage />} />
+                <Route path="/contact" element={<ContactPage />} />
+                <Route path="/category/:category" element={<CategoryPage />} />
+              </Route>
 
-            <Route path="/auth" element={<AuthPage />} />
+              <Route path="/auth" element={<AuthPage />} />
 
-            <Route path="/sitemap.xml" element={<SitemapPage />} />
+              <Route path="/sitemap.xml" element={<SitemapPage />} />
 
-            <Route
-              element={
-                <ProtectedRoute>
-                  <AdminLayout>
-                    <Outlet />
-                  </AdminLayout>
-                </ProtectedRoute>
-              }
-            >
-              <Route path="/admin" element={<AdminPage />} />
-              <Route path="/admin/ai-copilot" element={<AICoPilotPage />} />
-              <Route path="/admin/settings" element={<AdminSettingsPage />} />
-              <Route path="/admin/workflow-builder" element={<WorkflowBuilderPage />} />
-              <Route path="/admin/editor" element={<ArticleEditorPage />} />
-              <Route path="/admin/editor/:articleId" element={<ArticleEditorPage />} />
-              <Route path="/admin/ai-generator" element={<AIContentGeneratorPage />} />
-              <Route path="/admin/ai-agent-advanced" element={<AIAgentAdvancedPage />} />
-            </Route>
-            
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </AuthProvider>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+              <Route
+                element={
+                  <ProtectedRoute>
+                    <AdminLayout>
+                      <Outlet />
+                    </AdminLayout>
+                  </ProtectedRoute>
+                }
+              >
+                <Route path="/admin" element={<AdminPage />} />
+                <Route path="/admin/ai-copilot" element={<AICoPilotPage />} />
+                <Route path="/admin/settings" element={<AdminSettingsPage />} />
+                <Route path="/admin/workflow-builder" element={<WorkflowBuilderPage />} />
+                <Route path="/admin/editor" element={<ArticleEditorPage />} />
+                <Route path="/admin/editor/:articleId" element={<ArticleEditorPage />} />
+                <Route path="/admin/ai-generator" element={<AIContentGeneratorPage />} />
+                <Route path="/admin/ai-agent-advanced" element={<AIAgentAdvancedPage />} />
+              </Route>
+              
+              {/* Add new performance analytics route */}
+              <Route 
+                path="/admin/performance-analytics" 
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <AdminLayout>
+                      <PerformanceAnalyticsPage />
+                    </AdminLayout>
+                  </ProtectedRoute>
+                } 
+              />
+              
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </AuthProvider>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+}
 
 export default App;

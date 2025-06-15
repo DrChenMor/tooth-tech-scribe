@@ -9,7 +9,8 @@ import { getSystemMetrics, getAgentPerformanceData, SystemMetrics, AgentPerforma
 import { fetchAIAgents, AIAgent } from '@/services/aiAgents';
 import SystemMetricsDashboard from './SystemMetricsDashboard';
 import AgentPerformanceChart from './AgentPerformanceChart';
-import { Brain, BarChart3, TrendingUp } from 'lucide-react';
+import PerformanceAnalyticsDashboard from './PerformanceAnalyticsDashboard';
+import { Brain, BarChart3, TrendingUp, Award } from 'lucide-react';
 
 const AgentAnalyticsDashboard = () => {
   const [selectedAgentId, setSelectedAgentId] = useState<string>('');
@@ -57,14 +58,19 @@ const AgentAnalyticsDashboard = () => {
       </div>
 
       <Tabs defaultValue="overview" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="overview">System Overview</TabsTrigger>
+          <TabsTrigger value="performance">Performance Analytics</TabsTrigger>
           <TabsTrigger value="agents">Agent Performance</TabsTrigger>
           <TabsTrigger value="trends">Performance Trends</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
           {systemMetrics && <SystemMetricsDashboard metrics={systemMetrics} />}
+        </TabsContent>
+
+        <TabsContent value="performance" className="space-y-6">
+          <PerformanceAnalyticsDashboard />
         </TabsContent>
 
         <TabsContent value="agents" className="space-y-6">

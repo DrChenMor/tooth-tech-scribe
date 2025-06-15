@@ -1,42 +1,54 @@
 
 import { 
   LayoutDashboard, 
-  FileEdit, 
-  Wand2, 
+  FileText, 
   Settings, 
-  Workflow,
-  Brain
-} from "lucide-react";
+  Bot, 
+  BarChart3, 
+  Zap,
+  Award,
+  Workflow
+} from 'lucide-react';
 
 export const adminNavLinks = [
   {
-    title: "Dashboard",
-    url: "/admin",
+    title: 'Dashboard',
+    url: '/admin',
     icon: LayoutDashboard,
   },
   {
-    title: "AI Co-Pilot",
-    url: "/admin/ai-copilot",
-    icon: Brain,
+    title: 'Articles',
+    url: '/admin/articles',
+    icon: FileText,
   },
   {
-    title: "AI Content Generator",
-    url: "/admin/ai-generator",
-    icon: Wand2,
+    title: 'AI Co-Pilot',
+    url: '/admin/ai-copilot',
+    icon: Bot,
   },
   {
-    title: "AI Agent (Advanced)",
-    url: "/admin/ai-agent-advanced",
+    title: 'Analytics',
+    url: '/admin/analytics',
+    icon: BarChart3,
+  },
+  {
+    title: 'Performance Analytics',
+    url: '/admin/performance-analytics',
+    icon: Award,
+  },
+  {
+    title: 'AI Agent Management',
+    url: '/admin/ai-agents',
+    icon: Zap,
+  },
+  {
+    title: 'Workflow Builder',
+    url: '/admin/workflow-builder',
     icon: Workflow,
   },
   {
-    title: "Workflow Builder",
-    url: "/admin/workflow-builder",
-    icon: Workflow,
-  },
-  {
-    title: "Settings",
-    url: "/admin/settings",
+    title: 'Settings',
+    url: '/admin/settings',
     icon: Settings,
   },
 ];

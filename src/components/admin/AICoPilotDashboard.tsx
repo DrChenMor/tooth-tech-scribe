@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Brain, TrendingUp, FileText, AlertTriangle, Clock, CheckCircle, XCircle, Zap, Activity } from 'lucide-react';
 import { fetchPendingSuggestions, fetchAIAgents, updateSuggestionStatus, runAllActiveAgents, AIAgent, AISuggestion } from '@/services/aiAgents';
 import { toast } from '@/components/ui/use-toast';
@@ -264,17 +265,19 @@ const AICoPilotDashboard = () => {
         </Card>
       </div>
 
-      {/* Main Content */}
+      {/* Main Content with Improved Tab Layout */}
       <Tabs defaultValue="priority" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="priority">Priority Suggestions</TabsTrigger>
-          <TabsTrigger value="content">Content</TabsTrigger>
-          <TabsTrigger value="trending">Trending</TabsTrigger>
-          <TabsTrigger value="activity">Real-time Activity</TabsTrigger>
-          <TabsTrigger value="analytics">Performance Analytics</TabsTrigger>
-          <TabsTrigger value="predictions">Predictive Analytics</TabsTrigger>
-          <TabsTrigger value="agents">Agents</TabsTrigger>
-        </TabsList>
+        <div className="w-full overflow-x-auto">
+          <TabsList className="w-full h-auto p-1 grid grid-cols-7 lg:flex lg:w-auto">
+            <TabsTrigger value="priority" className="text-xs lg:text-sm whitespace-nowrap">Priority</TabsTrigger>
+            <TabsTrigger value="content" className="text-xs lg:text-sm whitespace-nowrap">Content</TabsTrigger>
+            <TabsTrigger value="trending" className="text-xs lg:text-sm whitespace-nowrap">Trending</TabsTrigger>
+            <TabsTrigger value="activity" className="text-xs lg:text-sm whitespace-nowrap">Activity</TabsTrigger>
+            <TabsTrigger value="analytics" className="text-xs lg:text-sm whitespace-nowrap">Analytics</TabsTrigger>
+            <TabsTrigger value="predictions" className="text-xs lg:text-sm whitespace-nowrap">Predictions</TabsTrigger>
+            <TabsTrigger value="agents" className="text-xs lg:text-sm whitespace-nowrap">Agents</TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="priority" className="space-y-4">
           <Card>

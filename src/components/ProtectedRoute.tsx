@@ -4,9 +4,10 @@ import { Navigate, useLocation } from 'react-router-dom';
 
 interface ProtectedRouteProps {
   children: JSX.Element;
+  requireAdmin?: boolean;
 }
 
-const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
+const ProtectedRoute = ({ children, requireAdmin = false }: ProtectedRouteProps) => {
   const { isAdmin, loading, user } = useAuth();
   const location = useLocation();
 
@@ -21,7 +22,7 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   //   return <Navigate to="/auth" state={{ from: location }} replace />;
   // }
 
-  // if (!isAdmin) {
+  // if (requireAdmin && !isAdmin) {
   //   return <Navigate to="/" replace />;
   // }
 

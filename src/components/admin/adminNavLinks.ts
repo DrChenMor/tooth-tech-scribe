@@ -37,9 +37,14 @@ export const adminNavLinks = [
     icon: Award,
   },
   {
+    title: 'Automated Workflows',
+    url: '/admin/automated-workflows',
+    icon: Zap,
+  },
+  {
     title: 'AI Agent Management',
     url: '/admin/ai-agents',
-    icon: Zap,
+    icon: Workflow,
   },
   {
     title: 'Workflow Builder',

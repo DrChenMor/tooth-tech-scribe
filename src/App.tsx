@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -25,6 +26,7 @@ import CategoryPage from "./pages/CategoryPage";
 import SitemapPage from "./pages/SitemapPage";
 import AICoPilotPage from "./pages/AICoPilotPage";
 import PerformanceAnalyticsPage from './pages/PerformanceAnalyticsPage';
+import AutomatedWorkflowsPage from './pages/AutomatedWorkflowsPage';
 
 const queryClient = new QueryClient();
 
@@ -68,19 +70,9 @@ function App() {
                 <Route path="/admin/editor/:articleId" element={<ArticleEditorPage />} />
                 <Route path="/admin/ai-generator" element={<AIContentGeneratorPage />} />
                 <Route path="/admin/ai-agent-advanced" element={<AIAgentAdvancedPage />} />
+                <Route path="/admin/performance-analytics" element={<PerformanceAnalyticsPage />} />
+                <Route path="/admin/automated-workflows" element={<AutomatedWorkflowsPage />} />
               </Route>
-              
-              {/* Add new performance analytics route */}
-              <Route 
-                path="/admin/performance-analytics" 
-                element={
-                  <ProtectedRoute requireAdmin>
-                    <AdminLayout>
-                      <PerformanceAnalyticsPage />
-                    </AdminLayout>
-                  </ProtectedRoute>
-                } 
-              />
               
               <Route path="*" element={<NotFound />} />
             </Routes>

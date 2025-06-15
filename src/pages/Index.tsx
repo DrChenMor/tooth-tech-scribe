@@ -1,3 +1,4 @@
+
 import Footer from '@/components/Footer';
 import ArticleCard from '@/components/ArticleCard';
 import { Link } from 'react-router-dom';
@@ -50,6 +51,19 @@ const Index = () => {
     if (!selectedCategory) return articles;
     return articles.filter(article => article.category === selectedCategory);
   }, [articles, selectedCategory]);
+  
+  const categoryCounts = useMemo(() => {
+    if (!articles) return {};
+    return articles.reduce((acc, article) => {
+      if (article.category) {
+        acc[article.category] = (acc[article.category] || 0) + 1;
+      }
+      return acc;
+    }, {} as Record<string, number>);
+  }, [articles]);
+
+  const totalArticleCount = useMemo(() => articles?.length || 0, [articles]);
+
 
   if (isLoading) {
     return (
@@ -147,7 +161,7 @@ const Index = () => {
 
           {/* Hero Articles Carousel */}
           {heroArticles.length > 0 && (
-            <div className="mb-16 animate-fade-in" style={{ animationDelay: '200ms' }}>
+            <div className="mb-8 animate-fade-in" style={{ animationDelay: '200ms' }}>
               <Carousel
                 plugins={[autoplayPlugin.current]}
                 className="w-full"
@@ -183,6 +197,15 @@ const Index = () => {
                 <CarouselPrevious className="hidden md:flex" />
                 <CarouselNext className="hidden md:flex" />
               </Carousel>
+              {selectedCategory && (
+                <div className="text-center mt-6">
+                  <Button asChild variant="link">
+                    <Link to={`/category/${selectedCategory.toLowerCase().replace(/\s+/g, '-')}`}>
+                      View all articles in {selectedCategory}
+                    </Link>
+                  </Button>
+                </div>
+              )}
             </div>
           )}
           
@@ -197,7 +220,7 @@ const Index = () => {
                 !selectedCategory ? 'bg-primary text-primary-foreground hover:bg-primary/90' : 'hover:bg-accent'
               )}
             >
-              All
+              All ({totalArticleCount})
             </Button>
             {isLoadingCategories ? (
               [...Array(3)].map((_, i) => <Skeleton key={i} className="h-8 w-24 rounded-full" />)
@@ -213,14 +236,24 @@ const Index = () => {
                     selectedCategory === category ? 'bg-primary text-primary-foreground hover:bg-primary/90' : 'hover:bg-accent'
                   )}
                 >
-                  {category}
+                  {category} ({categoryCounts[category] || 0})
                 </Button>
               ))
             )}
           </div>
           
+          {/* Section title for article grid */}
+          {otherArticles.length > 0 && (
+            <div className="mb-8 text-center animate-fade-in" key={`${selectedCategory}-title`}>
+                <h2 className="text-3xl font-serif font-bold">
+                    {selectedCategory ? `More in ${selectedCategory}` : 'Latest Articles'}
+                </h2>
+                <div className="w-20 h-1 bg-primary mx-auto mt-2"></div>
+            </div>
+          )}
+          
           {/* Article Grid */}
-          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3 animate-fade-in" key={selectedCategory || 'all'}>
             {otherArticles.map((article, index) => (
               <ArticleCard key={article.id} article={article} index={index} />
             ))}

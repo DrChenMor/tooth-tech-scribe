@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -24,6 +23,7 @@ import AdminLayout from "./layouts/AdminLayout";
 import MainLayout from "./layouts/MainLayout";
 import CategoryPage from "./pages/CategoryPage";
 import SitemapPage from "./pages/SitemapPage";
+import AICoPilotPage from "./pages/AICoPilotPage";
 
 const queryClient = new QueryClient();
 
@@ -59,6 +59,7 @@ const App = () => (
               }
             >
               <Route path="/admin" element={<AdminPage />} />
+              <Route path="/admin/ai-copilot" element={<AICoPilotPage />} />
               <Route path="/admin/settings" element={<AdminSettingsPage />} />
               <Route path="/admin/workflow-builder" element={<WorkflowBuilderPage />} />
               <Route path="/admin/editor" element={<ArticleEditorPage />} />

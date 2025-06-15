@@ -1,10 +1,42 @@
 
-import { Home, Workflow, Sparkles, Code, Settings } from "lucide-react";
+import { 
+  LayoutDashboard, 
+  FileEdit, 
+  Wand2, 
+  Settings, 
+  Workflow,
+  Brain
+} from "lucide-react";
 
-export const navLinks = [
-  { href: "/admin", label: "Dashboard", icon: Home },
-  { href: "/admin/workflow-builder", label: "Workflow Builder", icon: Workflow },
-  { href: "/admin/ai-generator", label: "AI Generator", icon: Sparkles },
-  { href: "/admin/ai-agent-advanced", label: "Python Agent", icon: Code },
-  { href: "/admin/settings", label: "Settings", icon: Settings },
+export const adminNavLinks = [
+  {
+    title: "Dashboard",
+    url: "/admin",
+    icon: LayoutDashboard,
+  },
+  {
+    title: "AI Co-Pilot",
+    url: "/admin/ai-copilot",
+    icon: Brain,
+  },
+  {
+    title: "AI Content Generator",
+    url: "/admin/ai-generator",
+    icon: Wand2,
+  },
+  {
+    title: "AI Agent (Advanced)",
+    url: "/admin/ai-agent-advanced",
+    icon: Workflow,
+  },
+  {
+    title: "Workflow Builder",
+    url: "/admin/workflow-builder",
+    icon: Workflow,
+  },
+  {
+    title: "Settings",
+    url: "/admin/settings",
+    icon: Settings,
+  },
 ];

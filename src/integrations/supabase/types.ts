@@ -9,6 +9,187 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      admin_actions_log: {
+        Row: {
+          action_type: Database["public"]["Enums"]["admin_action_type"]
+          admin_id: string
+          admin_reasoning: string | null
+          id: string
+          modified_data: Json | null
+          original_data: Json | null
+          suggestion_id: string | null
+          timestamp: string | null
+        }
+        Insert: {
+          action_type: Database["public"]["Enums"]["admin_action_type"]
+          admin_id: string
+          admin_reasoning?: string | null
+          id?: string
+          modified_data?: Json | null
+          original_data?: Json | null
+          suggestion_id?: string | null
+          timestamp?: string | null
+        }
+        Update: {
+          action_type?: Database["public"]["Enums"]["admin_action_type"]
+          admin_id?: string
+          admin_reasoning?: string | null
+          id?: string
+          modified_data?: Json | null
+          original_data?: Json | null
+          suggestion_id?: string | null
+          timestamp?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_actions_log_suggestion_id_fkey"
+            columns: ["suggestion_id"]
+            isOneToOne: false
+            referencedRelation: "ai_suggestions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_performance_metrics: {
+        Row: {
+          admin_feedback:
+            | Database["public"]["Enums"]["admin_feedback_type"]
+            | null
+          agent_id: string | null
+          feedback_notes: string | null
+          id: string
+          logged_at: string | null
+          performance_score: number | null
+          suggestion_id: string | null
+        }
+        Insert: {
+          admin_feedback?:
+            | Database["public"]["Enums"]["admin_feedback_type"]
+            | null
+          agent_id?: string | null
+          feedback_notes?: string | null
+          id?: string
+          logged_at?: string | null
+          performance_score?: number | null
+          suggestion_id?: string | null
+        }
+        Update: {
+          admin_feedback?:
+            | Database["public"]["Enums"]["admin_feedback_type"]
+            | null
+          agent_id?: string | null
+          feedback_notes?: string | null
+          id?: string
+          logged_at?: string | null
+          performance_score?: number | null
+          suggestion_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_performance_metrics_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "ai_agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_performance_metrics_suggestion_id_fkey"
+            columns: ["suggestion_id"]
+            isOneToOne: false
+            referencedRelation: "ai_suggestions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_agents: {
+        Row: {
+          config: Json | null
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          type: string
+          updated_at: string | null
+        }
+        Insert: {
+          config?: Json | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          type: string
+          updated_at?: string | null
+        }
+        Update: {
+          config?: Json | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          type?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      ai_suggestions: {
+        Row: {
+          agent_id: string | null
+          confidence_score: number | null
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          priority: number | null
+          reasoning: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: Database["public"]["Enums"]["suggestion_status"] | null
+          suggestion_data: Json
+          target_id: string | null
+          target_type: string
+        }
+        Insert: {
+          agent_id?: string | null
+          confidence_score?: number | null
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          priority?: number | null
+          reasoning: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["suggestion_status"] | null
+          suggestion_data: Json
+          target_id?: string | null
+          target_type: string
+        }
+        Update: {
+          agent_id?: string | null
+          confidence_score?: number | null
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          priority?: number | null
+          reasoning?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["suggestion_status"] | null
+          suggestion_data?: Json
+          target_id?: string | null
+          target_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_suggestions_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "ai_agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       articles: {
         Row: {
           author_avatar_url: string | null
@@ -107,8 +288,11 @@ export type Database = {
       }
     }
     Enums: {
+      admin_action_type: "approve" | "reject" | "edit" | "dismiss"
+      admin_feedback_type: "good" | "irrelevant" | "wrong" | "excellent"
       app_role: "admin" | "user"
       article_status: "draft" | "published" | "archived"
+      suggestion_status: "pending" | "approved" | "rejected" | "implemented"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -224,8 +408,11 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      admin_action_type: ["approve", "reject", "edit", "dismiss"],
+      admin_feedback_type: ["good", "irrelevant", "wrong", "excellent"],
       app_role: ["admin", "user"],
       article_status: ["draft", "published", "archived"],
+      suggestion_status: ["pending", "approved", "rejected", "implemented"],
     },
   },
 } as const

@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Settings, Key, CheckCircle, AlertCircle } from 'lucide-react';
+import { Settings, Key, CheckCircle, AlertCircle, Palette } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -46,6 +46,67 @@ const AdminSettingsPage = () => {
       description: 'Required for Gemini content generation'
     }
   ]);
+
+  const [theme, setTheme] = useState({
+    '--primary': '',
+    '--background': '',
+    '--foreground': '',
+    '--card': '',
+    '--muted': '',
+    '--border': '',
+  });
+
+  // Load theme from localStorage or CSS variables on initial render
+  useEffect(() => {
+    const rootStyle = getComputedStyle(document.documentElement);
+    const getDefaultTheme = () => ({
+      '--primary': rootStyle.getPropertyValue('--primary').trim(),
+      '--background': rootStyle.getPropertyValue('--background').trim(),
+      '--foreground': rootStyle.getPropertyValue('--foreground').trim(),
+      '--card': rootStyle.getPropertyValue('--card').trim(),
+      '--muted': rootStyle.getPropertyValue('--muted').trim(),
+      '--border': rootStyle.getPropertyValue('--border').trim(),
+    });
+
+    const savedTheme = localStorage.getItem('app-theme');
+    if (savedTheme) {
+      try {
+        const parsedTheme = JSON.parse(savedTheme);
+        setTheme({ ...getDefaultTheme(), ...parsedTheme });
+      } catch (error) {
+        console.error("Failed to parse theme from localStorage", error);
+        setTheme(getDefaultTheme());
+      }
+    } else {
+      setTheme(getDefaultTheme());
+    }
+  }, []);
+
+  // Apply theme changes live as they are updated in the state
+  useEffect(() => {
+    Object.entries(theme).forEach(([key, value]) => {
+      if (value) {
+        document.documentElement.style.setProperty(key, value);
+      }
+    });
+  }, [theme]);
+  
+  const handleThemeChange = (key: string, value: string) => {
+    setTheme(prev => ({ ...prev, [key]: value }));
+  };
+  
+  const saveTheme = () => {
+    localStorage.setItem('app-theme', JSON.stringify(theme));
+    toast({
+      title: "Theme Saved",
+      description: "Your custom theme has been saved to your browser.",
+    });
+  };
+
+  const resetTheme = () => {
+    localStorage.removeItem('app-theme');
+    window.location.reload();
+  };
 
   const updateKeyMutation = useMutation({
     mutationFn: async ({ keyName, keyValue }: { keyName: string; keyValue: string }) => {
@@ -157,7 +218,7 @@ const AdminSettingsPage = () => {
           </Card>
 
           {/* System Configuration */}
-          <Card>
+          <Card className="mb-6">
             <CardHeader>
               <CardTitle>System Configuration</CardTitle>
               <CardDescription>
@@ -183,6 +244,47 @@ const AdminSettingsPage = () => {
                   />
                 </div>
                 <Button>Save Configuration</Button>
+              </div>
+            </CardContent>
+          </Card>
+          
+          {/* Theme Customization */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Palette className="h-5 w-5" />
+                Theme Customization
+              </CardTitle>
+              <CardDescription>
+                Customize the application's colors. Changes are saved locally in your browser.
+                Colors should be in HSL format (e.g., 217 91% 60%).
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {Object.entries(theme).map(([key, value]) => (
+                  <div key={key}>
+                    <Label htmlFor={`theme-${key}`} className="capitalize">
+                      {key.replace(/--/g, '').replace(/-/g, ' ')}
+                    </Label>
+                    <div className="flex items-center gap-2 mt-1">
+                      <div 
+                        className="w-8 h-8 rounded-md border" 
+                        style={{ backgroundColor: `hsl(${value})` }}
+                      ></div>
+                      <Input
+                        id={`theme-${key}`}
+                        value={value}
+                        onChange={(e) => handleThemeChange(key, e.target.value)}
+                        placeholder="e.g., 217 91% 60%"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="flex gap-2 mt-6">
+                <Button onClick={saveTheme}>Save Theme</Button>
+                <Button variant="outline" onClick={resetTheme}>Reset to Default</Button>
               </div>
             </CardContent>
           </Card>

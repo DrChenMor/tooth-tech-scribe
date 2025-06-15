@@ -10,10 +10,11 @@ import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Brain, Settings, Target, Clock } from 'lucide-react';
+import { Brain, Settings, Target, Clock, Sparkles } from 'lucide-react';
 import { createAIAgent, updateAIAgent, AIAgent } from '@/services/aiAgents';
 import { AVAILABLE_MODELS } from '@/services/aiModelService';
 import { toast } from '@/components/ui/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface AgentManagementDialogProps {
   isOpen: boolean;
@@ -44,6 +45,8 @@ const AgentManagementDialog = ({ isOpen, onClose, agent, mode }: AgentManagement
   // Handle specific config fields separately for better UX
   const [selectedModel, setSelectedModel] = useState(agent?.config?.ai_model || 'gpt-4o-mini');
   const [promptTemplate, setPromptTemplate] = useState(agent?.config?.prompt_template || '');
+
+  const [isSuggestingConfig, setIsSuggestingConfig] = useState(false);
 
   useEffect(() => {
     // Sync dedicated fields with the main config JSON
@@ -96,6 +99,37 @@ const AgentManagementDialog = ({ isOpen, onClose, agent, mode }: AgentManagement
     },
     onError: (error) => {
       toast({ title: "Update Failed", description: error.message, variant: "destructive" });
+    }
+  });
+
+  const suggestConfigMutation = useMutation({
+    mutationFn: async ({ name, type, description }: { name: string, type: string, description: string }) => {
+      setIsSuggestingConfig(true);
+      const { data, error } = await supabase.functions.invoke('suggest-agent-config', {
+        body: { name, type, description },
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+      
+      return data;
+    },
+    onSuccess: (data) => {
+      const { suggestedConfig } = data;
+      if (suggestedConfig) {
+        const prettyConfig = JSON.stringify(suggestedConfig, null, 2);
+        setConfigJson(prettyConfig);
+        toast({ title: "Configuration Suggested", description: "AI has generated a configuration for you." });
+      } else {
+        throw new Error("AI did not return a valid configuration.");
+      }
+    },
+    onError: (error) => {
+      toast({ title: "Suggestion Failed", description: error.message, variant: "destructive" });
+    },
+    onSettled: () => {
+        setIsSuggestingConfig(false);
     }
   });
 
@@ -175,6 +209,22 @@ Article data: {articles_data}`,
     setConfigJson(JSON.stringify(defaultConfig, null, 2));
     setSelectedModel(defaultConfig.ai_model);
     setPromptTemplate(defaultConfig.prompt_template);
+  };
+
+  const handleSuggestConfig = () => {
+    if (!formData.name || !formData.type) {
+        toast({
+            title: "Missing Information",
+            description: "Please provide an Agent Name and Type before suggesting a configuration.",
+            variant: "destructive"
+        });
+        return;
+    }
+    suggestConfigMutation.mutate({
+        name: formData.name,
+        type: formData.type,
+        description: formData.description
+    });
   };
 
   return (
@@ -282,6 +332,18 @@ Article data: {articles_data}`,
             </TabsContent>
 
             <TabsContent value="config" className="space-y-4">
+              <div className="flex justify-end">
+                <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleSuggestConfig}
+                    disabled={isSuggestingConfig || suggestConfigMutation.isPending}
+                >
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    {isSuggestingConfig || suggestConfigMutation.isPending ? 'Generating...' : 'Suggest Configuration with AI'}
+                </Button>
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="prompt_template">Prompt Template</Label>
                 <Textarea

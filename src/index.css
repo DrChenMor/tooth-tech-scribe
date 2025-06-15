@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -20,7 +19,7 @@
     --secondary: 220 14% 25%; /* Dark Gray */
     --secondary-foreground: 0 0% 100%; /* White */
 
-    --muted: 220 9% 46%; /* Medium gray */
+    --muted: 210 40% 96.1%; /* Light gray, same as accent for better contrast */
     --muted-foreground: 215.4 16.3% 46.9%;
 
     --accent: 210 40% 96.1%;

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -6,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Settings, Key, CheckCircle, AlertCircle, Palette, Type } from 'lucide-react';
+import { Settings, Key, CheckCircle, AlertCircle, Palette, Type, Sitemap } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
@@ -301,6 +300,30 @@ const AdminSettingsPage = () => {
           </CardContent>
         </Card>
         
+        {/* Sitemap Management */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Sitemap className="h-5 w-5" />
+              Sitemap
+            </CardTitle>
+            <CardDescription>
+              Manage and view your XML sitemap for SEO.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground mb-3">
+              Your sitemap is generated dynamically to include all published articles and categories.
+              This helps search engines like Google discover and index your content.
+            </p>
+            <Button asChild variant="outline">
+              <a href="/sitemap.xml" target="_blank" rel="noopener noreferrer">
+                View Sitemap
+              </a>
+            </Button>
+          </CardContent>
+        </Card>
+
         {/* Theme Customization - Colors */}
         <Card className="mb-6">
           <CardHeader>

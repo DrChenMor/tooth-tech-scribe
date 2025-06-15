@@ -23,6 +23,7 @@ import ContactPage from "./pages/ContactPage";
 import AdminLayout from "./layouts/AdminLayout";
 import MainLayout from "./layouts/MainLayout";
 import CategoryPage from "./pages/CategoryPage";
+import SitemapPage from "./pages/SitemapPage";
 
 const queryClient = new QueryClient();
 
@@ -45,6 +46,8 @@ const App = () => (
             </Route>
 
             <Route path="/auth" element={<AuthPage />} />
+
+            <Route path="/sitemap.xml" element={<SitemapPage />} />
 
             <Route
               element={

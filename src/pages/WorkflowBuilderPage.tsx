@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -344,7 +345,7 @@ const WorkflowBuilderPage = () => {
 
             if (translatorError) {
               console.error('Translator function invocation error:', translatorError);
-              throw new Error(translatorError.message || 'Error calling translator function.');
+              throw translatorError; // Throw the original error to be caught by the catch block
             }
             
             if (translatorData.error) {
@@ -374,7 +375,11 @@ const WorkflowBuilderPage = () => {
       toast({ title: 'Success', description: 'Workflow executed successfully.' });
 
     } catch (error: any) {
-      const errorMessage = error.message || 'An unknown error occurred.';
+      let errorMessage = error.message || 'An unknown error occurred.';
+      // Try to get a more specific error from the function response
+      if (error.context && typeof error.context.error === 'string') {
+        errorMessage = error.context.error;
+      }
       log(`Error: ${errorMessage}`);
       toast({ title: 'Workflow Failed', description: errorMessage, variant: 'destructive' });
       console.error("Workflow execution error:", error);

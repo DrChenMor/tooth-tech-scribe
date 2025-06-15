@@ -1,4 +1,3 @@
-
 import { BaseAgent, AgentSuggestion, AgentAnalysisContext } from './BaseAgent';
 
 export class ContentGapAgent extends BaseAgent {
@@ -17,8 +16,11 @@ export class ContentGapAgent extends BaseAgent {
     for (const analysis of articlesNeedingAttention.slice(0, 4)) {
       const { article, gaps, metrics } = analysis;
       
+      // Calculate overall score from existing metrics
+      const overallScore = this.calculateOverallScore(metrics);
+      
       const confidenceFactors = [
-        1 - metrics.overall_score, // Lower score = higher confidence in need for update
+        1 - overallScore, // Lower score = higher confidence in need for update
         gaps.urgency_score,
         gaps.impact_score,
         this.calculateCompetitiveNeed(article, publishedArticles)
@@ -54,6 +56,25 @@ export class ContentGapAgent extends BaseAgent {
     }
 
     return suggestions;
+  }
+
+  private calculateOverallScore(metrics: any): number {
+    // Calculate weighted average of all metrics
+    const weights = {
+      engagement: 0.25,
+      freshness: 0.20,
+      quality: 0.25,
+      trending: 0.15,
+      seo: 0.15
+    };
+
+    return (
+      metrics.engagement_score * weights.engagement +
+      metrics.freshness_score * weights.freshness +
+      metrics.quality_score * weights.quality +
+      metrics.trending_score * weights.trending +
+      metrics.seo_score * weights.seo
+    );
   }
 
   private performComprehensiveContentAnalysis(articles: any[]) {

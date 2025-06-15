@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -5,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Settings, Key, CheckCircle, AlertCircle, Palette, Type, Sitemap } from 'lucide-react';
+import { Settings, Key, CheckCircle, AlertCircle, Palette, Type, Network } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
@@ -304,7 +305,7 @@ const AdminSettingsPage = () => {
         <Card className="mb-6">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Sitemap className="h-5 w-5" />
+              <Network className="h-5 w-5" />
               Sitemap
             </CardTitle>
             <CardDescription>

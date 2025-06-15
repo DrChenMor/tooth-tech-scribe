@@ -1,4 +1,4 @@
-import { getAIAnalysis } from '@/services/aiModelService';
+import { getAIAnalysis, AVAILABLE_MODELS } from '@/services/aiModelService';
 
 export interface AgentConfig {
   [key: string]: any;
@@ -65,8 +65,18 @@ export abstract class BaseAgent {
       throw new Error("AI model is not configured for this agent.");
     }
     
+    const modelInfo = AVAILABLE_MODELS.find(m => m.id === this.config.ai_model);
+    if (!modelInfo) {
+      throw new Error(`Configuration for model ${this.config.ai_model} not found.`);
+    }
+
+    const agentConfigWithProvider = {
+      ...this.config,
+      provider: modelInfo.provider,
+    };
+
     try {
-      const result = await getAIAnalysis(prompt, this.config);
+      const result = await getAIAnalysis(prompt, agentConfigWithProvider);
       // The edge function returns a JSON string in the 'analysis' property
       const analysisData = JSON.parse(result.analysis);
       return analysisData;

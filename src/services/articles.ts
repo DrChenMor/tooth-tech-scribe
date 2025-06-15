@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Article, ArticleStatus } from "@/types";
 import { ArticleFormValues } from "@/lib/schemas";
@@ -38,6 +39,8 @@ export const upsertArticle = async ({ id, values, author }: { id?: number; value
     author_name: author.name,
     author_avatar_url: author.avatar_url,
   };
+  
+  console.log('[upsertArticle] Payload for database:', { id, ...data });
 
   if (id) {
     // For update, we don't touch 'views' so it's not reset
@@ -51,6 +54,44 @@ export const upsertArticle = async ({ id, values, author }: { id?: number; value
 };
 
 export const deleteArticle = async (id: number): Promise<void> => {
-  const { error } = await supabase.from("articles").delete().eq("id", id);
-  if (error) throw new Error(error.message);
+  // 1. Fetch the article to get its image_url
+  const { data: article, error: fetchError } = await supabase
+    .from("articles")
+    .select("image_url")
+    .eq("id", id)
+    .single();
+
+  if (fetchError && fetchError.code !== 'PGRST116') {
+    throw new Error(`Failed to fetch article for deletion: ${fetchError.message}`);
+  }
+
+  // 2. If an image URL exists, delete the image from storage
+  if (article && article.image_url) {
+    try {
+      const url = new URL(article.image_url);
+      const pathSegments = url.pathname.split('/');
+      // Path format: /storage/v1/object/public/article-images/image-name.jpg
+      const filePath = pathSegments.slice(pathSegments.indexOf('article-images') + 1).join('/');
+
+      if (filePath) {
+        console.log(`[deleteArticle] Attempting to delete image from storage: ${filePath}`);
+        const { error: storageError } = await supabase.storage
+          .from('article-images')
+          .remove([filePath]);
+
+        if (storageError) {
+          // Log the error but don't block the article deletion itself
+          console.error(`[deleteArticle] Could not delete image from storage: ${storageError.message}`);
+        } else {
+          console.log(`[deleteArticle] Successfully deleted image from storage.`);
+        }
+      }
+    } catch (e) {
+      console.error("[deleteArticle] Error processing image URL for deletion, skipping storage delete.", e);
+    }
+  }
+
+  // 3. Delete the article record from the database
+  const { error: deleteError } = await supabase.from("articles").delete().eq("id", id);
+  if (deleteError) throw new Error(deleteError.message);
 };

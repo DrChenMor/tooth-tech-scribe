@@ -18,10 +18,13 @@ const ImageUpload = ({ value, onChange }: ImageUploadProps) => {
   const { toast } = useToast();
 
   useEffect(() => {
+    console.log('[ImageUpload] useEffect received value:', value);
     if (value && value !== preview) {
       setPreview(value);
+    } else if (!value) {
+      setPreview(null);
     }
-  }, [value]);
+  }, [value, preview]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -62,12 +65,11 @@ const ImageUpload = ({ value, onChange }: ImageUploadProps) => {
 
     setIsUploading(true);
     try {
-      console.log('Starting upload process...');
+      console.log('[ImageUpload] Starting upload process...');
       const publicUrl = await uploadArticleImage(selectedFile);
-      console.log('Upload completed, URL:', publicUrl);
+      console.log('[ImageUpload] Upload completed, publicUrl:', publicUrl);
       
       onChange(publicUrl);
-      setPreview(publicUrl);
       
       toast({ 
         title: "Image uploaded successfully!",
@@ -88,6 +90,7 @@ const ImageUpload = ({ value, onChange }: ImageUploadProps) => {
   };
 
   const handleRemove = () => {
+    console.log('[ImageUpload] Removing image.');
     setPreview(null);
     onChange('');
     setSelectedFile(null);

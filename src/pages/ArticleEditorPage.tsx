@@ -79,6 +79,7 @@ const ArticleEditorPage = () => {
   });
 
   const onSubmit = (values: ArticleFormValues) => {
+    console.log('[ArticleEditorPage] Submitting form with values:', values);
     const authorProfile = profile || {
       full_name: "Demo Admin",
       avatar_url: null,

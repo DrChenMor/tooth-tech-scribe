@@ -50,6 +50,101 @@ export type Database = {
           },
         ]
       }
+      admin_notifications: {
+        Row: {
+          created_at: string | null
+          execution_id: string | null
+          id: string
+          message: string
+          read_at: string | null
+          suggestion_id: string | null
+          title: string
+          type: string
+        }
+        Insert: {
+          created_at?: string | null
+          execution_id?: string | null
+          id?: string
+          message: string
+          read_at?: string | null
+          suggestion_id?: string | null
+          title: string
+          type: string
+        }
+        Update: {
+          created_at?: string | null
+          execution_id?: string | null
+          id?: string
+          message?: string
+          read_at?: string | null
+          suggestion_id?: string | null
+          title?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_notifications_execution_id_fkey"
+            columns: ["execution_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_executions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "admin_notifications_suggestion_id_fkey"
+            columns: ["suggestion_id"]
+            isOneToOne: false
+            referencedRelation: "ai_suggestions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      admin_tasks: {
+        Row: {
+          assigned_to: string | null
+          created_at: string | null
+          description: string | null
+          due_date: string | null
+          id: string
+          priority: string | null
+          related_suggestion_id: string | null
+          status: string | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          created_at?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          priority?: string | null
+          related_suggestion_id?: string | null
+          status?: string | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          assigned_to?: string | null
+          created_at?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          priority?: string | null
+          related_suggestion_id?: string | null
+          status?: string | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_tasks_related_suggestion_id_fkey"
+            columns: ["related_suggestion_id"]
+            isOneToOne: false
+            referencedRelation: "ai_suggestions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agent_performance_metrics: {
         Row: {
           admin_feedback:
@@ -141,14 +236,19 @@ export type Database = {
           created_at: string | null
           expires_at: string | null
           id: string
+          implementation_notes: string | null
+          implemented_at: string | null
           priority: number | null
           reasoning: string
+          review_notes: string | null
           reviewed_at: string | null
           reviewed_by: string | null
           status: Database["public"]["Enums"]["suggestion_status"] | null
           suggestion_data: Json
           target_id: string | null
           target_type: string
+          title: string | null
+          type: string | null
         }
         Insert: {
           agent_id?: string | null
@@ -156,14 +256,19 @@ export type Database = {
           created_at?: string | null
           expires_at?: string | null
           id?: string
+          implementation_notes?: string | null
+          implemented_at?: string | null
           priority?: number | null
           reasoning: string
+          review_notes?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           status?: Database["public"]["Enums"]["suggestion_status"] | null
           suggestion_data: Json
           target_id?: string | null
           target_type: string
+          title?: string | null
+          type?: string | null
         }
         Update: {
           agent_id?: string | null
@@ -171,14 +276,19 @@ export type Database = {
           created_at?: string | null
           expires_at?: string | null
           id?: string
+          implementation_notes?: string | null
+          implemented_at?: string | null
           priority?: number | null
           reasoning?: string
+          review_notes?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           status?: Database["public"]["Enums"]["suggestion_status"] | null
           suggestion_data?: Json
           target_id?: string | null
           target_type?: string
+          title?: string | null
+          type?: string | null
         }
         Relationships: [
           {
@@ -259,6 +369,41 @@ export type Database = {
         }
         Relationships: []
       }
+      scheduled_reviews: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          id: string
+          review_type: string | null
+          scheduled_for: string
+          suggestion_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          review_type?: string | null
+          scheduled_for: string
+          suggestion_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          review_type?: string | null
+          scheduled_for?: string
+          suggestion_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scheduled_reviews_suggestion_id_fkey"
+            columns: ["suggestion_id"]
+            isOneToOne: false
+            referencedRelation: "ai_suggestions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string
@@ -274,6 +419,96 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      workflow_executions: {
+        Row: {
+          completed_at: string | null
+          error_message: string | null
+          id: string
+          result: Json | null
+          started_at: string | null
+          status: string
+          suggestion_id: string
+          workflow_rule_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          error_message?: string | null
+          id?: string
+          result?: Json | null
+          started_at?: string | null
+          status?: string
+          suggestion_id: string
+          workflow_rule_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          error_message?: string | null
+          id?: string
+          result?: Json | null
+          started_at?: string | null
+          status?: string
+          suggestion_id?: string
+          workflow_rule_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_executions_suggestion_id_fkey"
+            columns: ["suggestion_id"]
+            isOneToOne: false
+            referencedRelation: "ai_suggestions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_executions_workflow_rule_id_fkey"
+            columns: ["workflow_rule_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workflow_rules: {
+        Row: {
+          actions: Json
+          conditions: Json
+          created_at: string | null
+          description: string | null
+          enabled: boolean | null
+          execution_count: number | null
+          id: string
+          name: string
+          priority: number | null
+          success_rate: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          actions?: Json
+          conditions?: Json
+          created_at?: string | null
+          description?: string | null
+          enabled?: boolean | null
+          execution_count?: number | null
+          id?: string
+          name: string
+          priority?: number | null
+          success_rate?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          actions?: Json
+          conditions?: Json
+          created_at?: string | null
+          description?: string | null
+          enabled?: boolean | null
+          execution_count?: number | null
+          id?: string
+          name?: string
+          priority?: number | null
+          success_rate?: number | null
+          updated_at?: string | null
         }
         Relationships: []
       }

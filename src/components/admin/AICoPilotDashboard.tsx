@@ -17,6 +17,8 @@ import { useQuery } from '@tanstack/react-query';
 import { fetchAIAgents, AIAgent } from '@/services/aiAgents';
 import { getSystemMetrics } from '@/services/advancedAnalytics';
 import { useToast } from '@/components/ui/use-toast';
+import RealSystemMetrics from './RealSystemMetrics';
+import RealAIControlPanel from './RealAIControlPanel';
 
 const AICoPilotDashboard = () => {
   const [showCreateAgent, setShowCreateAgent] = useState(false);
@@ -165,7 +167,11 @@ const AICoPilotDashboard = () => {
             </Card>
           </div>
 
-          {systemMetrics && <SystemMetricsDashboard metrics={systemMetrics} />}
+          {/* Add Real AI Control Panel */}
+          <RealAIControlPanel />
+
+          {/* Add Real System Metrics */}
+          <RealSystemMetrics />
         </TabsContent>
 
         <TabsContent value="agents" className="space-y-6">

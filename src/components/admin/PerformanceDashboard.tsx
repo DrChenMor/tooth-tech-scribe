@@ -168,7 +168,7 @@ const PerformanceDashboard = () => {
                   <Clock className="h-4 w-4" />
                   <span className="text-sm font-medium">Response Time</span>
                 </div>
-                <div className="text-lg font-semibold">{systemHealth.avg_response_time.to Fixed(0)}ms</div>
+                <div className="text-lg font-semibold">{systemHealth.avg_response_time.toFixed(0)}ms</div>
               </div>
               
               <div className="space-y-2">

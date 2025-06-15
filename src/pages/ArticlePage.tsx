@@ -1,6 +1,5 @@
 import { useParams, Link } from 'react-router-dom';
 import NotFound from './NotFound';
-import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Calendar, User, Tag } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
@@ -38,8 +37,7 @@ const ArticlePage = () => {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col min-h-screen">
-        <Header />
+      <div className="flex flex-col flex-grow">
         <main className="flex-grow">
           <div className="container mx-auto max-w-4xl px-4 py-8">
             <div className="animate-fade-in">
@@ -69,8 +67,7 @@ const ArticlePage = () => {
 
   if (isError) {
      return (
-      <div className="flex flex-col min-h-screen">
-        <Header />
+      <div className="flex flex-col flex-grow">
         <main className="flex-grow flex items-center justify-center">
           <div className="text-center">
             <h2 className="text-2xl font-bold">Failed to load article</h2>
@@ -87,8 +84,7 @@ const ArticlePage = () => {
   }
 
   return (
-    <div className="flex flex-col min-h-screen">
-      <Header />
+    <div className="flex flex-col flex-grow">
       <main className="flex-grow">
         <div className="container mx-auto max-w-4xl px-4 py-8">
           <div className="animate-fade-in">

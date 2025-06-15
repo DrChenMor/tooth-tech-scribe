@@ -19,6 +19,8 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import AboutPage from "./pages/AboutPage";
 import ContactPage from "./pages/ContactPage";
 import AdminLayout from "./layouts/AdminLayout";
+import MainLayout from "./layouts/MainLayout";
+import CategoryPage from "./pages/CategoryPage";
 
 const queryClient = new QueryClient();
 
@@ -30,11 +32,15 @@ const App = () => (
       <AuthProvider>
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/article/:slug" element={<ArticlePage />} />
+            <Route element={<MainLayout />}>
+              <Route path="/" element={<Index />} />
+              <Route path="/article/:slug" element={<ArticlePage />} />
+              <Route path="/about" element={<AboutPage />} />
+              <Route path="/contact"={<ContactPage />} />
+              <Route path="/category/:category" element={<CategoryPage />} />
+            </Route>
+
             <Route path="/auth" element={<AuthPage />} />
-            <Route path="/about" element={<AboutPage />} />
-            <Route path="/contact" element={<ContactPage />} />
 
             <Route
               element={

@@ -1,4 +1,3 @@
-import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import ArticleCard from '@/components/ArticleCard';
 import { Link } from 'react-router-dom';
@@ -8,8 +7,6 @@ import { Article } from '@/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
 
 const fetchArticles = async (): Promise<Article[]> => {
   const { data, error } = await supabase
@@ -29,12 +26,10 @@ const Index = () => {
     queryKey: ['articles'],
     queryFn: fetchArticles,
   });
-  const [selectedCategory, setSelectedCategory] = useState('All');
 
   if (isLoading) {
     return (
-      <div className="flex flex-col min-h-screen">
-        <Header />
+      <div className="flex flex-col flex-grow">
         <main className="flex-grow">
           <div className="container mx-auto px-4">
             <div className="pt-12 pb-16 text-center">
@@ -79,8 +74,7 @@ const Index = () => {
 
   if (isError) {
     return (
-      <div className="flex flex-col min-h-screen">
-        <Header />
+      <div className="flex flex-col flex-grow">
         <main className="flex-grow flex items-center justify-center">
           <div className="text-center">
             <h2 className="text-2xl font-bold">Failed to load articles</h2>
@@ -95,18 +89,9 @@ const Index = () => {
   const featuredArticle = articles?.[0];
   const otherArticles = articles?.slice(1) || [];
 
-  const categories = articles
-    ? ['All', ...Array.from(new Set(articles.map(a => a.category).filter(Boolean) as string[]))]
-    : ['All'];
-  
-  const filteredArticles = selectedCategory === 'All'
-    ? otherArticles
-    : otherArticles.filter(article => article.category === selectedCategory);
-
   if (!featuredArticle) {
     return (
-       <div className="flex flex-col min-h-screen">
-        <Header />
+       <div className="flex flex-col flex-grow">
         <main className="flex-grow flex items-center justify-center">
           <div className="text-center">
             <h2 className="text-2xl font-bold">No articles found</h2>
@@ -119,8 +104,7 @@ const Index = () => {
   }
 
   return (
-    <div className="flex flex-col min-h-screen">
-      <Header />
+    <div className="flex flex-col flex-grow">
       <main className="flex-grow">
         <div className="container mx-auto px-4">
           <div className="pt-12 pb-16 text-center animate-fade-in">
@@ -153,24 +137,9 @@ const Index = () => {
             </div>
           )}
           
-          {/* Category Filters */}
-          {categories.length > 1 && (
-            <div className="flex justify-center flex-wrap gap-2 mb-12 animate-fade-in" style={{ animationDelay: '300ms' }}>
-              {categories.map(category => (
-                <Button
-                  key={category}
-                  variant={selectedCategory === category ? 'default' : 'outline'}
-                  onClick={() => setSelectedCategory(category)}
-                >
-                  {category}
-                </Button>
-              ))}
-            </div>
-          )}
-          
           {/* Article Grid */}
           <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-            {filteredArticles.map((article, index) => (
+            {otherArticles.map((article, index) => (
               <ArticleCard key={article.id} article={article} index={index} />
             ))}
           </div>

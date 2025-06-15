@@ -7,7 +7,7 @@ import { Outlet } from 'react-router-dom';
 const MainLayout = () => {
   return (
     <SidebarProvider defaultOpen={false}>
-      <div className="flex min-h-screen w-full">
+      <div className="flex min-h-screen w-full overflow-x-hidden">
         <AppSidebar />
         <div className="flex flex-col flex-1 w-full">
           <Header />

@@ -3,7 +3,7 @@ import { useState, useRef } from 'react';
 import { WorkflowNode } from '@/pages/WorkflowBuilderPage';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Clock, Globe, Brain, Filter, Send, ArrowRight, Trash2, Link as LinkIcon, XCircle, Share2 } from 'lucide-react';
+import { Clock, Globe, Brain, Filter, Send, ArrowRight, Trash2, Link as LinkIcon, XCircle, Share2, Mail, ImagePlay, SearchCheck, Languages } from 'lucide-react';
 import {
   ContextMenu,
   ContextMenuContent,
@@ -47,6 +47,10 @@ const WorkflowCanvas = ({
       filter: Filter,
       publisher: Send,
       'social-poster': Share2,
+      'email-sender': Mail,
+      'image-generator': ImagePlay,
+      'seo-analyzer': SearchCheck,
+      'translator': Languages,
     };
     return icons[type];
   };
@@ -59,6 +63,10 @@ const WorkflowCanvas = ({
       filter: 'border-yellow-200 bg-yellow-50',
       publisher: 'border-red-200 bg-red-50',
       'social-poster': 'border-sky-200 bg-sky-50',
+      'email-sender': 'border-orange-200 bg-orange-50',
+      'image-generator': 'border-indigo-200 bg-indigo-50',
+      'seo-analyzer': 'border-pink-200 bg-pink-50',
+      'translator': 'border-teal-200 bg-teal-50',
     };
     return colors[type];
   };

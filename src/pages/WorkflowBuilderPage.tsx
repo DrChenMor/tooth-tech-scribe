@@ -13,7 +13,7 @@ import { useToast } from "@/components/ui/use-toast";
 
 export interface WorkflowNode {
   id: string;
-  type: 'trigger' | 'scraper' | 'ai-processor' | 'filter' | 'publisher' | 'social-poster';
+  type: 'trigger' | 'scraper' | 'ai-processor' | 'filter' | 'publisher' | 'social-poster' | 'email-sender' | 'image-generator' | 'seo-analyzer' | 'translator';
   label: string;
   position: { x: number; y: number };
   config: Record<string, any>;
@@ -81,7 +81,11 @@ const WorkflowBuilderPage = () => {
       'ai-processor': 'AI Processor',
       filter: 'Content Filter',
       publisher: 'Publisher',
-      'social-poster': 'Social Poster'
+      'social-poster': 'Social Poster',
+      'email-sender': 'Email Sender',
+      'image-generator': 'Image Generator',
+      'seo-analyzer': 'SEO Analyzer',
+      'translator': 'Translator'
     };
     return labels[type];
   };
@@ -93,7 +97,11 @@ const WorkflowBuilderPage = () => {
       'ai-processor': { provider: 'openai', model: 'gpt-4o-mini', contentType: 'article', prompt: '' },
       filter: { minWords: 100, maxWords: 2000 },
       publisher: { status: 'draft', category: 'AI Generated', autoPublishConditional: false },
-      'social-poster': { platform: 'twitter', content: 'Check out our new article: {{article.title}} {{article.url}}' }
+      'social-poster': { platform: 'twitter', content: 'Check out our new article: {{article.title}} {{article.url}}' },
+      'email-sender': { recipient: '', subject: 'New Article Published: {{article.title}}', body: 'Read it here: {{article.url}}' },
+      'image-generator': { prompt: 'A futuristic image related to: {{article.title}}', provider: 'dall-e-3' },
+      'seo-analyzer': { keywords: [], targetScore: 80 },
+      'translator': { targetLanguage: 'es' }
     };
     return configs[type];
   };
@@ -261,6 +269,26 @@ const WorkflowBuilderPage = () => {
             
           case 'filter':
             log(`Filter node is not implemented yet. Skipping.`);
+            previousNodeOutput = { ...previousNodeOutput };
+            break;
+
+          case 'email-sender':
+            log(`Email Sender node is not fully implemented yet. Skipping.`);
+            previousNodeOutput = { ...previousNodeOutput };
+            break;
+
+          case 'image-generator':
+            log(`Image Generator node is not fully implemented yet. Skipping.`);
+            previousNodeOutput = { ...previousNodeOutput };
+            break;
+
+          case 'seo-analyzer':
+            log(`SEO Analyzer node is not fully implemented yet. Skipping.`);
+            previousNodeOutput = { ...previousNodeOutput };
+            break;
+
+          case 'translator':
+            log(`Translator node is not fully implemented yet. Skipping.`);
             previousNodeOutput = { ...previousNodeOutput };
             break;
         }

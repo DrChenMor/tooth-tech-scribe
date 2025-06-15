@@ -1,4 +1,3 @@
-
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -6,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { Clock, Globe, Brain, Filter, Send, Plus, Share2 } from 'lucide-react';
+import { Clock, Globe, Brain, Filter, Send, Plus, Share2, Mail, ImagePlay, SearchCheck, Languages } from 'lucide-react';
 import { WorkflowNode } from '@/pages/WorkflowBuilderPage';
 
 interface WorkflowSidebarProps {
@@ -23,6 +22,10 @@ const WorkflowSidebar = ({ selectedNode, onAddNode, onUpdateNodeConfig }: Workfl
     { type: 'filter', icon: Filter, label: 'Filter', description: 'Quality control' },
     { type: 'publisher', icon: Send, label: 'Publisher', description: 'Publish articles' },
     { type: 'social-poster', icon: Share2, label: 'Social Poster', description: 'Post to social media' },
+    { type: 'email-sender', icon: Mail, label: 'Email Sender', description: 'Send email notifications' },
+    { type: 'image-generator', icon: ImagePlay, label: 'Image Generator', description: 'Create article images' },
+    { type: 'seo-analyzer', icon: SearchCheck, label: 'SEO Analyzer', description: 'Analyze content for SEO' },
+    { type: 'translator', icon: Languages, label: 'Translator', description: 'Translate article content' },
   ] as const;
 
   return (
@@ -88,6 +91,10 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
       filter: Filter,
       publisher: Send,
       'social-poster': Share2,
+      'email-sender': Mail,
+      'image-generator': ImagePlay,
+      'seo-analyzer': SearchCheck,
+      'translator': Languages,
     };
     return icons[type];
   };
@@ -275,6 +282,121 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
             <p className="text-xs text-muted-foreground mt-1">
               Use `&#123;&#123;article.title&#125;&#125;` and `&#123;&#123;article.url&#125;&#125;` as placeholders.
             </p>
+          </div>
+        </div>
+      )}
+
+      {node.type === 'email-sender' && (
+        <div className="space-y-4">
+          <div>
+            <Label>Recipient Email</Label>
+            <Input
+              type="email"
+              placeholder="recipient@example.com"
+              value={node.config.recipient || ''}
+              onChange={(e) => handleConfigChange('recipient', e.target.value)}
+            />
+          </div>
+          <div>
+            <Label>Email Subject</Label>
+            <Input
+              placeholder="New Article: {{article.title}}"
+              value={node.config.subject || ''}
+              onChange={(e) => handleConfigChange('subject', e.target.value)}
+            />
+             <p className="text-xs text-muted-foreground mt-1">
+              Use `&#123;&#123;article.title&#125;&#125;` and `&#123;&#123;article.url&#125;&#125;` as placeholders.
+            </p>
+          </div>
+          <div>
+            <Label>Email Body</Label>
+            <Textarea
+              rows={4}
+              placeholder="A new article has been published. Read it here: {{article.url}}"
+              value={node.config.body || ''}
+              onChange={(e) => handleConfigChange('body', e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Placeholders are supported here as well.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {node.type === 'image-generator' && (
+        <div className="space-y-4">
+          <div>
+            <Label>Image Provider</Label>
+            <Select
+              value={node.config.provider || 'dall-e-3'}
+              onValueChange={(value) => handleConfigChange('provider', value)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="dall-e-3">OpenAI DALL-E 3</SelectItem>
+                <SelectItem value="flux-schnell" disabled>Flux Schnell (coming soon)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Image Prompt</Label>
+            <Textarea
+              placeholder="A photorealistic image of..."
+              rows={4}
+              value={node.config.prompt || ''}
+              onChange={(e) => handleConfigChange('prompt', e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Use `&#123;&#123;article.title&#125;&#125;` and `&#123;&#123;article.excerpt&#125;&#125;` as placeholders.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {node.type === 'seo-analyzer' && (
+        <div className="space-y-4">
+          <div>
+            <Label>Focus Keywords (comma separated)</Label>
+            <Input
+              placeholder="AI, automation, content creation"
+              value={Array.isArray(node.config.keywords) ? node.config.keywords.join(', ') : ''}
+              onChange={(e) => handleConfigChange('keywords', e.target.value.split(',').map(k => k.trim()))}
+            />
+          </div>
+          <div>
+            <Label>Target SEO Score</Label>
+            <Input
+              type="number"
+              min="0"
+              max="100"
+              value={node.config.targetScore || 80}
+              onChange={(e) => handleConfigChange('targetScore', parseInt(e.target.value, 10))}
+            />
+          </div>
+        </div>
+      )}
+      
+      {node.type === 'translator' && (
+        <div className="space-y-4">
+          <div>
+            <Label>Target Language</Label>
+            <Select
+              value={node.config.targetLanguage || 'es'}
+              onValueChange={(value) => handleConfigChange('targetLanguage', value)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="es">Spanish</SelectItem>
+                <SelectItem value="fr">French</SelectItem>
+                <SelectItem value="de">German</SelectItem>
+                <SelectItem value="ja">Japanese</SelectItem>
+                <SelectItem value="pt">Portuguese</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
       )}

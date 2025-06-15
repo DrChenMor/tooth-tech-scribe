@@ -14,6 +14,8 @@ import SuggestionReviewCard from './SuggestionReviewCard';
 import RealtimeActivityFeed from './RealtimeActivityFeed';
 import AgentAnalyticsDashboard from './AgentAnalyticsDashboard';
 import PredictiveAnalyticsDashboard from './PredictiveAnalyticsDashboard';
+import AgentManagementDialog from './AgentManagementDialog';
+import AgentManagementCard from './AgentManagementCard';
 
 const AICoPilotDashboard = () => {
   const queryClient = useQueryClient();
@@ -22,6 +24,11 @@ const AICoPilotDashboard = () => {
     activeAgentsRunning: 0,
     lastActivity: null as string | null
   });
+
+  // Add agent management state
+  const [agentDialogOpen, setAgentDialogOpen] = useState(false);
+  const [selectedAgent, setSelectedAgent] = useState<AIAgent | null>(null);
+  const [agentDialogMode, setAgentDialogMode] = useState<'create' | 'edit'>('create');
 
   const { data: suggestions = [], isLoading: suggestionsLoading } = useQuery({
     queryKey: ['ai-suggestions'],
@@ -134,6 +141,23 @@ const AICoPilotDashboard = () => {
   if (suggestionsLoading || agentsLoading) {
     return <div>Loading AI Co-Pilot Dashboard...</div>;
   }
+
+  const handleCreateAgent = () => {
+    setSelectedAgent(null);
+    setAgentDialogMode('create');
+    setAgentDialogOpen(true);
+  };
+
+  const handleEditAgent = (agent: AIAgent) => {
+    setSelectedAgent(agent);
+    setAgentDialogMode('edit');
+    setAgentDialogOpen(true);
+  };
+
+  const handleCloseDialog = () => {
+    setAgentDialogOpen(false);
+    setSelectedAgent(null);
+  };
 
   return (
     <div className="space-y-6">
@@ -360,43 +384,56 @@ const AICoPilotDashboard = () => {
         <TabsContent value="agents" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>AI Agents</CardTitle>
-              <CardDescription>
-                Manage and monitor your AI agents and their performance
-              </CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>AI Agent Management</CardTitle>
+                  <CardDescription>
+                    Create, configure, and manage your AI agents
+                  </CardDescription>
+                </div>
+                <Button onClick={handleCreateAgent}>
+                  <Brain className="h-4 w-4 mr-2" />
+                  Create New Agent
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {(agents as AIAgent[]).map((agent) => (
-                  <div key={agent.id} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div>
-                      <h3 className="font-semibold">{agent.name}</h3>
-                      <p className="text-sm text-muted-foreground">{agent.description}</p>
-                      <div className="flex items-center gap-2 mt-2">
-                        <Badge variant={agent.is_active ? "default" : "secondary"}>
-                          {agent.is_active ? "Active" : "Inactive"}
-                        </Badge>
-                        <Badge variant="outline">{agent.type}</Badge>
-                        {agent.is_active && realtimeStats.activeAgentsRunning > 0 && (
-                          <Badge variant="default" className="animate-pulse">
-                            <Activity className="h-3 w-3 mr-1" />
-                            Running
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm text-muted-foreground">
-                        Created {format(new Date(agent.created_at), 'MMM d, yyyy')}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              {(agents as AIAgent[]).length === 0 ? (
+                <div className="text-center py-8">
+                  <Brain className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+                  <h3 className="text-lg font-semibold mb-2">No AI Agents</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Create your first AI agent to start analyzing content and generating suggestions.
+                  </p>
+                  <Button onClick={handleCreateAgent}>
+                    <Brain className="h-4 w-4 mr-2" />
+                    Create Your First Agent
+                  </Button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {(agents as AIAgent[]).map((agent) => (
+                    <AgentManagementCard 
+                      key={agent.id} 
+                      agent={agent} 
+                      onEdit={handleEditAgent}
+                      isRunning={realtimeStats.activeAgentsRunning > 0 && agent.is_active}
+                    />
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Agent Management Dialog */}
+      <AgentManagementDialog
+        isOpen={agentDialogOpen}
+        onClose={handleCloseDialog}
+        agent={selectedAgent}
+        mode={agentDialogMode}
+      />
     </div>
   );
 };

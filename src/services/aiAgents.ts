@@ -307,3 +307,53 @@ export async function subscribeToSuggestionUpdates(
     supabase.removeChannel(channel);
   };
 }
+
+export async function createAIAgent(agentData: Omit<AIAgent, 'id' | 'created_at' | 'updated_at'>): Promise<AIAgent> {
+  const { data, error } = await supabase
+    .from('ai_agents')
+    .insert([{
+      ...agentData,
+      config: JSON.stringify(agentData.config)
+    }])
+    .select()
+    .single();
+
+  if (error) throw error;
+  
+  return {
+    ...data,
+    config: parseJsonSafely(data.config)
+  } as AIAgent;
+}
+
+export async function updateAIAgent(agentId: string, agentData: Partial<AIAgent>): Promise<AIAgent> {
+  const updateData: any = { ...agentData };
+  
+  // Stringify config if it exists
+  if (updateData.config) {
+    updateData.config = JSON.stringify(updateData.config);
+  }
+
+  const { data, error } = await supabase
+    .from('ai_agents')
+    .update(updateData)
+    .eq('id', agentId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  
+  return {
+    ...data,
+    config: parseJsonSafely(data.config)
+  } as AIAgent;
+}
+
+export async function deleteAIAgent(agentId: string): Promise<void> {
+  const { error } = await supabase
+    .from('ai_agents')
+    .delete()
+    .eq('id', agentId);
+
+  if (error) throw error;
+}

@@ -12,7 +12,7 @@ interface ArticleCardProps {
 const ArticleCard = ({ article, index }: ArticleCardProps) => {
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
     console.error('Image failed to load:', article.image_url);
-    e.currentTarget.src = 'https://via.placeholder.com/400x250/EEE/BDBDBD?text=Denti-AI';
+    e.currentTarget.src = 'https://placehold.co/400x250/EEE/BDBDBD?text=Denti-AI';
   };
 
   const handleImageLoad = () => {
@@ -30,7 +30,7 @@ const ArticleCard = ({ article, index }: ArticleCardProps) => {
       <Link to={`/article/${article.slug}`} className="group block">
         <div className="overflow-hidden rounded-lg mb-4">
           <img 
-            src={article.image_url || 'https://via.placeholder.com/400x250/EEE/BDBDBD?text=Denti-AI'} 
+            src={article.image_url || 'https://placehold.co/400x250/EEE/BDBDBD?text=Denti-AI'} 
             alt={article.title} 
             className="w-full h-56 object-cover transform group-hover:scale-105 transition-transform duration-300 ease-in-out"
             onError={handleImageError}

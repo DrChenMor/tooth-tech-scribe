@@ -1,37 +1,38 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/use-toast';
-import { uploadArticleImage } from '@/services/storage';
-import { Loader2, Upload, X } from 'lucide-react';
+import { X } from 'lucide-react';
 
 interface ImageUploadProps {
-  value: string;
-  onChange: (value: string) => void;
+  value: string | File | null;
+  onChange: (value: string | File) => void;
 }
 
 const ImageUpload = ({ value, onChange }: ImageUploadProps) => {
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const [preview, setPreview] = useState<string | null>(value || null);
+  const [preview, setPreview] = useState<string | null>(null);
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    console.log('[ImageUpload] useEffect received value:', value);
-    if (value && value !== preview) {
-      setPreview(value);
-    } else if (!value) {
+    if (!value) {
       setPreview(null);
+    } else if (typeof value === 'string') {
+      setPreview(value);
+    } else if (value instanceof File) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreview(reader.result as string);
+      };
+      reader.readAsDataURL(value);
     }
-  }, [value, preview]);
+  }, [value]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      console.log('File selected:', file.name, 'Type:', file.type, 'Size:', file.size);
       
-      // Validate file type
       if (!file.type.startsWith('image/')) {
         toast({ 
           title: 'Invalid file type', 
@@ -41,7 +42,6 @@ const ImageUpload = ({ value, onChange }: ImageUploadProps) => {
         return;
       }
 
-      // Validate file size (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
         toast({ 
           title: 'File too large', 
@@ -51,49 +51,15 @@ const ImageUpload = ({ value, onChange }: ImageUploadProps) => {
         return;
       }
 
-      setSelectedFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleUpload = async () => {
-    if (!selectedFile) return;
-
-    setIsUploading(true);
-    try {
-      console.log('[ImageUpload] Starting upload process...');
-      const publicUrl = await uploadArticleImage(selectedFile);
-      console.log('[ImageUpload] Upload completed, publicUrl:', publicUrl);
-      
-      onChange(publicUrl);
-      
-      toast({ 
-        title: "Image uploaded successfully!",
-        description: "Your image is now ready to use in your article."
-      });
-    } catch (error) {
-      console.error('Upload failed:', error);
-      const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
-      toast({ 
-        title: 'Upload failed', 
-        description: errorMessage, 
-        variant: 'destructive' 
-      });
-    } finally {
-      setIsUploading(false);
-      setSelectedFile(null);
+      onChange(file);
     }
   };
 
   const handleRemove = () => {
-    console.log('[ImageUpload] Removing image.');
-    setPreview(null);
     onChange('');
-    setSelectedFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   };
 
   return (
@@ -104,16 +70,12 @@ const ImageUpload = ({ value, onChange }: ImageUploadProps) => {
             src={preview} 
             alt="Image Preview" 
             className="w-full max-w-sm rounded-lg object-cover"
-            onError={(e) => {
-              console.error('Image failed to load:', preview);
+            onError={() => {
               toast({
                 title: 'Image load error',
-                description: 'The image could not be displayed',
+                description: 'The preview could not be displayed',
                 variant: 'destructive'
               });
-            }}
-            onLoad={() => {
-              console.log('Image loaded successfully:', preview);
             }}
           />
           <Button
@@ -129,21 +91,12 @@ const ImageUpload = ({ value, onChange }: ImageUploadProps) => {
       )}
       <div className="flex items-center gap-4">
         <Input 
+          ref={fileInputRef}
           type="file" 
           accept="image/*" 
           onChange={handleFileChange} 
           className="flex-grow" 
         />
-        <Button 
-          onClick={handleUpload} 
-          disabled={!selectedFile || isUploading} 
-          type="button"
-        >
-          {isUploading ? <Loader2 className="animate-spin h-4 w-4" /> : <Upload className="h-4 w-4" />}
-          <span className="ml-2 hidden sm:inline">
-            {isUploading ? 'Uploading...' : 'Upload'}
-          </span>
-        </Button>
       </div>
     </div>
   );

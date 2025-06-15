@@ -7,7 +7,7 @@ export const articleSchema = z.object({
   excerpt: z.string().optional(),
   content: z.string().optional(),
   category: z.string().optional(),
-  image_url: z.string().url("Must be a valid URL.").optional().or(z.literal('')),
+  image_url: z.any().optional(),
   status: z.enum(["draft", "published", "archived"]),
 });
 

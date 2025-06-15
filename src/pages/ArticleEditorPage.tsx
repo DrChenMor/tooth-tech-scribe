@@ -2,7 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { ArrowLeft } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import ArticleForm from "@/components/admin/ArticleForm";
 import ArticleEditorSkeleton from "@/components/admin/ArticleEditorSkeleton";
 import { articleSchema, ArticleFormValues } from "@/lib/schemas";
 import { fetchArticleById, upsertArticle } from "@/services/articles";
+import { uploadArticleImage } from "@/services/storage";
 import { useAuth } from "@/contexts/AuthContext";
 import { slugify } from "@/lib/slugify";
 
@@ -19,6 +20,7 @@ const ArticleEditorPage = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const isEditMode = Boolean(articleId);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
   const { profile } = useAuth();
 
   const { data: article, isLoading } = useQuery({
@@ -78,8 +80,25 @@ const ArticleEditorPage = () => {
     }
   });
 
-  const onSubmit = (values: ArticleFormValues) => {
+  const onSubmit = async (values: ArticleFormValues) => {
     console.log('[ArticleEditorPage] Submitting form with values:', values);
+
+    let finalValues = { ...values };
+
+    if (finalValues.image_url instanceof File) {
+      setIsUploadingImage(true);
+      try {
+        const publicUrl = await uploadArticleImage(finalValues.image_url);
+        finalValues.image_url = publicUrl;
+      } catch (error) {
+        toast({ title: "Image upload failed", description: (error as Error).message, variant: "destructive" });
+        setIsUploadingImage(false);
+        return; // Stop submission on upload failure
+      } finally {
+        setIsUploadingImage(false);
+      }
+    }
+
     const authorProfile = profile || {
       full_name: "Demo Admin",
       avatar_url: null,
@@ -87,7 +106,10 @@ const ArticleEditorPage = () => {
 
     mutation.mutate({
       id: articleId ? Number(articleId) : undefined,
-      values,
+      values: {
+        ...finalValues,
+        image_url: typeof finalValues.image_url === 'string' ? finalValues.image_url : '',
+      },
       author: {
         name: authorProfile.full_name,
         avatar_url: authorProfile.avatar_url,
@@ -109,7 +131,7 @@ const ArticleEditorPage = () => {
       <ArticleForm 
         form={form}
         onSubmit={onSubmit}
-        isPending={mutation.isPending}
+        isPending={mutation.isPending || isUploadingImage}
         isEditMode={isEditMode}
       />
     </>

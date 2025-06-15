@@ -114,7 +114,7 @@ const ArticlePage = () => {
                 )}
               </div>
             </div>
-            <img src={article.image_url || 'https://via.placeholder.com/1280x720/EEE/BDBDBD?text=Denti-AI'} alt={article.title} className="w-full h-auto max-h-[500px] object-cover rounded-lg shadow-lg mb-8" />
+            <img src={article.image_url || 'https://placehold.co/1280x720/EEE/BDBDBD?text=Denti-AI'} alt={article.title} className="w-full h-auto max-h-[500px] object-cover rounded-lg shadow-lg mb-8" />
             <div className="w-full" data-color-mode="light">
               <MDEditor.Markdown 
                 source={article.content || ''} 

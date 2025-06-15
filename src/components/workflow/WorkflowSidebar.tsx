@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { Clock, Globe, Brain, Filter, Send, Plus, Share2, Mail, ImagePlay, SearchCheck, Languages, Eye } from 'lucide-react';
+import { Clock, Globe, Brain, Filter, Send, Plus, Share2, Mail, ImagePlay, SearchCheck, Languages, Eye, Award, TrendingUp, HeartPulse } from 'lucide-react';
 import { WorkflowNode } from '@/pages/WorkflowBuilderPage';
 import { EmailPreviewDialog } from './EmailPreviewDialog';
 
@@ -28,6 +29,9 @@ const WorkflowSidebar = ({ selectedNode, onAddNode, onUpdateNodeConfig }: Workfl
     { type: 'image-generator', icon: ImagePlay, label: 'Image Generator', description: 'Create article images' },
     { type: 'seo-analyzer', icon: SearchCheck, label: 'SEO Analyzer', description: 'Analyze content for SEO' },
     { type: 'translator', icon: Languages, label: 'Translator', description: 'Translate article content' },
+    { type: 'content-quality-analyzer', icon: Award, label: 'Content Quality Analyzer', description: 'Score content quality with AI' },
+    { type: 'ai-seo-optimizer', icon: TrendingUp, label: 'AI SEO Optimizer', description: 'Generate SEO suggestions with AI' },
+    { type: 'engagement-forecaster', icon: HeartPulse, label: 'Engagement Forecaster', description: 'Predict engagement with AI' },
   ] as const;
 
   return (
@@ -98,7 +102,10 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
       'email-sender': Mail,
       'image-generator': ImagePlay,
       'seo-analyzer': SearchCheck,
-      'translator': Languages,
+      translator: Languages,
+      'content-quality-analyzer': Award,
+      'ai-seo-optimizer': TrendingUp,
+      'engagement-forecaster': HeartPulse,
     };
     return icons[type];
   };
@@ -449,6 +456,39 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
               </SelectContent>
             </Select>
           </div>
+        </div>
+      )}
+
+      {node.type === 'content-quality-analyzer' && (
+        <div className="space-y-2">
+          <p className="text-sm text-muted-foreground">
+            This node uses the Content Quality AI Agent to analyze articles. It will generate suggestions for articles with a quality score below 70.
+          </p>
+          <p className="text-sm text-muted-foreground font-semibold mt-2">
+            No configuration is needed.
+          </p>
+        </div>
+      )}
+
+      {node.type === 'ai-seo-optimizer' && (
+        <div className="space-y-2">
+          <p className="text-sm text-muted-foreground">
+            This node uses the AI SEO Optimizer Agent to analyze articles. It will generate SEO keywords, meta descriptions, and other on-page improvements.
+          </p>
+           <p className="text-sm text-muted-foreground font-semibold mt-2">
+            No configuration is needed.
+          </p>
+        </div>
+      )}
+
+      {node.type === 'engagement-forecaster' && (
+        <div className="space-y-2">
+          <p className="text-sm text-muted-foreground">
+            This node uses the Engagement Forecaster AI Agent to predict engagement. For articles with high predicted engagement, it will suggest a social media post.
+          </p>
+           <p className="text-sm text-muted-foreground font-semibold mt-2">
+            No configuration is needed.
+          </p>
         </div>
       )}
     </div>

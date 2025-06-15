@@ -161,7 +161,7 @@ const Index = () => {
                   {heroArticles.map((article) => (
                     <CarouselItem key={article.id}>
                       <Link to={`/article/${article.slug}`} className="group block md:grid md:grid-cols-2 gap-8 items-center">
-                        <div className="overflow-hidden rounded-lg aspect-video mb-4 md:mb-0">
+                        <div className="overflow-hidden rounded-lg h-64 md:h-[450px] mb-4 md:mb-0">
                           <img src={article.image_url || 'https://placehold.co/1280x720/EEE/BDBDBD?text=Denti-AI'} alt={article.title} className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-300 ease-in-out" />
                         </div>
                         <div>

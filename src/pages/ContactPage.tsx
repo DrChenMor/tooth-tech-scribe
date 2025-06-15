@@ -5,19 +5,72 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/use-toast";
+import { useMutation } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import * as React from "react";
+import { Loader2 } from "lucide-react";
+
+// The email address that will receive the contact form submissions.
+// You might want to move this to a more secure location or configuration.
+const RECIPIENT_EMAIL = "your-email@example.com";
+
+const sendContactEmail = async (formData: { name: string; email: string; subject: string; message: string; }) => {
+    const { name, email, subject, message } = formData;
+    const emailHtml = `
+      <h1>New Contact Form Submission</h1>
+      <p><strong>Name:</strong> ${name}</p>
+      <p><strong>Email:</strong> <a href="mailto:${email}">${email}</a></p>
+      <p><strong>Subject:</strong> ${subject}</p>
+      <hr />
+      <p><strong>Message:</strong></p>
+      <p>${message.replace(/\n/g, "<br>")}</p>
+    `;
+
+    // We use the existing 'send-email' edge function.
+    const { error } = await supabase.functions.invoke('send-email', {
+      body: {
+        to: RECIPIENT_EMAIL,
+        subject: `[Bloggle Contact] New message from ${name}`,
+        body: emailHtml,
+      }
+    });
+
+    if (error) {
+      throw new Error(`Failed to send message. Please try again later.`);
+    }
+};
 
 const ContactPage = () => {
+  const formRef = React.useRef<HTMLFormElement>(null);
+  
+  const { mutate, isPending } = useMutation({
+    mutationFn: sendContactEmail,
+    onSuccess: () => {
+      toast({
+        title: "Message Sent!",
+        description: "Thank you for reaching out. We'll get back to you soon.",
+      });
+      formRef.current?.reset();
+    },
+    onError: (error) => {
+      toast({
+        title: "Uh oh! Something went wrong.",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const form = e.currentTarget;
-    const formData = new FormData(form);
-    const data = Object.fromEntries(formData.entries());
-    console.log("Form submitted with data:", data);
-    toast({
-      title: "Message Sent!",
-      description: "Thank you for reaching out. We'll get back to you soon.",
-    });
-    form.reset();
+    const formData = new FormData(e.currentTarget);
+    const data = {
+      name: formData.get("name") as string,
+      email: formData.get("email") as string,
+      subject: formData.get("subject") as string,
+      message: formData.get("message") as string,
+    };
+    mutate(data);
   };
 
   return (
@@ -28,7 +81,7 @@ const ContactPage = () => {
           <p className="text-center text-muted-foreground mb-12">
             Have a question, a suggestion, or want to collaborate? We'd love to hear from you. Fill out the form below and we'll get back to you as soon as possible.
           </p>
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form ref={formRef} onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Label htmlFor="name">Name</Label>
@@ -47,7 +100,16 @@ const ContactPage = () => {
               <Label htmlFor="message">Message</Label>
               <Textarea id="message" name="message" placeholder="Your message..." rows={6} required />
             </div>
-            <Button type="submit" className="w-full">Send Message</Button>
+            <Button type="submit" className="w-full" disabled={isPending}>
+              {isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                'Send Message'
+              )}
+            </Button>
           </form>
         </div>
       </main>

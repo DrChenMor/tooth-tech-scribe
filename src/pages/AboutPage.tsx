@@ -3,6 +3,7 @@ import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Link } from "react-router-dom";
 
 const AboutPage = () => {
   const teamMembers = [
@@ -63,8 +64,8 @@ const AboutPage = () => {
                 Whether you're looking for tips to elevate your lifestyle, strategies to grow your business, travel inspiration, financial wisdom, or the latest tech trends, we have something for you. We believe in creating content that is not only informative but also engaging and easy to digest.
               </p>
               
-              <Button className="bg-blue-500 hover:bg-blue-600 text-white px-8 py-3 rounded-lg">
-                Get in touch →
+              <Button asChild size="lg">
+                <Link to="/contact">Get in touch →</Link>
               </Button>
             </div>
           </div>

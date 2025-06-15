@@ -4,17 +4,22 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Brain, TrendingUp, Settings, Activity, BarChart3, Zap } from 'lucide-react';
+import { Brain, TrendingUp, Settings, Activity, BarChart3, Zap, Plus, Users } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchAIAgents, getPendingSuggestions } from '@/services/aiAgents';
 import RealAIControlPanel from './RealAIControlPanel';
 import RealSystemMetrics from './RealSystemMetrics';
 import RealtimeActivityFeed from './RealtimeActivityFeed';
 import NotificationCenter from './NotificationCenter';
-import { notificationService } from '@/services/realtimeNotifications';
+import AgentManagementCard from './AgentManagementCard';
+import AgentManagementDialog from './AgentManagementDialog';
+import { AIAgent } from '@/services/aiAgents';
 
 const AICoPilotDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
+  const [isAgentDialogOpen, setIsAgentDialogOpen] = useState(false);
+  const [selectedAgent, setSelectedAgent] = useState<AIAgent | null>(null);
+  const [dialogMode, setDialogMode] = useState<'create' | 'edit'>('create');
 
   const { data: agents, isLoading: isLoadingAgents } = useQuery({
     queryKey: ['ai-agents'],
@@ -29,6 +34,23 @@ const AICoPilotDashboard = () => {
   const totalAgents = agents?.length || 0;
   const activeAgents = agents?.filter(agent => agent.is_active).length || 0;
   const pendingSuggestions = suggestions?.length || 0;
+
+  const handleCreateAgent = () => {
+    setSelectedAgent(null);
+    setDialogMode('create');
+    setIsAgentDialogOpen(true);
+  };
+
+  const handleEditAgent = (agent: AIAgent) => {
+    setSelectedAgent(agent);
+    setDialogMode('edit');
+    setIsAgentDialogOpen(true);
+  };
+
+  const handleCloseDialog = () => {
+    setIsAgentDialogOpen(false);
+    setSelectedAgent(null);
+  };
 
   return (
     <div className="w-full">
@@ -55,6 +77,10 @@ const AICoPilotDashboard = () => {
             <TabsTrigger value="control-panel" className="data-[state=active]:bg-background data-[state=active]:text-foreground">
               <Settings className="h-4 w-4 mr-2" />
               Control Panel
+            </TabsTrigger>
+            <TabsTrigger value="agents" className="data-[state=active]:bg-background data-[state=active]:text-foreground">
+              <Users className="h-4 w-4 mr-2" />
+              Agents
             </TabsTrigger>
             <TabsTrigger value="activity" className="data-[state=active]:bg-background data-[state=active]:text-foreground">
               <Activity className="h-4 w-4 mr-2" />
@@ -120,11 +146,69 @@ const AICoPilotDashboard = () => {
                   </CardContent>
                 </Card>
               </div>
+
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-semibold">Quick Actions</h3>
+                <Button onClick={handleCreateAgent} className="flex items-center gap-2">
+                  <Plus className="h-4 w-4" />
+                  Create New Agent
+                </Button>
+              </div>
+
               <RealtimeActivityFeed />
             </TabsContent>
 
             <TabsContent value="control-panel">
               <RealAIControlPanel />
+            </TabsContent>
+
+            <TabsContent value="agents" className="space-y-6">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h3 className="text-lg font-semibold">AI Agents Management</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Create, configure, and manage your AI agents
+                  </p>
+                </div>
+                <Button onClick={handleCreateAgent} className="flex items-center gap-2">
+                  <Plus className="h-4 w-4" />
+                  Create Agent
+                </Button>
+              </div>
+
+              {isLoadingAgents ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {[...Array(6)].map((_, i) => (
+                    <div key={i} className="animate-pulse">
+                      <div className="h-64 bg-gray-200 rounded-lg"></div>
+                    </div>
+                  ))}
+                </div>
+              ) : agents && agents.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {agents.map((agent) => (
+                    <AgentManagementCard
+                      key={agent.id}
+                      agent={agent}
+                      onEdit={handleEditAgent}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <Card>
+                  <CardContent className="flex flex-col items-center justify-center py-12">
+                    <Brain className="h-12 w-12 text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-medium mb-2">No AI Agents Yet</h3>
+                    <p className="text-muted-foreground text-center mb-4">
+                      Create your first AI agent to start analyzing your content and generating insights.
+                    </p>
+                    <Button onClick={handleCreateAgent} className="flex items-center gap-2">
+                      <Plus className="h-4 w-4" />
+                      Create Your First Agent
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
             </TabsContent>
 
             <TabsContent value="activity">
@@ -137,6 +221,13 @@ const AICoPilotDashboard = () => {
           </div>
         </Tabs>
       </div>
+
+      <AgentManagementDialog
+        isOpen={isAgentDialogOpen}
+        onClose={handleCloseDialog}
+        agent={selectedAgent}
+        mode={dialogMode}
+      />
     </div>
   );
 };

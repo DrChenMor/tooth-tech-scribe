@@ -1,34 +1,42 @@
 
-import { Link, useLocation } from "react-router-dom";
-import { Button } from "@/components/ui/button";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+} from "@/components/ui/sidebar";
 import { Newspaper } from "lucide-react";
+import { Link, useLocation } from "react-router-dom";
 import { navLinks } from "./adminNavLinks";
 
 const AdminSidebar = () => {
   const location = useLocation();
 
   return (
-    <aside className="w-64 flex-shrink-0 border-r bg-background p-4 hidden md:block">
-      <div className="flex items-center gap-2 mb-8">
-        <Newspaper className="h-8 w-8 text-primary" />
-        <h2 className="text-xl font-bold">Denti-AI Admin</h2>
-      </div>
-      <nav className="flex flex-col gap-2">
-        {navLinks.map((link) => (
-          <Button
-            key={link.href}
-            asChild
-            variant={location.pathname === link.href ? "secondary" : "ghost"}
-            className="justify-start"
-          >
-            <Link to={link.href}>
-              <link.icon className="mr-2 h-4 w-4" />
-              {link.label}
-            </Link>
-          </Button>
-        ))}
-      </nav>
-    </aside>
+    <Sidebar>
+      <SidebarHeader className="p-4">
+        <Link to="/admin" className="flex items-center gap-2 text-xl font-bold text-foreground">
+          <Newspaper className="h-8 w-8 text-primary" />
+          <span>Denti-AI Admin</span>
+        </Link>
+      </SidebarHeader>
+      <SidebarContent className="p-4">
+        <SidebarMenu>
+          {navLinks.map((link) => (
+            <SidebarMenuItem key={link.href}>
+              <SidebarMenuButton asChild isActive={location.pathname === link.href}>
+                <Link to={link.href}>
+                  <link.icon />
+                  <span>{link.label}</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          ))}
+        </SidebarMenu>
+      </SidebarContent>
+    </Sidebar>
   );
 };
 

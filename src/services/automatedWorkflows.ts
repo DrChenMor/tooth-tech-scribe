@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 
 export interface AISuggestion {
@@ -82,8 +83,8 @@ export class AutomatedWorkflowService {
     
     return {
       ...data,
-      conditions: data.conditions as WorkflowCondition[],
-      actions: data.actions as WorkflowAction[]
+      conditions: (data.conditions as unknown) as WorkflowCondition[],
+      actions: (data.actions as unknown) as WorkflowAction[]
     } as WorkflowRule;
   }
 
@@ -97,8 +98,8 @@ export class AutomatedWorkflowService {
     
     return (data || []).map(rule => ({
       ...rule,
-      conditions: rule.conditions as WorkflowCondition[],
-      actions: rule.actions as WorkflowAction[]
+      conditions: (rule.conditions as unknown) as WorkflowCondition[],
+      actions: (rule.actions as unknown) as WorkflowAction[]
     })) as WorkflowRule[];
   }
 

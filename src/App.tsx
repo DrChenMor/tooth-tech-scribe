@@ -28,6 +28,8 @@ import AICoPilotPage from "./pages/AICoPilotPage";
 import PerformanceAnalyticsPage from './pages/PerformanceAnalyticsPage';
 import AutomatedWorkflowsPage from './pages/AutomatedWorkflowsPage';
 import AnalyticsPage from './pages/AnalyticsPage';
+import AIAgentManagementPage from './pages/AIAgentManagementPage';
+import ArticlesManagementPage from './pages/ArticlesManagementPage';
 
 const queryClient = new QueryClient();
 
@@ -74,6 +76,8 @@ function App() {
                 <Route path="/admin/ai-agent-advanced" element={<AIAgentAdvancedPage />} />
                 <Route path="/admin/performance-analytics" element={<PerformanceAnalyticsPage />} />
                 <Route path="/admin/automated-workflows" element={<AutomatedWorkflowsPage />} />
+                <Route path="/admin/ai-agents" element={<AIAgentManagementPage />} />
+                <Route path="/admin/articles" element={<ArticlesManagementPage />} />
               </Route>
               
               <Route path="*" element={<NotFound />} />

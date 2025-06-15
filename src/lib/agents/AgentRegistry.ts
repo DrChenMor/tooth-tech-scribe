@@ -27,9 +27,9 @@ export class AgentRegistry {
   }
 
   createAgent(name: string, type: string, config: AgentConfig = {}): BaseAgent | null {
-    const AgentClass = this.agentTypes.get(name);
+    const AgentClass = this.agentTypes.get(type);
     if (!AgentClass) {
-      console.error(`Agent type ${name} not found`);
+      console.error(`Agent type ${type} not found`);
       return null;
     }
 

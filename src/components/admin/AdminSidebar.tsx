@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Newspaper } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
-import { navLinks } from "./adminNavLinks";
+import { adminNavLinks } from "./adminNavLinks";
 
 const AdminSidebar = () => {
   const location = useLocation();
@@ -24,12 +24,12 @@ const AdminSidebar = () => {
       </SidebarHeader>
       <SidebarContent className="p-4">
         <SidebarMenu>
-          {navLinks.map((link) => (
-            <SidebarMenuItem key={link.href}>
-              <SidebarMenuButton asChild isActive={location.pathname === link.href}>
-                <Link to={link.href}>
+          {adminNavLinks.map((link) => (
+            <SidebarMenuItem key={link.url}>
+              <SidebarMenuButton asChild isActive={location.pathname === link.url}>
+                <Link to={link.url}>
                   <link.icon />
-                  <span>{link.label}</span>
+                  <span>{link.title}</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>

@@ -16,7 +16,7 @@ export interface AIAgent {
 
 export interface AISuggestion {
   id: string;
-  agent_id: string | null;
+  agent_id: string;
   target_type: string;
   target_id: string | null;
   suggestion_data: Record<string, any>;
@@ -33,7 +33,7 @@ export interface AISuggestion {
 export interface AdminAction {
   id: string;
   admin_id: string;
-  suggestion_id: string | null;
+  suggestion_id: string;
   action_type: 'approve' | 'reject' | 'edit' | 'dismiss';
   original_data: Record<string, any> | null;
   modified_data: Record<string, any> | null;
@@ -41,141 +41,150 @@ export interface AdminAction {
   timestamp: string;
 }
 
-export const fetchAIAgents = async (): Promise<AIAgent[]> => {
+// Helper function to safely parse JSON data
+function parseJsonSafely(json: any): Record<string, any> {
+  if (typeof json === 'string') {
+    try {
+      return JSON.parse(json);
+    } catch {
+      return {};
+    }
+  }
+  return json as Record<string, any> || {};
+}
+
+export async function getActiveAgents(): Promise<AIAgent[]> {
   const { data, error } = await supabase
     .from('ai_agents')
     .select('*')
-    .order('name');
-    
-  if (error) throw new Error(`Failed to fetch AI agents: ${error.message}`);
-  return data || [];
-};
+    .eq('is_active', true);
 
-export const fetchPendingSuggestions = async (): Promise<AISuggestion[]> => {
+  if (error) throw error;
+  
+  return data.map(agent => ({
+    ...agent,
+    config: parseJsonSafely(agent.config)
+  })) as AIAgent[];
+}
+
+export async function getPendingSuggestions(): Promise<AISuggestion[]> {
   const { data, error } = await supabase
     .from('ai_suggestions')
     .select('*')
     .eq('status', 'pending')
     .order('priority', { ascending: true })
     .order('created_at', { ascending: false });
-    
-  if (error) throw new Error(`Failed to fetch suggestions: ${error.message}`);
-  return data || [];
-};
 
-export const updateSuggestionStatus = async (
+  if (error) throw error;
+  
+  return data.map(suggestion => ({
+    ...suggestion,
+    suggestion_data: parseJsonSafely(suggestion.suggestion_data)
+  })) as AISuggestion[];
+}
+
+export async function createSuggestion(suggestion: Omit<AISuggestion, 'id' | 'created_at' | 'reviewed_at' | 'reviewed_by'>): Promise<AISuggestion> {
+  const { data, error } = await supabase
+    .from('ai_suggestions')
+    .insert([{
+      ...suggestion,
+      suggestion_data: JSON.stringify(suggestion.suggestion_data)
+    }])
+    .select()
+    .single();
+
+  if (error) throw error;
+  
+  return {
+    ...data,
+    suggestion_data: parseJsonSafely(data.suggestion_data)
+  } as AISuggestion;
+}
+
+export async function updateSuggestionStatus(
   suggestionId: string, 
-  status: 'approved' | 'rejected' | 'implemented',
+  status: AISuggestion['status'],
   adminReasoning?: string
-): Promise<void> => {
+): Promise<void> {
   const { error } = await supabase
     .from('ai_suggestions')
-    .update({
+    .update({ 
       status,
       reviewed_at: new Date().toISOString(),
       reviewed_by: (await supabase.auth.getUser()).data.user?.id
     })
     .eq('id', suggestionId);
-    
-  if (error) throw new Error(`Failed to update suggestion: ${error.message}`);
 
-  // Log admin action
-  await logAdminAction(suggestionId, status === 'approved' ? 'approve' : 'reject', null, null, adminReasoning);
-};
+  if (error) throw error;
 
-export const logAdminAction = async (
-  suggestionId: string | null,
-  actionType: 'approve' | 'reject' | 'edit' | 'dismiss',
-  originalData: Record<string, any> | null,
-  modifiedData: Record<string, any> | null,
-  adminReasoning: string | null
-): Promise<void> => {
-  const user = (await supabase.auth.getUser()).data.user;
-  if (!user) throw new Error('User not authenticated');
+  // Log the admin action
+  await logAdminAction(suggestionId, status === 'approved' ? 'approve' : 'reject', adminReasoning);
+}
+
+export async function logAdminAction(
+  suggestionId: string,
+  actionType: AdminAction['action_type'],
+  reasoning?: string,
+  originalData?: Record<string, any>,
+  modifiedData?: Record<string, any>
+): Promise<void> {
+  const user = await supabase.auth.getUser();
+  if (!user.data.user) throw new Error('User not authenticated');
 
   const { error } = await supabase
     .from('admin_actions_log')
-    .insert({
-      admin_id: user.id,
+    .insert([{
+      admin_id: user.data.user.id,
       suggestion_id: suggestionId,
       action_type: actionType,
-      original_data: originalData,
-      modified_data: modifiedData,
-      admin_reasoning: adminReasoning
-    });
-    
-  if (error) throw new Error(`Failed to log admin action: ${error.message}`);
-};
+      original_data: originalData ? JSON.stringify(originalData) : null,
+      modified_data: modifiedData ? JSON.stringify(modifiedData) : null,
+      admin_reasoning: reasoning
+    }]);
 
-export const runAgentAnalysis = async (agentName: string): Promise<void> => {
+  if (error) throw error;
+}
+
+export async function runAgent(agentName: string, context: AgentAnalysisContext): Promise<void> {
   const registry = AgentRegistry.getInstance();
   
   // Get agent configuration from database
-  const { data: agentData, error: agentError } = await supabase
+  const { data: agentData, error } = await supabase
     .from('ai_agents')
     .select('*')
     .eq('name', agentName)
-    .eq('is_active', true)
     .single();
-    
-  if (agentError || !agentData) {
-    throw new Error(`Agent ${agentName} not found or inactive`);
+
+  if (error || !agentData) {
+    throw new Error(`Agent ${agentName} not found`);
   }
 
-  // Create agent instance
-  const agent = registry.createAgent(agentData.name, agentData.type, agentData.config);
+  const config = parseJsonSafely(agentData.config);
+  const agent = registry.createAgent(agentData.name, agentData.type, config);
+  
   if (!agent) {
     throw new Error(`Failed to create agent ${agentName}`);
   }
 
-  // Prepare analysis context
-  const context: AgentAnalysisContext = await prepareAnalysisContext();
-  
-  // Run analysis
-  const suggestions = await agent.analyze(context);
-  
-  // Store suggestions in database
-  for (const suggestion of suggestions) {
-    const { error } = await supabase
-      .from('ai_suggestions')
-      .insert({
+  try {
+    const suggestions = await agent.analyze(context);
+    
+    // Store suggestions in database
+    for (const suggestion of suggestions) {
+      await createSuggestion({
         agent_id: agentData.id,
         target_type: suggestion.target_type,
-        target_id: suggestion.target_id,
+        target_id: suggestion.target_id || null,
         suggestion_data: suggestion.suggestion_data,
         reasoning: suggestion.reasoning,
+        status: 'pending',
         confidence_score: suggestion.confidence_score,
         priority: suggestion.priority,
-        expires_at: suggestion.expires_at?.toISOString()
+        expires_at: suggestion.expires_at?.toISOString() || null
       });
-      
-    if (error) {
-      console.error(`Failed to store suggestion: ${error.message}`);
     }
+  } catch (error) {
+    console.error(`Error running agent ${agentName}:`, error);
+    throw error;
   }
-};
-
-const prepareAnalysisContext = async (): Promise<AgentAnalysisContext> => {
-  // Fetch articles for analysis
-  const { data: articles } = await supabase
-    .from('articles')
-    .select('*');
-    
-  return {
-    articles: articles || []
-  };
-};
-
-export const runAllActiveAgents = async (): Promise<void> => {
-  const agents = await fetchAIAgents();
-  const activeAgents = agents.filter(agent => agent.is_active);
-  
-  for (const agent of activeAgents) {
-    try {
-      await runAgentAnalysis(agent.name);
-      console.log(`Successfully ran analysis for agent: ${agent.name}`);
-    } catch (error) {
-      console.error(`Failed to run agent ${agent.name}:`, error);
-    }
-  }
-};
+}

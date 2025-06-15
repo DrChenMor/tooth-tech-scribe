@@ -1,14 +1,16 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Workflow, Play, Settings, Plus, ArrowRight } from 'lucide-react';
+import { Workflow, Play, Settings, Plus, ArrowRight, Save, FolderOpen } from 'lucide-react';
 import WorkflowCanvas from '@/components/workflow/WorkflowCanvas';
 import WorkflowSidebar from '@/components/workflow/WorkflowSidebar';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from "@/components/ui/use-toast";
+import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 export interface WorkflowNode {
   id: string;
@@ -59,7 +61,19 @@ const WorkflowBuilderPage = () => {
   const [isRunning, setIsRunning] = useState(false);
   const [executionLog, setExecutionLog] = useState<string[]>([]);
   const [connectingNodeId, setConnectingNodeId] = useState<string | null>(null);
+  const [workflowName, setWorkflowName] = useState('');
+  const [savedWorkflows, setSavedWorkflows] = useState<{id: string, name: string, nodes: WorkflowNode[]}[]>([]);
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [showLoadDialog, setShowLoadDialog] = useState(false);
   const { toast } = useToast();
+
+  // Load saved workflows from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem('savedWorkflows');
+    if (saved) {
+      setSavedWorkflows(JSON.parse(saved));
+    }
+  }, []);
 
   const addNode = (type: WorkflowNode['type']) => {
     const newNode: WorkflowNode = {
@@ -141,8 +155,11 @@ const WorkflowBuilderPage = () => {
     setNodes(prevNodes =>
       prevNodes.map(node => {
         if (node.id === sourceId) {
-          // Avoid duplicate connections, replace existing for simplicity
-          return { ...node, connected: [targetId] };
+          // Add to existing connections if not already connected
+          const newConnections = node.connected.includes(targetId) 
+            ? node.connected 
+            : [...node.connected, targetId];
+          return { ...node, connected: newConnections };
         }
         return node;
       })
@@ -160,6 +177,33 @@ const WorkflowBuilderPage = () => {
     toast({ title: 'Node Disconnected', description: 'All outgoing connections have been removed.' });
   };
 
+  const saveWorkflow = () => {
+    if (!workflowName.trim()) {
+      toast({ title: 'Error', description: 'Please enter a workflow name', variant: 'destructive' });
+      return;
+    }
+
+    const newWorkflow = {
+      id: Date.now().toString(),
+      name: workflowName,
+      nodes: nodes
+    };
+
+    const updatedWorkflows = [...savedWorkflows, newWorkflow];
+    setSavedWorkflows(updatedWorkflows);
+    localStorage.setItem('savedWorkflows', JSON.stringify(updatedWorkflows));
+    
+    setWorkflowName('');
+    setShowSaveDialog(false);
+    toast({ title: 'Success', description: 'Workflow saved successfully!' });
+  };
+
+  const loadWorkflow = (workflow: {id: string, name: string, nodes: WorkflowNode[]}) => {
+    setNodes(workflow.nodes);
+    setShowLoadDialog(false);
+    toast({ title: 'Success', description: `Loaded workflow: ${workflow.name}` });
+  };
+
   const runWorkflow = async () => {
     setIsRunning(true);
     setExecutionLog(['Workflow started...']);
@@ -174,15 +218,15 @@ const WorkflowBuilderPage = () => {
         throw new Error('No trigger node found in the workflow.');
       }
 
-      let currentNode: WorkflowNode | null = triggerNode;
-      let previousNodeOutput: any = {};
-
-      while (currentNode) {
+      // Execute workflow with branching support
+      const executeNode = async (currentNode: WorkflowNode, inputData: any) => {
         log(`Executing: ${currentNode.label} (${currentNode.type})`);
         
+        let outputData = inputData;
+
         switch (currentNode.type) {
           case 'trigger':
-            previousNodeOutput = { content: 'Trigger fired manually.' };
+            outputData = { content: 'Trigger fired manually.' };
             break;
 
           case 'scraper': {
@@ -200,13 +244,13 @@ const WorkflowBuilderPage = () => {
             if (scraperData.error) throw new Error(scraperData.error);
             if (!scraperData.content && scraperData.content !== "") throw new Error('Scraper returned no content.');
             
-            previousNodeOutput = { content: scraperData.content };
+            outputData = { content: scraperData.content };
             log(`Scraping successful. Content length: ${scraperData.content.length}`);
             break;
           }
 
           case 'ai-processor': {
-            const contentToProcess = previousNodeOutput.content || previousNodeOutput.article?.content;
+            const contentToProcess = inputData.content || inputData.article?.content;
             if (contentToProcess === undefined) {
               throw new Error('AI Processor has no content to process. Make sure it follows a node that provides content.');
             }
@@ -225,10 +269,9 @@ const WorkflowBuilderPage = () => {
             if (!aiData.content) throw new Error('AI Processor returned no content.');
             
             const processedContent = aiData.content;
-            previousNodeOutput = { ...previousNodeOutput, content: processedContent, provider: currentNode.config.provider };
-            // If an article was being processed, update its content as well to avoid stale data
-            if (previousNodeOutput.article) {
-              previousNodeOutput.article.content = processedContent;
+            outputData = { ...inputData, content: processedContent, provider: currentNode.config.provider };
+            if (outputData.article) {
+              outputData.article.content = processedContent;
             }
 
             log(`AI processing successful.`);
@@ -236,7 +279,7 @@ const WorkflowBuilderPage = () => {
           }
 
           case 'publisher': {
-            const contentToPublish = previousNodeOutput.content || previousNodeOutput.article?.content;
+            const contentToPublish = inputData.content || inputData.article?.content;
             if (!contentToPublish) {
               throw new Error('Publisher has no content to publish. Make sure it follows a node that provides content.');
             }
@@ -245,7 +288,7 @@ const WorkflowBuilderPage = () => {
             const { data: articleData, error: articleError } = await supabase.functions.invoke('create-article-from-ai', {
               body: {
                 content: contentToPublish,
-                provider: previousNodeOutput.provider || 'AI',
+                provider: inputData.provider || 'AI',
                 category: currentNode.config.category,
                 status: currentNode.config.status,
               },
@@ -253,45 +296,28 @@ const WorkflowBuilderPage = () => {
             if (articleError) throw articleError;
             if (articleData.error) throw new Error(articleData.error);
 
-            // We replace the previous output, but also pass along the content for the next node.
-            previousNodeOutput = { article: articleData.article, content: articleData.article.content };
+            outputData = { article: articleData.article, content: articleData.article.content };
             const finalStatus = currentNode.config.status || 'draft';
             log(`Article created as ${finalStatus}: ${articleData.article.title}`);
             break;
           }
 
-          case 'social-poster': {
-            if (!previousNodeOutput.article?.title || !previousNodeOutput.article?.slug) {
-              throw new Error('Social Poster requires an article with a title and slug from the previous node.');
-            }
-            const article = previousNodeOutput.article;
-            // In a real scenario, you'd get the full URL from config or env
-            const articleUrl = `${window.location.origin}/article/${article.slug}`;
-            log(`Preparing post for ${currentNode.config.platform}...`);
-            log(`Content: ${currentNode.config.content.replace('{{article.title}}', article.title).replace('{{article.url}}', articleUrl)}`);
-            log(`Social Poster node is not fully implemented yet. Skipping actual posting.`);
-            previousNodeOutput = { ...previousNodeOutput };
-            break;
-          }
-            
-          case 'filter':
-            log(`Filter node is not implemented yet. Skipping.`);
-            previousNodeOutput = { ...previousNodeOutput };
-            break;
-
           case 'email-sender': {
-            if (!previousNodeOutput.article?.title || !previousNodeOutput.article?.slug) {
-              throw new Error('Email Sender requires an article with a title and slug from the previous node.');
+            // More flexible email handling - work with any content or article
+            let title = 'Generated Content';
+            let articleUrl = window.location.origin;
+            
+            if (inputData.article?.title && inputData.article?.slug) {
+              title = inputData.article.title;
+              articleUrl = `${window.location.origin}/article/${inputData.article.slug}`;
             }
-            const article = previousNodeOutput.article;
-            const articleUrl = `${window.location.origin}/article/${article.slug}`;
 
-            const subject = (currentNode.config.subject || '')
-              .replace(/{{article.title}}/g, article.title)
+            const subject = (currentNode.config.subject || 'New Content: {{article.title}}')
+              .replace(/{{article.title}}/g, title)
               .replace(/{{article.url}}/g, articleUrl);
               
-            const body = (currentNode.config.body || '')
-              .replace(/{{article.title}}/g, article.title)
+            const body = (currentNode.config.body || 'Check out this content: {{article.url}}')
+              .replace(/{{article.title}}/g, title)
               .replace(/{{article.url}}/g, articleUrl)
               .replace(/\n/g, '<br />');
             
@@ -313,22 +339,12 @@ const WorkflowBuilderPage = () => {
             if (emailError) throw emailError;
 
             log(`Email sent successfully to ${recipient}.`);
-            previousNodeOutput = { ...previousNodeOutput };
+            outputData = { ...inputData };
             break;
           }
 
-          case 'image-generator':
-            log(`Image Generator node is not fully implemented yet. Skipping.`);
-            previousNodeOutput = { ...previousNodeOutput };
-            break;
-
-          case 'seo-analyzer':
-            log(`SEO Analyzer node is not fully implemented yet. Skipping.`);
-            previousNodeOutput = { ...previousNodeOutput };
-            break;
-
           case 'translator': {
-            const contentToTranslate = previousNodeOutput.content || previousNodeOutput.article?.content;
+            const contentToTranslate = inputData.content || inputData.article?.content;
             if (!contentToTranslate) {
               throw new Error('Translator has no content to translate. Make sure it follows a node that provides content or an article.');
             }
@@ -355,20 +371,31 @@ const WorkflowBuilderPage = () => {
             }
 
             const translatedContent = translatorData.content;
-            previousNodeOutput = { ...previousNodeOutput, content: translatedContent };
-            if (previousNodeOutput.article) {
-                previousNodeOutput.article.content = translatedContent;
+            outputData = { ...inputData, content: translatedContent };
+            if (outputData.article) {
+                outputData.article.content = translatedContent;
             }
 
             log(`Translation successful using ${currentNode.config.provider}.`);
             break;
           }
+
+          default:
+            log(`${currentNode.type} node is not fully implemented yet. Skipping.`);
+            outputData = { ...inputData };
+            break;
         }
 
-        const nextNodeId = currentNode.connected[0];
-        currentNode = nextNodeId ? nodes.find(n => n.id === nextNodeId) || null : null;
-      }
+        // Execute all connected nodes in parallel (branching)
+        if (currentNode.connected.length > 0) {
+          const nextNodes = currentNode.connected.map(nodeId => nodes.find(n => n.id === nodeId)).filter(Boolean);
+          await Promise.all(
+            nextNodes.map(nextNode => executeNode(nextNode!, outputData))
+          );
+        }
+      };
 
+      await executeNode(triggerNode, {});
       log('Workflow completed successfully!');
       toast({ title: 'Success', description: 'Workflow executed successfully.' });
 
@@ -395,7 +422,7 @@ const WorkflowBuilderPage = () => {
       log(`Error: ${errorMessage}`);
       toast({ title: 'Workflow Failed', description: errorMessage, variant: 'destructive' });
     } finally {
-      // Keep log visible after run
+      setIsRunning(false);
     }
   };
 
@@ -428,6 +455,59 @@ const WorkflowBuilderPage = () => {
                 <Badge variant="outline">
                   {nodes.length} Nodes
                 </Badge>
+                
+                <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" className="flex items-center gap-2">
+                      <Save className="h-4 w-4" />
+                      Save
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Save Workflow</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <Input
+                        placeholder="Enter workflow name..."
+                        value={workflowName}
+                        onChange={(e) => setWorkflowName(e.target.value)}
+                      />
+                      <Button onClick={saveWorkflow} className="w-full">
+                        Save Workflow
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+
+                <Dialog open={showLoadDialog} onOpenChange={setShowLoadDialog}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" className="flex items-center gap-2">
+                      <FolderOpen className="h-4 w-4" />
+                      Load
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Load Workflow</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-2">
+                      {savedWorkflows.length === 0 ? (
+                        <p className="text-muted-foreground">No saved workflows</p>
+                      ) : (
+                        savedWorkflows.map((workflow) => (
+                          <Card key={workflow.id} className="cursor-pointer hover:bg-muted/50" onClick={() => loadWorkflow(workflow)}>
+                            <CardContent className="p-4">
+                              <h4 className="font-medium">{workflow.name}</h4>
+                              <p className="text-sm text-muted-foreground">{workflow.nodes.length} nodes</p>
+                            </CardContent>
+                          </Card>
+                        ))
+                      )}
+                    </div>
+                  </DialogContent>
+                </Dialog>
+
                 <Button
                   onClick={runWorkflow}
                   disabled={isRunning}

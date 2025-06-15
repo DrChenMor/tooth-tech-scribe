@@ -215,7 +215,7 @@ const WorkflowCanvas = ({
               </ContextMenuItem>
               {node.connected.length > 0 && (
                 <ContextMenuItem onClick={() => onDisconnectNode(node.id)} className="flex items-center gap-2 cursor-pointer">
-                  <XCircle className="h-4 w-4" /> Disconnect
+                  <XCircle className="h-4 w-4" /> Disconnect All
                 </ContextMenuItem>
               )}
               <ContextMenuSeparator />

@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { AgentRegistry } from '@/lib/agents/AgentRegistry';
 import { BaseAgent, AgentAnalysisContext } from '@/lib/agents/BaseAgent';
@@ -280,11 +279,26 @@ export async function subscribeToSuggestionUpdates(
         table: 'ai_suggestions'
       },
       (payload) => {
-        const suggestion = {
-          ...payload.new,
-          suggestion_data: parseJsonSafely(payload.new.suggestion_data)
-        } as AISuggestion;
-        callback(suggestion);
+        // Safely handle the payload data
+        const suggestionData = payload.new as any;
+        if (suggestionData && suggestionData.id) {
+          const suggestion: AISuggestion = {
+            id: suggestionData.id,
+            agent_id: suggestionData.agent_id,
+            target_type: suggestionData.target_type,
+            target_id: suggestionData.target_id,
+            suggestion_data: parseJsonSafely(suggestionData.suggestion_data),
+            reasoning: suggestionData.reasoning,
+            status: suggestionData.status,
+            confidence_score: suggestionData.confidence_score,
+            priority: suggestionData.priority,
+            created_at: suggestionData.created_at,
+            reviewed_at: suggestionData.reviewed_at,
+            reviewed_by: suggestionData.reviewed_by,
+            expires_at: suggestionData.expires_at
+          };
+          callback(suggestion);
+        }
       }
     )
     .subscribe();

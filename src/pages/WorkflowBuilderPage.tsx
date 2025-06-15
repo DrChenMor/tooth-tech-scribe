@@ -13,7 +13,7 @@ import { useToast } from "@/components/ui/use-toast";
 
 export interface WorkflowNode {
   id: string;
-  type: 'trigger' | 'scraper' | 'ai-processor' | 'filter' | 'publisher';
+  type: 'trigger' | 'scraper' | 'ai-processor' | 'filter' | 'publisher' | 'social-poster';
   label: string;
   position: { x: number; y: number };
   config: Record<string, any>;
@@ -59,6 +59,7 @@ const WorkflowBuilderPage = () => {
   const [selectedNode, setSelectedNode] = useState<WorkflowNode | null>(null);
   const [isRunning, setIsRunning] = useState(false);
   const [executionLog, setExecutionLog] = useState<string[]>([]);
+  const [connectingNodeId, setConnectingNodeId] = useState<string | null>(null);
   const { toast } = useToast();
 
   const addNode = (type: WorkflowNode['type']) => {
@@ -79,7 +80,8 @@ const WorkflowBuilderPage = () => {
       scraper: 'Web Scraper',
       'ai-processor': 'AI Processor',
       filter: 'Content Filter',
-      publisher: 'Publisher'
+      publisher: 'Publisher',
+      'social-poster': 'Social Poster'
     };
     return labels[type];
   };
@@ -90,7 +92,8 @@ const WorkflowBuilderPage = () => {
       scraper: { urls: [], selector: '', followPagination: false },
       'ai-processor': { provider: 'openai', model: 'gpt-4o-mini', contentType: 'article', prompt: '' },
       filter: { minWords: 100, maxWords: 2000 },
-      publisher: { status: 'draft', category: 'AI Generated', autoPublishConditional: false }
+      publisher: { status: 'draft', category: 'AI Generated', autoPublishConditional: false },
+      'social-poster': { platform: 'twitter', content: 'Check out our new article: {{article.title}} {{article.url}}' }
     };
     return configs[type];
   };
@@ -108,6 +111,48 @@ const WorkflowBuilderPage = () => {
       setSelectedNode(prev => prev ? { ...prev, config: { ...prev.config, ...newConfig } } : null);
     }
   };
+
+  const deleteNode = (nodeId: string) => {
+    setNodes(prevNodes => {
+      // Remove the node
+      const newNodes = prevNodes.filter(node => node.id !== nodeId);
+      // Remove any connections to the deleted node
+      return newNodes.map(node => ({
+        ...node,
+        connected: node.connected.filter(id => id !== nodeId)
+      }));
+    });
+    // If the deleted node was selected, unselect it
+    if (selectedNode?.id === nodeId) {
+      setSelectedNode(null);
+    }
+    toast({ title: 'Node Deleted', description: 'The node has been removed from the workflow.' });
+  };
+
+  const connectNodes = (sourceId: string, targetId: string) => {
+    if (sourceId === targetId) return; // Cannot connect to self
+    setNodes(prevNodes =>
+      prevNodes.map(node => {
+        if (node.id === sourceId) {
+          // Avoid duplicate connections, replace existing for simplicity
+          return { ...node, connected: [targetId] };
+        }
+        return node;
+      })
+    );
+    setConnectingNodeId(null); // End connection mode
+    toast({ title: 'Nodes Connected', description: 'A connection has been created.' });
+  };
+
+  const disconnectNode = (nodeId: string) => {
+    setNodes(prevNodes =>
+      prevNodes.map(node =>
+        node.id === nodeId ? { ...node, connected: [] } : node
+      )
+    );
+    toast({ title: 'Node Disconnected', description: 'All outgoing connections have been removed.' });
+  };
+
 
   const runWorkflow = async () => {
     setIsRunning(true);
@@ -199,6 +244,20 @@ const WorkflowBuilderPage = () => {
             log(`Article created as ${finalStatus}: ${articleData.article.title}`);
             break;
           }
+
+          case 'social-poster': {
+            if (!previousNodeOutput.article?.title || !previousNodeOutput.article?.slug) {
+              throw new Error('Social Poster requires an article with a title and slug from the previous node.');
+            }
+            const article = previousNodeOutput.article;
+            // In a real scenario, you'd get the full URL from config or env
+            const articleUrl = `${window.location.origin}/article/${article.slug}`;
+            log(`Preparing post for ${currentNode.config.platform}...`);
+            log(`Content: ${currentNode.config.content.replace('{{article.title}}', article.title).replace('{{article.url}}', articleUrl)}`);
+            log(`Social Poster node is not fully implemented yet. Skipping actual posting.`);
+            previousNodeOutput = { ...previousNodeOutput };
+            break;
+          }
             
           case 'filter':
             log(`Filter node is not implemented yet. Skipping.`);
@@ -274,6 +333,11 @@ const WorkflowBuilderPage = () => {
               selectedNode={selectedNode}
               onSelectNode={setSelectedNode}
               onUpdateNodes={setNodes}
+              onDeleteNode={deleteNode}
+              connectingNodeId={connectingNodeId}
+              onConnectStart={setConnectingNodeId}
+              onConnectEnd={connectNodes}
+              onDisconnectNode={disconnectNode}
             />
           </div>
         </div>

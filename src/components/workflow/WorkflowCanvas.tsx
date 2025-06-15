@@ -3,16 +3,38 @@ import { useState, useRef } from 'react';
 import { WorkflowNode } from '@/pages/WorkflowBuilderPage';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Clock, Globe, Brain, Filter, Send, ArrowRight } from 'lucide-react';
+import { Clock, Globe, Brain, Filter, Send, ArrowRight, Trash2, Link as LinkIcon, XCircle, Share2 } from 'lucide-react';
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
 
 interface WorkflowCanvasProps {
   nodes: WorkflowNode[];
   selectedNode: WorkflowNode | null;
   onSelectNode: (node: WorkflowNode | null) => void;
   onUpdateNodes: (nodes: WorkflowNode[]) => void;
+  onDeleteNode: (nodeId: string) => void;
+  connectingNodeId: string | null;
+  onConnectStart: (nodeId: string) => void;
+  onConnectEnd: (sourceId: string, targetId: string) => void;
+  onDisconnectNode: (nodeId: string) => void;
 }
 
-const WorkflowCanvas = ({ nodes, selectedNode, onSelectNode, onUpdateNodes }: WorkflowCanvasProps) => {
+const WorkflowCanvas = ({
+  nodes,
+  selectedNode,
+  onSelectNode,
+  onUpdateNodes,
+  onDeleteNode,
+  connectingNodeId,
+  onConnectStart,
+  onConnectEnd,
+  onDisconnectNode,
+}: WorkflowCanvasProps) => {
   const [draggedNode, setDraggedNode] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -24,6 +46,7 @@ const WorkflowCanvas = ({ nodes, selectedNode, onSelectNode, onUpdateNodes }: Wo
       'ai-processor': Brain,
       filter: Filter,
       publisher: Send,
+      'social-poster': Share2,
     };
     return icons[type];
   };
@@ -35,6 +58,7 @@ const WorkflowCanvas = ({ nodes, selectedNode, onSelectNode, onUpdateNodes }: Wo
       'ai-processor': 'border-purple-200 bg-purple-50',
       filter: 'border-yellow-200 bg-yellow-50',
       publisher: 'border-red-200 bg-red-50',
+      'social-poster': 'border-sky-200 bg-sky-50',
     };
     return colors[type];
   };
@@ -120,7 +144,7 @@ const WorkflowCanvas = ({ nodes, selectedNode, onSelectNode, onUpdateNodes }: Wo
   return (
     <div
       ref={canvasRef}
-      className="relative w-full h-full bg-grid-pattern bg-gray-50"
+      className={`relative w-full h-full bg-grid-pattern bg-gray-50 ${connectingNodeId ? 'cursor-crosshair' : ''}`}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       onClick={() => onSelectNode(null)}
@@ -130,43 +154,66 @@ const WorkflowCanvas = ({ nodes, selectedNode, onSelectNode, onUpdateNodes }: Wo
       {nodes.map(node => {
         const Icon = getNodeIcon(node.type);
         const isSelected = selectedNode?.id === node.id;
+        const isConnecting = connectingNodeId === node.id;
+        const canConnectTo = connectingNodeId && connectingNodeId !== node.id;
         
         return (
-          <Card
-            key={node.id}
-            className={`absolute w-60 cursor-move select-none transition-all ${
-              getNodeColor(node.type)
-            } ${isSelected ? 'ring-2 ring-blue-500 shadow-lg' : 'hover:shadow-md'}`}
-            style={{
-              left: node.position.x,
-              top: node.position.y,
-              zIndex: draggedNode === node.id ? 10 : 2
-            }}
-            onMouseDown={(e) => {
-              e.stopPropagation();
-              handleMouseDown(e, node.id);
-            }}
-            onClick={(e) => {
-              e.stopPropagation();
-              onSelectNode(node);
-            }}
-          >
-            <div className="p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <Icon className="h-4 w-4" />
-                <h4 className="font-medium text-sm">{node.label}</h4>
-              </div>
-              <Badge variant="outline" className="text-xs">
-                {node.type.replace('-', ' ')}
-              </Badge>
+          <ContextMenuTrigger key={node.id}>
+            <ContextMenuContent>
+              <ContextMenuItem onClick={() => onConnectStart(node.id)} className="flex items-center gap-2 cursor-pointer">
+                <LinkIcon className="h-4 w-4" /> Connect
+              </ContextMenuItem>
               {node.connected.length > 0 && (
-                <div className="mt-2 flex items-center text-xs text-muted-foreground">
-                  <ArrowRight className="h-3 w-3 mr-1" />
-                  Connected to {node.connected.length} node(s)
-                </div>
+                <ContextMenuItem onClick={() => onDisconnectNode(node.id)} className="flex items-center gap-2 cursor-pointer">
+                  <XCircle className="h-4 w-4" /> Disconnect
+                </ContextMenuItem>
               )}
-            </div>
-          </Card>
+              <ContextMenuSeparator />
+              <ContextMenuItem onClick={() => onDeleteNode(node.id)} className="flex items-center gap-2 text-red-500 cursor-pointer">
+                <Trash2 className="h-4 w-4" /> Delete Node
+              </ContextMenuItem>
+            </ContextMenuContent>
+            <Card
+              className={`absolute w-60 cursor-move select-none ${
+                getNodeColor(node.type)
+              } ${isSelected ? 'ring-2 ring-blue-500 shadow-lg' : 'hover:shadow-md'}
+              ${isConnecting ? 'ring-2 ring-green-500 animate-pulse' : ''}
+              ${canConnectTo ? 'hover:ring-2 hover:ring-green-400' : ''}`}
+              style={{
+                left: node.position.x,
+                top: node.position.y,
+                zIndex: draggedNode === node.id ? 10 : 2
+              }}
+              onMouseDown={(e) => {
+                e.stopPropagation();
+                handleMouseDown(e, node.id);
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (canConnectTo && connectingNodeId) {
+                  onConnectEnd(connectingNodeId, node.id);
+                } else {
+                  onSelectNode(node);
+                }
+              }}
+            >
+              <div className="p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Icon className="h-4 w-4" />
+                  <h4 className="font-medium text-sm">{node.label}</h4>
+                </div>
+                <Badge variant="outline" className="text-xs">
+                  {node.type.replace('-', ' ')}
+                </Badge>
+                {node.connected.length > 0 && (
+                  <div className="mt-2 flex items-center text-xs text-muted-foreground">
+                    <ArrowRight className="h-3 w-3 mr-1" />
+                    Connected to {node.connected.length} node(s)
+                  </div>
+                )}
+              </div>
+            </Card>
+          </ContextMenuTrigger>
         );
       })}
 

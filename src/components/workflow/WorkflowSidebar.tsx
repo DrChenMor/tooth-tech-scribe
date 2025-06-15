@@ -1,3 +1,4 @@
+
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -5,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { Clock, Globe, Brain, Filter, Send, Plus } from 'lucide-react';
+import { Clock, Globe, Brain, Filter, Send, Plus, Share2 } from 'lucide-react';
 import { WorkflowNode } from '@/pages/WorkflowBuilderPage';
 
 interface WorkflowSidebarProps {
@@ -21,6 +22,7 @@ const WorkflowSidebar = ({ selectedNode, onAddNode, onUpdateNodeConfig }: Workfl
     { type: 'ai-processor', icon: Brain, label: 'AI Processor', description: 'Generate content' },
     { type: 'filter', icon: Filter, label: 'Filter', description: 'Quality control' },
     { type: 'publisher', icon: Send, label: 'Publisher', description: 'Publish articles' },
+    { type: 'social-poster', icon: Share2, label: 'Social Poster', description: 'Post to social media' },
   ] as const;
 
   return (
@@ -85,6 +87,7 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
       'ai-processor': Brain,
       filter: Filter,
       publisher: Send,
+      'social-poster': Share2,
     };
     return icons[type];
   };
@@ -239,6 +242,39 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
               onCheckedChange={(checked) => handleConfigChange('autoPublishConditional', checked)}
             />
             <Label>Auto-publish if quality score greater than 80%</Label>
+          </div>
+        </div>
+      )}
+
+      {node.type === 'social-poster' && (
+        <div className="space-y-4">
+          <div>
+            <Label>Social Platform</Label>
+            <Select
+              value={node.config.platform || 'twitter'}
+              onValueChange={(value) => handleConfigChange('platform', value)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="twitter">X (Twitter)</SelectItem>
+                <SelectItem value="facebook" disabled>Facebook (coming soon)</SelectItem>
+                <SelectItem value="linkedin" disabled>LinkedIn (coming soon)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Post Content Template</Label>
+            <Textarea
+              placeholder="Check out our new article: {{article.title}} {{article.url}}"
+              rows={4}
+              value={node.config.content || ''}
+              onChange={(e) => handleConfigChange('content', e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Use `&#123;&#123;article.title&#125;&#125;` and `&#123;&#123;article.url&#125;&#125;` as placeholders.
+            </p>
           </div>
         </div>
       )}

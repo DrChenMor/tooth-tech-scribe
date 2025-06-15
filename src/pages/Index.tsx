@@ -1,3 +1,4 @@
+
 import Footer from '@/components/Footer';
 import ArticleCard from '@/components/ArticleCard';
 import { Link } from 'react-router-dom';
@@ -138,7 +139,7 @@ const Index = () => {
             </p>
           </div>
 
-          {/* Category Filters - Centered */}
+          {/* Category Filters */}
           <div className="flex justify-center flex-wrap gap-2 mb-12">
             <Button
               variant="ghost"
@@ -171,7 +172,7 @@ const Index = () => {
             )}
           </div>
 
-          {/* Featured Article - Centered and Larger */}
+          {/* Featured Article */}
           {featuredArticle && (
             <div className="max-w-4xl mx-auto mb-16 animate-fade-in" style={{ animationDelay: '200ms' }}>
               <Link to={`/article/${featuredArticle.slug}`} className="group block">

@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -143,7 +144,7 @@ const WorkflowBuilderPage = () => {
   }, [nodes]);
 
   return (
-    <div className="h-screen flex flex-col">
+    <div className="h-full flex flex-col">
       <div className="border-b bg-background p-4">
         <div className="flex items-center justify-between">
           <div>

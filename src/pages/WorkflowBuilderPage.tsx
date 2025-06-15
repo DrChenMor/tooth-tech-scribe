@@ -100,7 +100,7 @@ const WorkflowBuilderPage = () => {
       'email-sender': { recipient: '', subject: 'New Article Published: {{article.title}}', body: 'Read it here: {{article.url}}' },
       'image-generator': { prompt: 'A futuristic image related to: {{article.title}}', provider: 'dall-e-3' },
       'seo-analyzer': { keywords: [], targetScore: 80 },
-      'translator': { targetLanguage: 'es' }
+      'translator': { targetLanguage: 'es', provider: 'google' }
     };
     return configs[type];
   };
@@ -318,10 +318,36 @@ const WorkflowBuilderPage = () => {
             previousNodeOutput = { ...previousNodeOutput };
             break;
 
-          case 'translator':
-            log(`Translator node is not fully implemented yet. Skipping.`);
-            previousNodeOutput = { ...previousNodeOutput };
+          case 'translator': {
+            if (!previousNodeOutput.content) {
+              throw new Error('Translator has no content to translate.');
+            }
+            log(`Translating content to ${currentNode.config.targetLanguage}...`);
+
+            const { data: translatorData, error: translatorError } = await supabase.functions.invoke('translator', {
+              body: {
+                content: previousNodeOutput.content,
+                targetLanguage: currentNode.config.targetLanguage,
+                model: currentNode.config.provider,
+              },
+            });
+
+            if (translatorError) {
+              console.error('Translator function invocation error:', translatorError);
+              throw new Error(translatorError.message || 'Error calling translator function.');
+            }
+            
+            if (translatorData.error) {
+              throw new Error(translatorData.error);
+            }
+            if (translatorData.content === undefined) {
+              throw new Error('Translator returned no content.');
+            }
+
+            previousNodeOutput = { ...previousNodeOutput, content: translatorData.content };
+            log(`Translation successful.`);
             break;
+          }
         }
 
         const nextNodeId = currentNode.connected[0];

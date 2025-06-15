@@ -41,9 +41,20 @@ serve(async (req: Request) => {
       );
     }
 
+    const recipients = to.split(/[,;]/).map(email => email.trim()).filter(email => email);
+
+    if (recipients.length === 0) {
+      return new Response(
+        JSON.stringify({ error: "No valid recipients provided in the 'to' field." }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log(`Sending email to recipients: ${recipients.join(', ')}`);
+
     const { data, error } = await resend.emails.send({
       from: "Workflow Bot <onboarding@resend.dev>",
-      to: [to],
+      to: recipients,
       subject: subject,
       html: body,
     });
@@ -69,4 +80,3 @@ serve(async (req: Request) => {
     );
   }
 });
-

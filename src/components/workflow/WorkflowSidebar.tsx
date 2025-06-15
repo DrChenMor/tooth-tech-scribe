@@ -404,6 +404,23 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
       {node.type === 'translator' && (
         <div className="space-y-4">
           <div>
+            <Label>AI Provider</Label>
+            <Select
+              value={node.config.provider || 'google'}
+              onValueChange={(value) => handleConfigChange('provider', value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select a provider" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="google">Google Translate (Gemini)</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground mt-1">
+              Currently using Google's translation model.
+            </p>
+          </div>
+          <div>
             <Label>Target Language</Label>
             <Select
               value={node.config.targetLanguage || 'es'}
@@ -418,6 +435,7 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
                 <SelectItem value="de">German</SelectItem>
                 <SelectItem value="ja">Japanese</SelectItem>
                 <SelectItem value="pt">Portuguese</SelectItem>
+                <SelectItem value="he">Hebrew</SelectItem>
               </SelectContent>
             </Select>
           </div>

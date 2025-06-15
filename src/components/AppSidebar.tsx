@@ -35,11 +35,11 @@ export function AppSidebar() {
   ];
 
   return (
-    <Sidebar>
+    <Sidebar collapsible="icon">
       <SidebarHeader className="p-4">
         <Link to="/" className="flex items-center gap-2 text-xl font-bold text-foreground">
           <Smile className="text-primary" size={28} />
-          <span className="group-data-[collapsible=icon]:hidden group-hover:inline">Dental AI Insights</span>
+          <span className="group-data-[collapsible=icon]:hidden">Dental AI Insights</span>
         </Link>
       </SidebarHeader>
       <SidebarContent className="p-4">
@@ -80,23 +80,28 @@ export function AppSidebar() {
       <SidebarFooter className="p-4 flex flex-col gap-2">
         {user ? (
           <>
-            {isAdmin && <Button asChild variant="outline" size="sm" className="w-full group-data-[collapsible=icon]:hidden group-hover:block"><Link to="/admin">Admin</Link></Button>}
-            <Button onClick={handleLogout} variant="ghost" size="sm" className="w-full group-data-[collapsible=icon]:hidden group-hover:block">Logout</Button>
-            
-            <SidebarMenuButton asChild className="w-full hidden group-data-[collapsible=icon]:flex group-hover:hidden">
-                <Link to="/admin"><User /></Link>
-            </SidebarMenuButton>
-            <SidebarMenuButton asChild className="w-full hidden group-data-[collapsible=icon]:flex group-hover:hidden">
-                <button onClick={handleLogout} className="w-full flex justify-center"><LogOut /></button>
+            {isAdmin && (
+              <SidebarMenuButton asChild className="w-full">
+                <Link to="/admin">
+                  <User />
+                  <span>Admin</span>
+                </Link>
+              </SidebarMenuButton>
+            )}
+            <SidebarMenuButton asChild className="w-full">
+              <button onClick={handleLogout} className="w-full flex items-center gap-2">
+                <LogOut />
+                <span>Logout</span>
+              </button>
             </SidebarMenuButton>
           </>
         ) : (
-          <>
-            <Button asChild size="sm" className="w-full group-data-[collapsible=icon]:hidden group-hover:block"><Link to="/auth">Login</Link></Button>
-            <SidebarMenuButton asChild className="w-full hidden group-data-[collapsible=icon]:flex group-hover:hidden">
-                <Link to="/auth"><LogIn /></Link>
-            </SidebarMenuButton>
-          </>
+          <SidebarMenuButton asChild className="w-full">
+            <Link to="/auth">
+              <LogIn />
+              <span>Login</span>
+            </Link>
+          </SidebarMenuButton>
         )}
       </SidebarFooter>
     </Sidebar>

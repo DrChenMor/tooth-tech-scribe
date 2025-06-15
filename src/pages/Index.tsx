@@ -1,4 +1,3 @@
-
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import ArticleCard from '@/components/ArticleCard';
@@ -9,6 +8,8 @@ import { Article } from '@/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
 
 const fetchArticles = async (): Promise<Article[]> => {
   const { data, error } = await supabase
@@ -28,6 +29,7 @@ const Index = () => {
     queryKey: ['articles'],
     queryFn: fetchArticles,
   });
+  const [selectedCategory, setSelectedCategory] = useState('All');
 
   if (isLoading) {
     return (
@@ -93,6 +95,14 @@ const Index = () => {
   const featuredArticle = articles?.[0];
   const otherArticles = articles?.slice(1) || [];
 
+  const categories = articles
+    ? ['All', ...Array.from(new Set(articles.map(a => a.category).filter(Boolean) as string[]))]
+    : ['All'];
+  
+  const filteredArticles = selectedCategory === 'All'
+    ? otherArticles
+    : otherArticles.filter(article => article.category === selectedCategory);
+
   if (!featuredArticle) {
     return (
        <div className="flex flex-col min-h-screen">
@@ -121,29 +131,46 @@ const Index = () => {
           </div>
 
           {/* Featured Article */}
-          <div className="mb-16 animate-fade-in" style={{ animationDelay: '200ms' }}>
-            <Link to={`/article/${featuredArticle.slug}`} className="group block md:grid md:grid-cols-2 gap-8 items-center">
-              <div className="overflow-hidden rounded-lg">
-                <img src={featuredArticle.image_url || 'https://placehold.co/1280x720/EEE/BDBDBD?text=Denti-AI'} alt={featuredArticle.title} className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-300 ease-in-out" />
-              </div>
-              <div>
-                {featuredArticle.category && <Badge variant="outline">{featuredArticle.category}</Badge>}
-                <h2 className="text-3xl md:text-4xl font-serif font-bold mt-2 text-foreground group-hover:text-primary transition-colors">{featuredArticle.title}</h2>
-                <p className="mt-4 text-muted-foreground">{featuredArticle.excerpt}</p>
-                 <div className="flex items-center mt-4">
-                  <img src={featuredArticle.author_avatar_url || undefined} alt={featuredArticle.author_name || ''} className="w-10 h-10 rounded-full mr-3" />
-                  <div className="text-sm">
-                    <p className="font-semibold text-foreground">{featuredArticle.author_name}</p>
-                    <p className="text-muted-foreground">{format(new Date(featuredArticle.published_date), 'MMMM d, yyyy')}</p>
+          {featuredArticle && (
+            <div className="mb-16 animate-fade-in" style={{ animationDelay: '200ms' }}>
+              <Link to={`/article/${featuredArticle.slug}`} className="group block md:grid md:grid-cols-2 gap-8 items-center">
+                <div className="overflow-hidden rounded-lg">
+                  <img src={featuredArticle.image_url || 'https://placehold.co/1280x720/EEE/BDBDBD?text=Denti-AI'} alt={featuredArticle.title} className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-300 ease-in-out" />
+                </div>
+                <div>
+                  {featuredArticle.category && <Badge variant="outline">{featuredArticle.category}</Badge>}
+                  <h2 className="text-3xl md:text-4xl font-serif font-bold mt-2 text-foreground group-hover:text-primary transition-colors">{featuredArticle.title}</h2>
+                  <p className="mt-4 text-muted-foreground">{featuredArticle.excerpt}</p>
+                   <div className="flex items-center mt-4">
+                    <img src={featuredArticle.author_avatar_url || undefined} alt={featuredArticle.author_name || ''} className="w-10 h-10 rounded-full mr-3" />
+                    <div className="text-sm">
+                      <p className="font-semibold text-foreground">{featuredArticle.author_name}</p>
+                      <p className="text-muted-foreground">{format(new Date(featuredArticle.published_date), 'MMMM d, yyyy')}</p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </Link>
-          </div>
+              </Link>
+            </div>
+          )}
+          
+          {/* Category Filters */}
+          {categories.length > 1 && (
+            <div className="flex justify-center flex-wrap gap-2 mb-12 animate-fade-in" style={{ animationDelay: '300ms' }}>
+              {categories.map(category => (
+                <Button
+                  key={category}
+                  variant={selectedCategory === category ? 'default' : 'outline'}
+                  onClick={() => setSelectedCategory(category)}
+                >
+                  {category}
+                </Button>
+              ))}
+            </div>
+          )}
           
           {/* Article Grid */}
           <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-            {otherArticles.map((article, index) => (
+            {filteredArticles.map((article, index) => (
               <ArticleCard key={article.id} article={article} index={index} />
             ))}
           </div>

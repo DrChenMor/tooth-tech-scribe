@@ -1,31 +1,119 @@
 
-import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { Smile } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const AboutPage = () => {
+  const teamMembers = [
+    {
+      name: "Dr. Sarah Johnson",
+      role: "Dental AI Researcher",
+      image: "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=400&h=400&fit=crop&crop=face",
+      color: "bg-blue-100"
+    },
+    {
+      name: "Dr. Michael Chen", 
+      role: "Clinical Director",
+      image: "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=400&h=400&fit=crop&crop=face",
+      color: "bg-green-100"
+    },
+    {
+      name: "Dr. Emily Rodriguez",
+      role: "Technology Lead", 
+      image: "https://images.unsplash.com/photo-1594824716093-836d4c8c1bf5?w=400&h=400&fit=crop&crop=face",
+      color: "bg-red-100"
+    },
+    {
+      name: "Dr. James Wilson",
+      role: "Research Scientist",
+      image: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop&crop=face", 
+      color: "bg-purple-100"
+    }
+  ];
+
   return (
     <div className="flex flex-col min-h-screen">
-      <Header />
-      <main className="flex-grow container mx-auto px-4 py-8">
-        <div className="max-w-3xl mx-auto">
-          <h1 className="text-4xl font-bold text-center mb-8">About Dental AI Insights</h1>
-          <div className="flex justify-center mb-8">
-            <Smile className="text-primary" size={64} />
+      <main className="flex-grow">
+        <div className="container mx-auto px-4 py-16">
+          {/* Header Section */}
+          <div className="text-center mb-16">
+            <p className="text-sm text-muted-foreground mb-4 uppercase tracking-wide">About Us</p>
+            <h1 className="text-4xl md:text-5xl font-bold mb-8">Your Trusted Source for Insightful Content</h1>
           </div>
-          <div className="prose lg:prose-xl mx-auto text-muted-foreground">
-            <p>
-              Welcome to Dental AI Insights, your premier source for the latest advancements, research, and discussions at the intersection of dentistry and artificial intelligence. Our mission is to bridge the gap between cutting-edge technology and clinical practice, providing dental professionals, researchers, and students with valuable, accessible, and up-to-date information.
-            </p>
-            <p>
-              Founded by a team of passionate dental practitioners and AI experts, we believe that artificial intelligence holds the key to revolutionizing patient care, diagnostics, treatment planning, and practice management. From machine learning models that can detect cavities with superhuman accuracy to AI-driven software that streamlines administrative tasks, we cover the topics that matter most.
-            </p>
-            <p>
-              Our blog features in-depth articles, expert interviews, case studies, and reviews of new technologies. We strive to create a community where ideas can be shared, questions can be asked, and the future of dentistry can be shaped together.
-            </p>
-            <p>
-              Thank you for joining us on this exciting journey. We look forward to exploring the future of dental care with you.
-            </p>
+
+          {/* Main Content Section */}
+          <div className="grid md:grid-cols-2 gap-12 items-center mb-24">
+            <div className="relative">
+              <div className="w-full h-80 bg-pink-100 rounded-lg flex items-center justify-center overflow-hidden">
+                <div className="w-48 h-48 bg-pink-200 rounded-full flex items-center justify-center">
+                  <div className="w-32 h-32 bg-pink-300 rounded-full flex items-center justify-center">
+                    <div className="w-24 h-24 bg-gradient-to-br from-pink-400 to-pink-500 rounded-full shadow-inner"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="space-y-6">
+              <p className="text-lg text-muted-foreground leading-relaxed">
+                We are a passionate team of writers, creators, and experts dedicated to bringing you the best content in Lifestyle, Business, Travel, Finance, and Technology. Our mission is to empower our readers with practical advice, fresh perspectives, and thought-provoking ideas that make a difference in everyday life.
+              </p>
+              
+              <p className="text-lg text-muted-foreground leading-relaxed">
+                Whether you're looking for tips to elevate your lifestyle, strategies to grow your business, travel inspiration, financial wisdom, or the latest tech trends, we have something for you. We believe in creating content that is not only informative but also engaging and easy to digest.
+              </p>
+              
+              <Button className="bg-blue-500 hover:bg-blue-600 text-white px-8 py-3 rounded-lg">
+                Get in touch →
+              </Button>
+            </div>
+          </div>
+
+          {/* Editorial Team Section */}
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold">Editorial Team</h2>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {teamMembers.slice(0, 3).map((member, index) => (
+              <Card key={member.name} className="border-0 shadow-none bg-transparent">
+                <CardContent className="p-0">
+                  <div className={`${member.color} rounded-lg p-8 mb-4 flex items-center justify-center`}>
+                    <Avatar className="w-24 h-24">
+                      <AvatarImage src={member.image} alt={member.name} />
+                      <AvatarFallback className="text-xl font-semibold">
+                        {member.name.split(' ').map(n => n[0]).join('')}
+                      </AvatarFallback>
+                    </Avatar>
+                  </div>
+                  <div className="text-center">
+                    <h3 className="font-semibold text-lg mb-1">{member.name}</h3>
+                    <p className="text-muted-foreground text-sm">{member.role}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8 max-w-2xl mx-auto">
+            {teamMembers.slice(3).map((member, index) => (
+              <Card key={member.name} className="border-0 shadow-none bg-transparent">
+                <CardContent className="p-0">
+                  <div className={`${member.color} rounded-lg p-8 mb-4 flex items-center justify-center`}>
+                    <Avatar className="w-24 h-24">
+                      <AvatarImage src={member.image} alt={member.name} />
+                      <AvatarFallback className="text-xl font-semibold">
+                        {member.name.split(' ').map(n => n[0]).join('')}
+                      </AvatarFallback>
+                    </Avatar>
+                  </div>
+                  <div className="text-center">
+                    <h3 className="font-semibold text-lg mb-1">{member.name}</h3>
+                    <p className="text-muted-foreground text-sm">{member.role}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </div>
       </main>

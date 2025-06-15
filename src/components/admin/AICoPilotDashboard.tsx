@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,6 +11,7 @@ import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import SuggestionReviewCard from './SuggestionReviewCard';
 import RealtimeActivityFeed from './RealtimeActivityFeed';
+import AgentAnalyticsDashboard from './AgentAnalyticsDashboard';
 
 const AICoPilotDashboard = () => {
   const queryClient = useQueryClient();
@@ -270,6 +270,7 @@ const AICoPilotDashboard = () => {
           <TabsTrigger value="content">Content</TabsTrigger>
           <TabsTrigger value="trending">Trending</TabsTrigger>
           <TabsTrigger value="activity">Real-time Activity</TabsTrigger>
+          <TabsTrigger value="analytics">Performance Analytics</TabsTrigger>
           <TabsTrigger value="agents">Agents</TabsTrigger>
         </TabsList>
 
@@ -341,6 +342,10 @@ const AICoPilotDashboard = () => {
 
         <TabsContent value="activity" className="space-y-4">
           <RealtimeActivityFeed />
+        </TabsContent>
+
+        <TabsContent value="analytics" className="space-y-4">
+          <AgentAnalyticsDashboard />
         </TabsContent>
 
         <TabsContent value="agents" className="space-y-4">

@@ -3,7 +3,7 @@ import { useState, useRef } from 'react';
 import { WorkflowNode } from '@/pages/WorkflowBuilderPage';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Clock, Globe, Brain, Filter, Send, ArrowRight, Trash2, Link as LinkIcon, XCircle, Share2, Mail, ImagePlay, SearchCheck, Languages } from 'lucide-react';
+import { Clock, Globe, Brain, Filter, Send, ArrowRight, Trash2, Link as LinkIcon, XCircle, Share2, Mail, ImagePlay, SearchCheck, Languages, Rss, Award, TrendingUp, HeartPulse } from 'lucide-react';
 import {
   ContextMenu,
   ContextMenuContent,
@@ -43,6 +43,7 @@ const WorkflowCanvas = ({
     const icons = {
       trigger: Clock,
       scraper: Globe,
+      'rss-aggregator': Rss,
       'ai-processor': Brain,
       filter: Filter,
       publisher: Send,
@@ -51,6 +52,9 @@ const WorkflowCanvas = ({
       'image-generator': ImagePlay,
       'seo-analyzer': SearchCheck,
       'translator': Languages,
+      'content-quality-analyzer': Award,
+      'ai-seo-optimizer': TrendingUp,
+      'engagement-forecaster': HeartPulse,
     };
     return icons[type];
   };
@@ -59,6 +63,7 @@ const WorkflowCanvas = ({
     const colors = {
       trigger: 'border-blue-200 bg-blue-50',
       scraper: 'border-green-200 bg-green-50',
+      'rss-aggregator': 'border-gray-200 bg-gray-50',
       'ai-processor': 'border-purple-200 bg-purple-50',
       filter: 'border-yellow-200 bg-yellow-50',
       publisher: 'border-red-200 bg-red-50',
@@ -67,6 +72,9 @@ const WorkflowCanvas = ({
       'image-generator': 'border-indigo-200 bg-indigo-50',
       'seo-analyzer': 'border-pink-200 bg-pink-50',
       'translator': 'border-teal-200 bg-teal-50',
+      'content-quality-analyzer': 'border-cyan-200 bg-cyan-50',
+      'ai-seo-optimizer': 'border-lime-200 bg-lime-50',
+      'engagement-forecaster': 'border-rose-200 bg-rose-50',
     };
     return colors[type];
   };

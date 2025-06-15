@@ -185,9 +185,11 @@ export async function runAgent(agentName: string, context: AgentAnalysisContext)
   }
 
   try {
+    console.log(`Running agent: ${agentName}`);
     const suggestions = await agent.analyze(context);
+    console.log(`Agent ${agentName} generated ${suggestions.length} suggestions`);
     
-    // Store suggestions in database
+    // Store suggestions in database with real-time updates
     for (const suggestion of suggestions) {
       await createSuggestion({
         agent_id: agentData.id,
@@ -208,7 +210,9 @@ export async function runAgent(agentName: string, context: AgentAnalysisContext)
 }
 
 export async function runAllActiveAgents(): Promise<void> {
+  console.log('Starting to run all active agents...');
   const agents = await getActiveAgents();
+  console.log(`Found ${agents.length} active agents`);
   
   // Get articles for context
   const { data: articles } = await supabase
@@ -220,6 +224,8 @@ export async function runAllActiveAgents(): Promise<void> {
     articles: articles || []
   };
 
+  console.log(`Analysis context includes ${context.articles?.length || 0} published articles`);
+
   // Run each active agent
   for (const agent of agents) {
     try {
@@ -230,4 +236,60 @@ export async function runAllActiveAgents(): Promise<void> {
       // Continue with other agents even if one fails
     }
   }
+  
+  console.log('Completed running all active agents');
+}
+
+// New utility functions for real-time monitoring
+export async function getRealtimeStats(): Promise<{
+  pendingCount: number;
+  totalAgents: number;
+  activeAgents: number;
+  recentActivity: number;
+}> {
+  const [suggestions, agents] = await Promise.all([
+    getPendingSuggestions(),
+    fetchAIAgents()
+  ]);
+
+  // Get recent activity count (last hour)
+  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+  const { count: recentActivity } = await supabase
+    .from('ai_suggestions')
+    .select('*', { count: 'exact', head: true })
+    .gte('created_at', oneHourAgo);
+
+  return {
+    pendingCount: suggestions.length,
+    totalAgents: agents.length,
+    activeAgents: agents.filter(a => a.is_active).length,
+    recentActivity: recentActivity || 0
+  };
+}
+
+export async function subscribeToSuggestionUpdates(
+  callback: (suggestion: AISuggestion) => void
+): Promise<() => void> {
+  const channel = supabase
+    .channel('suggestion-updates')
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'ai_suggestions'
+      },
+      (payload) => {
+        const suggestion = {
+          ...payload.new,
+          suggestion_data: parseJsonSafely(payload.new.suggestion_data)
+        } as AISuggestion;
+        callback(suggestion);
+      }
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
 }

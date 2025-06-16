@@ -12,7 +12,6 @@ import {
   HeartPulse, Rss, GraduationCap, Newspaper, Search, Combine, BarChart3 
 } from 'lucide-react';
 import { WorkflowNode } from '@/pages/WorkflowBuilderPage';
-import { EmailPreviewDialog } from './EmailPreviewDialog';
 
 // Mock AI models - replace with actual import if available
 const AVAILABLE_MODELS = [
@@ -112,8 +111,6 @@ const NodeConfiguration = ({
   node: WorkflowNode; 
   onUpdateConfig: (nodeId: string, newConfig: Partial<WorkflowNode['config']>) => void; 
 }) => {
-  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-
   const getNodeIcon = (type: WorkflowNode['type']) => {
     const icons = {
       trigger: Clock,
@@ -143,14 +140,6 @@ const NodeConfiguration = ({
 
   const handleConfigChange = (key: string, value: any) => {
     onUpdateConfig(node.id, { [key]: value });
-  };
-
-  const getInterpolatedValue = (template: string) => {
-    if (!template) return '';
-    return template
-      .replace(/{{article.title}}/g, 'Example Article Title')
-      .replace(/{{article.url}}/g, 'https://example.com/article/example-slug')
-      .replace(/{{article.excerpt}}/g, 'This is an example excerpt of the article content.');
   };
 
   const renderAIModelSelector = () => (
@@ -637,20 +626,6 @@ const NodeConfiguration = ({
               Placeholders are supported here as well.
             </p>
           </div>
-          <Button 
-            variant="outline" 
-            onClick={() => setIsPreviewOpen(true)} 
-            className="w-full flex items-center gap-2"
-          >
-            <Eye className="h-4 w-4" /> Preview Email
-          </Button>
-          <EmailPreviewDialog 
-            isOpen={isPreviewOpen}
-            onOpenChange={setIsPreviewOpen}
-            recipient={node.config.recipient || ''}
-            subject={getInterpolatedValue(node.config.subject || '')}
-            body={getInterpolatedValue(node.config.body || '').replace(/\n/g, '<br />')}
-          />
         </div>
       )}
 

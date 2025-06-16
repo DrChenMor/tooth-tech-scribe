@@ -217,3 +217,60 @@
   overflow-x: auto !important;
   margin: 2rem 0 !important;
 }
+
+/* Workflow sidebar input fixes */
+.workflow-sidebar {
+  position: relative;
+  z-index: 100;
+  user-select: text;
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+}
+
+.workflow-sidebar input,
+.workflow-sidebar textarea,
+.workflow-sidebar select,
+.workflow-sidebar button,
+.workflow-sidebar [role="button"],
+.workflow-sidebar [role="combobox"] {
+  pointer-events: auto !important;
+  user-select: text !important;
+  -webkit-user-select: text !important;
+  -moz-user-select: text !important;
+  -ms-user-select: text !important;
+}
+
+.workflow-sidebar * {
+  pointer-events: auto !important;
+}
+
+.workflow-sidebar input[type="text"],
+.workflow-sidebar input[type="number"],
+.workflow-sidebar input[type="email"],
+.workflow-sidebar input[type="time"],
+.workflow-sidebar textarea {
+  cursor: text !important;
+  background-color: hsl(var(--background));
+  border: 1px solid hsl(var(--border));
+}
+
+.workflow-sidebar input:focus,
+.workflow-sidebar textarea:focus {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+/* Ensure canvas doesn't interfere with sidebar */
+.bg-grid-pattern {
+  pointer-events: none;
+}
+
+.bg-grid-pattern > * {
+  pointer-events: auto;
+}
+
+/* Node cards in canvas */
+.node-card {
+  pointer-events: auto;
+}

@@ -12,6 +12,7 @@ import {
   HeartPulse, Rss, GraduationCap, Newspaper, Search, Combine, BarChart3 
 } from 'lucide-react';
 import { WorkflowNode } from '@/pages/WorkflowBuilderPage';
+import { EmailPreviewDialog } from './EmailPreviewDialog';
 
 // Mock AI models - replace with actual import if available
 const AVAILABLE_MODELS = [
@@ -108,13 +109,9 @@ const WorkflowSidebar = ({ selectedNode, onAddNode, onUpdateNodeConfig }: Workfl
   );
 };
 
-const NodeConfiguration = ({ 
-  node, 
-  onUpdateConfig 
-}: { 
-  node: WorkflowNode; 
-  onUpdateConfig: (nodeId: string, newConfig: Partial<WorkflowNode['config']>) => void; 
-}) => {
+const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpdateConfig: (nodeId: string, newConfig: Partial<WorkflowNode['config']>) => void }) => {
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  
   // Local state to ensure immediate updates
   const [localConfig, setLocalConfig] = useState(node.config);
 
@@ -157,6 +154,14 @@ const NodeConfiguration = ({
     
     // Update parent state
     onUpdateConfig(node.id, { [key]: value });
+  };
+
+  const getInterpolatedValue = (template: string) => {
+    if (!template) return '';
+    return template
+      .replace(/{{article.title}}/g, 'Example Article Title')
+      .replace(/{{article.url}}/g, 'https://example.com/article/example-slug')
+      .replace(/{{article.excerpt}}/g, 'This is an example excerpt of the article content.');
   };
 
   const renderAIModelSelector = () => (
@@ -441,6 +446,64 @@ const NodeConfiguration = ({
         </div>
       )}
 
+      {/* Multi-Source Synthesizer Configuration */}
+      {node.type === 'multi-source-synthesizer' && (
+        <div className="space-y-4">
+          {renderAIModelSelector()}
+          <div className="space-y-2">
+            <Label>Synthesis Style</Label>
+            <Select
+              key={`style-${node.id}`}
+              value={localConfig.style || 'comprehensive'}
+              onValueChange={(value) => handleConfigChange('style', value)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="summary">Summary</SelectItem>
+                <SelectItem value="comprehensive">Comprehensive Analysis</SelectItem>
+                <SelectItem value="comparison">Comparative Analysis</SelectItem>
+                <SelectItem value="narrative">Narrative Synthesis</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Target Length</Label>
+            <Select
+              key={`targetLength-${node.id}`}
+              value={localConfig.targetLength || 'medium'}
+              onValueChange={(value) => handleConfigChange('targetLength', value)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="short">Short (500-800 words)</SelectItem>
+                <SelectItem value="medium">Medium (800-1500 words)</SelectItem>
+                <SelectItem value="long">Long (1500+ words)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Switch
+              key={`maintainAttribution-${node.id}`}
+              checked={localConfig.maintainAttribution || true}
+              onCheckedChange={(checked) => handleConfigChange('maintainAttribution', checked)}
+            />
+            <Label>Maintain source attribution</Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Switch
+              key={`resolveConflicts-${node.id}`}
+              checked={localConfig.resolveConflicts || true}
+              onCheckedChange={(checked) => handleConfigChange('resolveConflicts', checked)}
+            />
+            <Label>Resolve conflicting information</Label>
+          </div>
+        </div>
+      )}
+
       {/* AI Processor Configuration */}
       {node.type === 'ai-processor' && (
         <div className="space-y-4">
@@ -470,6 +533,41 @@ const NodeConfiguration = ({
               rows={3}
               value={localConfig.prompt || ''}
               onChange={(e) => handleConfigChange('prompt', e.target.value)}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Filter Configuration */}
+      {node.type === 'filter' && (
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label>Minimum Quality Score</Label>
+            <Input
+              key={`minQuality-${node.id}`}
+              type="number"
+              min="0"
+              max="100"
+              value={localConfig.minQuality || 70}
+              onChange={(e) => handleConfigChange('minQuality', parseInt(e.target.value, 10))}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Required Keywords (comma separated)</Label>
+            <Input
+              key={`requiredKeywords-${node.id}`}
+              placeholder="AI, technology, innovation"
+              value={Array.isArray(localConfig.requiredKeywords) ? localConfig.requiredKeywords.join(', ') : ''}
+              onChange={(e) => handleConfigChange('requiredKeywords', e.target.value.split(',').map(k => k.trim()))}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Blocked Keywords (comma separated)</Label>
+            <Input
+              key={`blockedKeywords-${node.id}`}
+              placeholder="spam, promotional, advertisement"
+              value={Array.isArray(localConfig.blockedKeywords) ? localConfig.blockedKeywords.join(', ') : ''}
+              onChange={(e) => handleConfigChange('blockedKeywords', e.target.value.split(',').map(k => k.trim()))}
             />
           </div>
         </div>
@@ -513,8 +611,41 @@ const NodeConfiguration = ({
         </div>
       )}
 
-      {/* Add other node configurations following the same pattern... */}
-      {/* I'll include a few more key ones */}
+      {/* Social Poster Configuration */}
+      {node.type === 'social-poster' && (
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label>Social Platform</Label>
+            <Select
+              key={`platform-${node.id}`}
+              value={localConfig.platform || 'twitter'}
+              onValueChange={(value) => handleConfigChange('platform', value)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="twitter">X (Twitter)</SelectItem>
+                <SelectItem value="facebook" disabled>Facebook (coming soon)</SelectItem>
+                <SelectItem value="linkedin" disabled>LinkedIn (coming soon)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Post Content Template</Label>
+            <Textarea
+              key={`content-${node.id}`}
+              placeholder="Check out our new article: {{article.title}} {{article.url}}"
+              rows={4}
+              value={localConfig.content || ''}
+              onChange={(e) => handleConfigChange('content', e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              Use {{article.title}} and {{article.url}} as placeholders.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Email Sender Configuration */}
       {node.type === 'email-sender' && (
@@ -537,6 +668,9 @@ const NodeConfiguration = ({
               value={localConfig.subject || ''}
               onChange={(e) => handleConfigChange('subject', e.target.value)}
             />
+            <p className="text-xs text-muted-foreground">
+              Use {{article.title}} and {{article.url}} as placeholders.
+            </p>
           </div>
           <div className="space-y-2">
             <Label>Email Body</Label>
@@ -547,10 +681,84 @@ const NodeConfiguration = ({
               value={localConfig.body || ''}
               onChange={(e) => handleConfigChange('body', e.target.value)}
             />
+            <p className="text-xs text-muted-foreground">
+              Placeholders are supported here as well.
+            </p>
+          </div>
+          <Button variant="outline" onClick={() => setIsPreviewOpen(true)} className="w-full flex items-center gap-2">
+            <Eye className="h-4 w-4" /> Preview Email
+          </Button>
+          <EmailPreviewDialog 
+            isOpen={isPreviewOpen}
+            onOpenChange={setIsPreviewOpen}
+            recipient={localConfig.recipient || ''}
+            subject={getInterpolatedValue(localConfig.subject || '')}
+            body={getInterpolatedValue(localConfig.body || '').replace(/\n/g, '<br />')}
+          />
+        </div>
+      )}
+
+      {/* Image Generator Configuration */}
+      {node.type === 'image-generator' && (
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label>Image Provider</Label>
+            <Select
+              key={`imageProvider-${node.id}`}
+              value={localConfig.provider || 'dall-e-3'}
+              onValueChange={(value) => handleConfigChange('provider', value)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="dall-e-3">OpenAI DALL-E 3</SelectItem>
+                <SelectItem value="flux-schnell" disabled>Flux Schnell (coming soon)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Image Prompt</Label>
+            <Textarea
+              key={`imagePrompt-${node.id}`}
+              placeholder="A photorealistic image of..."
+              rows={4}
+              value={localConfig.prompt || ''}
+              onChange={(e) => handleConfigChange('prompt', e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              Use {{article.title}} and {{article.excerpt}} as placeholders.
+            </p>
           </div>
         </div>
       )}
 
+      {/* SEO Analyzer Configuration */}
+      {node.type === 'seo-analyzer' && (
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label>Focus Keywords (comma separated)</Label>
+            <Input
+              key={`seoKeywords-${node.id}`}
+              placeholder="AI, automation, content creation"
+              value={Array.isArray(localConfig.keywords) ? localConfig.keywords.join(', ') : ''}
+              onChange={(e) => handleConfigChange('keywords', e.target.value.split(',').map(k => k.trim()))}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Target SEO Score</Label>
+            <Input
+              key={`targetScore-${node.id}`}
+              type="number"
+              min="0"
+              max="100"
+              value={localConfig.targetScore || 80}
+              onChange={(e) => handleConfigChange('targetScore', parseInt(e.target.value, 10))}
+            />
+          </div>
+        </div>
+      )}
+      
       {/* Translator Configuration */}
       {node.type === 'translator' && (
         <div className="space-y-4">
@@ -571,6 +779,12 @@ const NodeConfiguration = ({
                 <SelectItem value="google">Google Translate API (Most accurate)</SelectItem>
               </SelectContent>
             </Select>
+            <p className="text-xs text-muted-foreground">
+              {localConfig.provider === 'google' 
+                ? 'Professional translation service - requires Cloud Translation API enabled'
+                : 'AI-powered translation - more cost-effective and good quality'
+              }
+            </p>
           </div>
           <div className="space-y-2">
             <Label>Target Language</Label>
@@ -599,12 +813,190 @@ const NodeConfiguration = ({
         </div>
       )}
 
-      {/* Default message for other node types */}
-      {!['trigger', 'scraper', 'rss-aggregator', 'google-scholar-search', 'news-discovery', 'perplexity-research', 'ai-processor', 'publisher', 'email-sender', 'translator'].includes(node.type) && (
+      {/* Content Quality Analyzer Configuration */}
+      {node.type === 'content-quality-analyzer' && (
         <div className="space-y-4">
+          {renderAIModelSelector()}
+          <div className="space-y-2">
+            <Label>Quality Metrics</Label>
+            <div className="space-y-2">
+              <div className="flex items-center space-x-2">
+                <Switch
+                  key={`checkReadability-${node.id}`}
+                  checked={localConfig.checkReadability || true}
+                  onCheckedChange={(checked) => handleConfigChange('checkReadability', checked)}
+                />
+                <Label>Readability score</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  key={`checkGrammar-${node.id}`}
+                  checked={localConfig.checkGrammar || true}
+                  onCheckedChange={(checked) => handleConfigChange('checkGrammar', checked)}
+                />
+                <Label>Grammar and style</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  key={`checkCoherence-${node.id}`}
+                  checked={localConfig.checkCoherence || true}
+                  onCheckedChange={(checked) => handleConfigChange('checkCoherence', checked)}
+                />
+                <Label>Content coherence</Label>
+              </div>
+            </div>
+          </div>
           <p className="text-sm text-muted-foreground">
-            Configuration options for {node.label} will be available soon.
+            This node uses AI to analyze article quality and generate improvement suggestions for articles with a quality score below 70.
           </p>
+        </div>
+      )}
+
+      {/* AI SEO Optimizer Configuration */}
+      {node.type === 'ai-seo-optimizer' && (
+        <div className="space-y-4">
+          {renderAIModelSelector()}
+          <div className="space-y-2">
+            <Label>Optimization Focus</Label>
+            <div className="space-y-2">
+              <div className="flex items-center space-x-2">
+                <Switch
+                  key={`optimizeKeywords-${node.id}`}
+                  checked={localConfig.optimizeKeywords || true}
+                  onCheckedChange={(checked) => handleConfigChange('optimizeKeywords', checked)}
+                />
+                <Label>Keyword optimization</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  key={`optimizeHeadings-${node.id}`}
+                  checked={localConfig.optimizeHeadings || true}
+                  onCheckedChange={(checked) => handleConfigChange('optimizeHeadings', checked)}
+                />
+                <Label>Heading structure</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  key={`generateMetaDesc-${node.id}`}
+                  checked={localConfig.generateMetaDesc || true}
+                  onCheckedChange={(checked) => handleConfigChange('generateMetaDesc', checked)}
+                />
+                <Label>Meta descriptions</Label>
+              </div>
+            </div>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            This node uses AI to analyze articles and generate SEO keywords, meta descriptions, and other on-page improvements.
+          </p>
+        </div>
+      )}
+
+      {/* Engagement Forecaster Configuration */}
+      {node.type === 'engagement-forecaster' && (
+        <div className="space-y-4">
+          {renderAIModelSelector()}
+          <div className="space-y-2">
+            <Label>Prediction Metrics</Label>
+            <div className="space-y-2">
+              <div className="flex items-center space-x-2">
+                <Switch
+                  key={`predictShares-${node.id}`}
+                  checked={localConfig.predictShares || true}
+                  onCheckedChange={(checked) => handleConfigChange('predictShares', checked)}
+                />
+                <Label>Social media shares</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  key={`predictComments-${node.id}`}
+                  checked={localConfig.predictComments || true}
+                  onCheckedChange={(checked) => handleConfigChange('predictComments', checked)}
+                />
+                <Label>Comment engagement</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  key={`predictViews-${node.id}`}
+                  checked={localConfig.predictViews || true}
+                  onCheckedChange={(checked) => handleConfigChange('predictViews', checked)}
+                />
+                <Label>Page views</Label>
+              </div>
+            </div>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            This node uses AI to predict engagement potential and suggests social media posts for high-potential articles.
+          </p>
+        </div>
+      )}
+
+      {/* Content Performance Analyzer Configuration */}
+      {node.type === 'content-performance-analyzer' && (
+        <div className="space-y-4">
+          {renderAIModelSelector()}
+          <div className="space-y-2">
+            <Label>Analysis Metrics</Label>
+            <div className="space-y-2">
+              <div className="flex items-center space-x-2">
+                <Switch
+                  key={`trackViews-${node.id}`}
+                  checked={localConfig.trackViews || true}
+                  onCheckedChange={(checked) => handleConfigChange('trackViews', checked)}
+                />
+                <Label>Page views</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  key={`trackEngagement-${node.id}`}
+                  checked={localConfig.trackEngagement || true}
+                  onCheckedChange={(checked) => handleConfigChange('trackEngagement', checked)}
+                />
+                <Label>Engagement metrics</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  key={`trackSEO-${node.id}`}
+                  checked={localConfig.trackSEO || true}
+                  onCheckedChange={(checked) => handleConfigChange('trackSEO', checked)}
+                />
+                <Label>SEO performance</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  key={`trackSocial-${node.id}`}
+                  checked={localConfig.trackSocial || false}
+                  onCheckedChange={(checked) => handleConfigChange('trackSocial', checked)}
+                />
+                <Label>Social media metrics</Label>
+              </div>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label>Analysis Period</Label>
+            <Select
+              key={`period-${node.id}`}
+              value={localConfig.period || 'week'}
+              onValueChange={(value) => handleConfigChange('period', value)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="day">Daily</SelectItem>
+                <SelectItem value="week">Weekly</SelectItem>
+                <SelectItem value="month">Monthly</SelectItem>
+                <SelectItem value="quarter">Quarterly</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Switch
+              key={`generateRecommendations-${node.id}`}
+              checked={localConfig.generateRecommendations || true}
+              onCheckedChange={(checked) => handleConfigChange('generateRecommendations', checked)}
+            />
+            <Label>Generate AI recommendations</Label>
+          </div>
         </div>
       )}
     </div>

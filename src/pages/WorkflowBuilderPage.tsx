@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,7 +8,26 @@ import { Play, Save, Download, Upload } from 'lucide-react';
 
 export type WorkflowNode = {
   id: string;
-  type: 'trigger' | 'scraper' | 'rss-aggregator' | 'google-scholar-search' | 'news-discovery' | 'perplexity-research' | 'ai-processor' | 'multi-source-synthesizer' | 'filter' | 'publisher' | 'social-poster' | 'email-sender' | 'image-generator' | 'seo-analyzer' | 'translator' | 'content-quality-analyzer' | 'ai-seo-optimizer' | 'engagement-forecaster' | 'content-performance-analyzer';
+  type: 
+    | 'trigger' 
+    | 'scraper' 
+    | 'rss-aggregator' 
+    | 'google-scholar-search' 
+    | 'news-discovery' 
+    | 'perplexity-research' 
+    | 'ai-processor' 
+    | 'multi-source-synthesizer' 
+    | 'filter' 
+    | 'publisher' 
+    | 'social-poster' 
+    | 'email-sender' 
+    | 'image-generator' 
+    | 'seo-analyzer' 
+    | 'translator' 
+    | 'content-quality-analyzer' 
+    | 'ai-seo-optimizer' 
+    | 'engagement-forecaster' 
+    | 'content-performance-analyzer';
   label: string;
   position: { x: number; y: number };
   config: Record<string, any>;
@@ -18,8 +36,11 @@ export type WorkflowNode = {
 
 const WorkflowBuilderPage = () => {
   const [nodes, setNodes] = useState<WorkflowNode[]>([]);
-  const [selectedNode, setSelectedNode] = useState<WorkflowNode | null>(null);
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [connectingNodeId, setConnectingNodeId] = useState<string | null>(null);
+
+  // Derive selectedNode from nodes array to ensure it's always current
+  const selectedNode = selectedNodeId ? nodes.find(node => node.id === selectedNodeId) || null : null;
 
   const generateNodeLabel = (type: WorkflowNode['type']) => {
     const labels = {
@@ -56,6 +77,7 @@ const WorkflowBuilderPage = () => {
       connected: [],
     };
     setNodes(prev => [...prev, newNode]);
+    setSelectedNodeId(newNode.id); // Auto-select for configuration
     toast.success(`Added ${generateNodeLabel(type)} node`);
   }, []);
 
@@ -74,11 +96,15 @@ const WorkflowBuilderPage = () => {
       ...node,
       connected: node.connected.filter(id => id !== nodeId)
     })));
-    if (selectedNode?.id === nodeId) {
-      setSelectedNode(null);
+    if (selectedNodeId === nodeId) {
+      setSelectedNodeId(null);
     }
     toast.success('Node deleted');
-  }, [selectedNode]);
+  }, [selectedNodeId]);
+
+  const handleSelectNode = useCallback((node: WorkflowNode | null) => {
+    setSelectedNodeId(node?.id || null);
+  }, []);
 
   const handleConnectStart = useCallback((nodeId: string) => {
     setConnectingNodeId(nodeId);
@@ -122,7 +148,21 @@ const WorkflowBuilderPage = () => {
       return;
     }
 
+    // ==== REPLACE THIS SECTION WITH YOUR OLD EXECUTION CODE ====
+    // This is where your actual workflow execution logic was that:
+    // - Showed the execution logs panel
+    // - Actually ran the workflows
+    // - Created articles
+    // - Sent emails
+    // - Ran translations
+    // - etc.
+    
     toast.success('Workflow started! (This is a preview - full execution coming soon)');
+    
+    // Your old code probably looked something like:
+    // executeWorkflow(nodes);
+    // showExecutionPanel();
+    // etc.
   }, [nodes]);
 
   const saveWorkflow = useCallback(() => {
@@ -144,8 +184,8 @@ const WorkflowBuilderPage = () => {
   }, [nodes]);
 
   return (
-    <div className="fixed inset-0 flex flex-col lg:ml-20">
-      <div className="border-b bg-background p-4 flex-shrink-0">
+    <div className="h-full flex flex-col">
+      <div className="border-b bg-background p-4">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold">Workflow Builder</h1>
@@ -175,7 +215,7 @@ const WorkflowBuilderPage = () => {
           <WorkflowCanvas
             nodes={nodes}
             selectedNode={selectedNode}
-            onSelectNode={setSelectedNode}
+            onSelectNode={handleSelectNode}
             onUpdateNodes={setNodes}
             onDeleteNode={deleteNode}
             connectingNodeId={connectingNodeId}

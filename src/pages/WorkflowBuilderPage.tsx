@@ -18,8 +18,9 @@ export type WorkflowNode = {
 
 const WorkflowBuilderPage = () => {
   const [nodes, setNodes] = useState<WorkflowNode[]>([]);
-  const [selectedNode, setSelectedNode] = useState<WorkflowNode | null>(null);
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [connectingNodeId, setConnectingNodeId] = useState<string | null>(null);
+  const selectedNode = nodes.find(node => node.id === selectedNodeId) || null;
 
   const generateNodeLabel = (type: WorkflowNode['type']) => {
     const labels = {

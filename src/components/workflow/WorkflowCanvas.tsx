@@ -41,7 +41,6 @@ const WorkflowCanvas = ({
 }: WorkflowCanvasProps) => {
   const [draggedNode, setDraggedNode] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
-  const [isDragging, setIsDragging] = useState(false);
   const canvasRef = useRef<HTMLDivElement>(null);
 
   const getNodeIcon = (type: WorkflowNode['type']) => {
@@ -94,8 +93,16 @@ const WorkflowCanvas = ({
     return colors[type] || 'border-gray-200 bg-gray-50';
   };
 
-  // Handle drag start - only from the drag handle
-  const handleDragStart = (e: React.MouseEvent, nodeId: string) => {
+  // Only allow dragging from the header area (icon + title)
+  const handleMouseDown = (e: React.MouseEvent, nodeId: string) => {
+    // Check if the click is on the drag handle area
+    const target = e.target as HTMLElement;
+    const isDragHandle = target.closest('.drag-handle');
+    
+    if (!isDragHandle) {
+      return; // Don't start drag if not clicking on drag handle
+    }
+
     e.preventDefault();
     e.stopPropagation();
 
@@ -108,25 +115,10 @@ const WorkflowCanvas = ({
       y: e.clientY - rect.top
     });
     setDraggedNode(nodeId);
-    setIsDragging(true);
-  };
-
-  // Handle node click for selection/connection
-  const handleNodeClick = (e: React.MouseEvent, nodeId: string) => {
-    e.stopPropagation();
-    
-    // Don't handle click if we're dragging
-    if (isDragging) return;
-
-    if (connectingNodeId && connectingNodeId !== nodeId) {
-      onConnectEnd(connectingNodeId, nodeId);
-    } else {
-      onSelectNode(nodes.find(n => n.id === nodeId) || null);
-    }
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (!draggedNode || !canvasRef.current || !isDragging) return;
+    if (!draggedNode || !canvasRef.current) return;
 
     const canvasRect = canvasRef.current.getBoundingClientRect();
     const newX = e.clientX - canvasRect.left - dragOffset.x;
@@ -142,7 +134,15 @@ const WorkflowCanvas = ({
 
   const handleMouseUp = () => {
     setDraggedNode(null);
-    setIsDragging(false);
+  };
+
+  const handleNodeClick = (e: React.MouseEvent, nodeId: string) => {
+    e.stopPropagation();
+    if (connectingNodeId && connectingNodeId !== nodeId) {
+      onConnectEnd(connectingNodeId, nodeId);
+    } else {
+      onSelectNode(nodes.find(n => n.id === nodeId) || null);
+    }
   };
 
   const handleCanvasClick = (e: React.MouseEvent) => {
@@ -158,8 +158,8 @@ const WorkflowCanvas = ({
         const connectedNode = nodes.find(n => n.id === connectedId);
         if (!connectedNode) return null;
 
-        const startX = node.position.x + 120;
-        const startY = node.position.y + 40;
+        const startX = node.position.x + 120; // Node width / 2
+        const startY = node.position.y + 40; // Node height / 2
         const endX = connectedNode.position.x;
         const endY = connectedNode.position.y + 40;
 
@@ -219,27 +219,25 @@ const WorkflowCanvas = ({
           <ContextMenu key={node.id}>
             <ContextMenuTrigger asChild>
               <Card
-                className={`absolute w-60 ${
+                className={`absolute w-60 select-none ${
                   getNodeColor(node.type)
                 } ${isSelected ? 'ring-2 ring-blue-500 shadow-lg' : 'hover:shadow-md'}
                 ${isConnecting ? 'ring-2 ring-green-500 animate-pulse' : ''}
-                ${canConnectTo ? 'hover:ring-2 hover:ring-green-400' : ''}
-                transition-all duration-200`}
+                ${canConnectTo ? 'hover:ring-2 hover:ring-green-400' : ''}`}
                 style={{
                   left: node.position.x,
                   top: node.position.y,
                   zIndex: draggedNode === node.id ? 10 : 2,
+                  cursor: draggedNode === node.id ? 'grabbing' : 'default'
                 }}
+                onMouseDown={(e) => handleMouseDown(e, node.id)}
                 onClick={(e) => handleNodeClick(e, node.id)}
               >
                 <div className="p-4">
-                  {/* Drag Handle - Only this area triggers drag */}
-                  <div 
-                    className="flex items-center gap-2 mb-2 cursor-grab active:cursor-grabbing hover:bg-black/5 rounded p-1 -m-1"
-                    onMouseDown={(e) => handleDragStart(e, node.id)}
-                  >
+                  {/* Drag Handle - Only this area allows dragging */}
+                  <div className="drag-handle flex items-center gap-2 mb-2 cursor-grab hover:bg-black/5 rounded p-1 -m-1">
                     <Icon className="h-4 w-4 pointer-events-none" />
-                    <h4 className="font-medium text-sm pointer-events-none select-none">{node.label}</h4>
+                    <h4 className="font-medium text-sm pointer-events-none">{node.label}</h4>
                   </div>
                   
                   {/* Content Area - No drag interference */}
@@ -258,25 +256,16 @@ const WorkflowCanvas = ({
               </Card>
             </ContextMenuTrigger>
             <ContextMenuContent>
-              <ContextMenuItem 
-                onClick={() => onConnectStart(node.id)} 
-                className="flex items-center gap-2 cursor-pointer"
-              >
+              <ContextMenuItem onClick={() => onConnectStart(node.id)} className="flex items-center gap-2 cursor-pointer">
                 <LinkIcon className="h-4 w-4" /> Connect
               </ContextMenuItem>
               {node.connected.length > 0 && (
-                <ContextMenuItem 
-                  onClick={() => onDisconnectNode(node.id)} 
-                  className="flex items-center gap-2 cursor-pointer"
-                >
+                <ContextMenuItem onClick={() => onDisconnectNode(node.id)} className="flex items-center gap-2 cursor-pointer">
                   <XCircle className="h-4 w-4" /> Disconnect All
                 </ContextMenuItem>
               )}
               <ContextMenuSeparator />
-              <ContextMenuItem 
-                onClick={() => onDeleteNode(node.id)} 
-                className="flex items-center gap-2 text-red-500 cursor-pointer"
-              >
+              <ContextMenuItem onClick={() => onDeleteNode(node.id)} className="flex items-center gap-2 text-red-500 cursor-pointer">
                 <Trash2 className="h-4 w-4" /> Delete Node
               </ContextMenuItem>
             </ContextMenuContent>
@@ -289,7 +278,7 @@ const WorkflowCanvas = ({
           <div className="text-center text-muted-foreground">
             <div className="text-4xl mb-2">🔧</div>
             <h3 className="text-lg font-medium mb-1">Start Building Your Workflow</h3>
-            <p className="text-sm">Add research and processing components from the sidebar to get started</p>
+            <p className="text-sm">Add components from the sidebar to get started</p>
           </div>
         </div>
       )}

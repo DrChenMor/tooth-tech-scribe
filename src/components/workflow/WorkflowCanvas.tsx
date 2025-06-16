@@ -1,3 +1,4 @@
+
 import { useState, useRef } from 'react';
 import { WorkflowNode } from '@/pages/WorkflowBuilderPage';
 import { Card } from '@/components/ui/card';
@@ -88,7 +89,44 @@ const WorkflowCanvas = ({
     return colors[type];
   };
 
+  const isDragTarget = (target: HTMLElement): boolean => {
+    // Allow dragging only from the card header area, not from input areas
+    if (
+      target.tagName === 'INPUT' ||
+      target.tagName === 'TEXTAREA' ||
+      target.tagName === 'SELECT' ||
+      target.tagName === 'BUTTON' ||
+      target.closest('input') ||
+      target.closest('textarea') ||
+      target.closest('select') ||
+      target.closest('button') ||
+      target.closest('[contenteditable]') ||
+      target.hasAttribute('contenteditable')
+    ) {
+      return false;
+    }
+
+    // Only allow dragging from the node header (icon and title area)
+    const nodeHeader = target.closest('.node-header');
+    if (nodeHeader) {
+      return true;
+    }
+
+    // Also allow dragging from the card background but not from content areas
+    return target.classList.contains('node-card') || target.closest('.node-card') === target;
+  };
+
   const handleMouseDown = (e: React.MouseEvent, nodeId: string) => {
+    const target = e.target as HTMLElement;
+    
+    // Only prevent default if we're actually starting a drag operation
+    if (!isDragTarget(target)) {
+      return; // Let the event bubble normally for input elements
+    }
+
+    e.preventDefault();
+    e.stopPropagation();
+
     const node = nodes.find(n => n.id === nodeId);
     if (!node) return;
 
@@ -186,7 +224,7 @@ const WorkflowCanvas = ({
           <ContextMenu key={node.id}>
             <ContextMenuTrigger asChild>
               <Card
-                className={`absolute w-60 cursor-move select-none ${
+                className={`node-card absolute w-60 ${
                   getNodeColor(node.type)
                 } ${isSelected ? 'ring-2 ring-blue-500 shadow-lg' : 'hover:shadow-md'}
                 ${isConnecting ? 'ring-2 ring-green-500 animate-pulse' : ''}
@@ -194,10 +232,10 @@ const WorkflowCanvas = ({
                 style={{
                   left: node.position.x,
                   top: node.position.y,
-                  zIndex: draggedNode === node.id ? 10 : 2
+                  zIndex: draggedNode === node.id ? 10 : 2,
+                  cursor: draggedNode === node.id ? 'grabbing' : 'grab'
                 }}
                 onMouseDown={(e) => {
-                  e.stopPropagation();
                   handleMouseDown(e, node.id);
                 }}
                 onClick={(e) => {
@@ -210,7 +248,7 @@ const WorkflowCanvas = ({
                 }}
               >
                 <div className="p-4">
-                  <div className="flex items-center gap-2 mb-2">
+                  <div className="node-header flex items-center gap-2 mb-2 cursor-grab">
                     <Icon className="h-4 w-4" />
                     <h4 className="font-medium text-sm">{node.label}</h4>
                   </div>

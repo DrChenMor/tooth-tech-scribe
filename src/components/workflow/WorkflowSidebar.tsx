@@ -158,21 +158,21 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
   );
 
   return (
-    <div className="nodrag">
+    <div className="space-y-4">
       <div className="mb-4 flex items-center gap-2">
         <Icon className="h-5 w-5" />
         <h3 className="font-semibold">{node.label}</h3>
       </div>
 
       {node.type === 'trigger' && (
-        <div className="space-y-4 nodrag">
+        <div className="space-y-4">
           <div>
             <Label>Schedule Type</Label>
             <Select
               value={node.config.schedule || 'manual'}
               onValueChange={(value) => handleConfigChange('schedule', value)}
             >
-              <SelectTrigger className="nodrag">
+              <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -187,7 +187,6 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
             <div>
               <Label>Time</Label>
               <Input
-                className="nodrag"
                 type="time"
                 value={node.config.time || '09:00'}
                 onChange={(e) => handleConfigChange('time', e.target.value)}
@@ -198,11 +197,10 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
       )}
 
       {node.type === 'scraper' && (
-        <div className="space-y-4 nodrag">
+        <div className="space-y-4">
           <div>
             <Label>URLs to Scrape (one per line)</Label>
             <Textarea
-              className="nodrag"
               placeholder="https://example.com/news&#10;https://another-site.com/articles"
               rows={4}
               value={Array.isArray(node.config.urls) ? node.config.urls.join('\n') : ''}
@@ -212,7 +210,6 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
           <div>
             <Label>Content Selector (CSS)</Label>
             <Input
-              className="nodrag"
               placeholder="article, .content, #main"
               value={node.config.selector || ''}
               onChange={(e) => handleConfigChange('selector', e.target.value)}
@@ -424,71 +421,8 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
         </div>
       )}
 
-      {node.type === 'content-performance-analyzer' && (
-        <div className="space-y-4">
-          {renderAIModelSelector()}
-          <div>
-            <Label>Analysis Metrics</Label>
-            <div className="space-y-2">
-              <div className="flex items-center space-x-2">
-                <Switch
-                  checked={node.config.trackViews || true}
-                  onCheckedChange={(checked) => handleConfigChange('trackViews', checked)}
-                />
-                <Label>Page views</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Switch
-                  checked={node.config.trackEngagement || true}
-                  onCheckedChange={(checked) => handleConfigChange('trackEngagement', checked)}
-                />
-                <Label>Engagement metrics</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Switch
-                  checked={node.config.trackSEO || true}
-                  onCheckedChange={(checked) => handleConfigChange('trackSEO', checked)}
-                />
-                <Label>SEO performance</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Switch
-                  checked={node.config.trackSocial || false}
-                  onCheckedChange={(checked) => handleConfigChange('trackSocial', checked)}
-                />
-                <Label>Social media metrics</Label>
-              </div>
-            </div>
-          </div>
-          <div>
-            <Label>Analysis Period</Label>
-            <Select
-              value={node.config.period || 'week'}
-              onValueChange={(value) => handleConfigChange('period', value)}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="day">Daily</SelectItem>
-                <SelectItem value="week">Weekly</SelectItem>
-                <SelectItem value="month">Monthly</SelectItem>
-                <SelectItem value="quarter">Quarterly</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Switch
-              checked={node.config.generateRecommendations || true}
-              onCheckedChange={(checked) => handleConfigChange('generateRecommendations', checked)}
-            />
-            <Label>Generate AI recommendations</Label>
-          </div>
-        </div>
-      )}
-
       {node.type === 'ai-processor' && (
-        <div className="space-y-4 nodrag">
+        <div className="space-y-4">
           {renderAIModelSelector()}
           <div>
             <Label>Content Type</Label>
@@ -496,7 +430,7 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
               value={node.config.contentType || 'article'}
               onValueChange={(value) => handleConfigChange('contentType', value)}
             >
-              <SelectTrigger className="nodrag">
+              <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -509,7 +443,6 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
           <div>
             <Label>Custom Prompt</Label>
             <Textarea
-              className="nodrag"
               placeholder="Transform this content into a professional article..."
               rows={3}
               value={node.config.prompt || ''}
@@ -520,7 +453,7 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
       )}
 
       {node.type === 'publisher' && (
-        <div className="space-y-4 nodrag">
+        <div className="space-y-4">
           <div>
             <Label>Publish Status</Label>
             <Select
@@ -587,11 +520,10 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
       )}
 
       {node.type === 'email-sender' && (
-        <div className="space-y-4 nodrag">
+        <div className="space-y-4">
           <div>
             <Label>Recipient Email</Label>
             <Input
-              className="nodrag"
               type="email"
               placeholder="recipient@example.com"
               value={node.config.recipient || ''}
@@ -601,7 +533,6 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
           <div>
             <Label>Email Subject</Label>
             <Input
-              className="nodrag"
               placeholder="New Article: {{article.title}}"
               value={node.config.subject || ''}
               onChange={(e) => handleConfigChange('subject', e.target.value)}
@@ -613,7 +544,6 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
           <div>
             <Label>Email Body</Label>
             <Textarea
-              className="nodrag"
               rows={4}
               placeholder="A new article has been published. Read it here: {{article.url}}"
               value={node.config.body || ''}
@@ -780,6 +710,69 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
           <p className="text-sm text-muted-foreground">
             This node uses AI to predict engagement potential and suggests social media posts for high-potential articles.
           </p>
+        </div>
+      )}
+
+      {node.type === 'content-performance-analyzer' && (
+        <div className="space-y-4">
+          {renderAIModelSelector()}
+          <div>
+            <Label>Analysis Metrics</Label>
+            <div className="space-y-2">
+              <div className="flex items-center space-x-2">
+                <Switch
+                  checked={node.config.trackViews || true}
+                  onCheckedChange={(checked) => handleConfigChange('trackViews', checked)}
+                />
+                <Label>Page views</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  checked={node.config.trackEngagement || true}
+                  onCheckedChange={(checked) => handleConfigChange('trackEngagement', checked)}
+                />
+                <Label>Engagement metrics</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  checked={node.config.trackSEO || true}
+                  onCheckedChange={(checked) => handleConfigChange('trackSEO', checked)}
+                />
+                <Label>SEO performance</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  checked={node.config.trackSocial || false}
+                  onCheckedChange={(checked) => handleConfigChange('trackSocial', checked)}
+                />
+                <Label>Social media metrics</Label>
+              </div>
+            </div>
+          </div>
+          <div>
+            <Label>Analysis Period</Label>
+            <Select
+              value={node.config.period || 'week'}
+              onValueChange={(value) => handleConfigChange('period', value)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="day">Daily</SelectItem>
+                <SelectItem value="week">Weekly</SelectItem>
+                <SelectItem value="month">Monthly</SelectItem>
+                <SelectItem value="quarter">Quarterly</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Switch
+              checked={node.config.generateRecommendations || true}
+              onCheckedChange={(checked) => handleConfigChange('generateRecommendations', checked)}
+            />
+            <Label>Generate AI recommendations</Label>
+          </div>
         </div>
       )}
     </div>

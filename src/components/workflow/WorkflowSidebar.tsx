@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -98,11 +98,7 @@ const WorkflowSidebar = ({ selectedNode, onAddNode, onUpdateNodeConfig }: Workfl
           </Card>
         </>
       ) : (
-        <NodeConfiguration 
-          key={selectedNode.id} // Force re-render when node changes
-          node={selectedNode} 
-          onUpdateConfig={onUpdateNodeConfig} 
-        />
+        <NodeConfiguration node={selectedNode} onUpdateConfig={onUpdateNodeConfig} />
       )}
     </div>
   );
@@ -115,14 +111,6 @@ const NodeConfiguration = ({
   node: WorkflowNode; 
   onUpdateConfig: (nodeId: string, newConfig: Partial<WorkflowNode['config']>) => void; 
 }) => {
-  // Local state to ensure immediate updates
-  const [localConfig, setLocalConfig] = useState(node.config);
-
-  // Sync local state with node config when node changes
-  useEffect(() => {
-    setLocalConfig(node.config);
-  }, [node.config, node.id]);
-
   const getNodeIcon = (type: WorkflowNode['type']) => {
     const icons = {
       trigger: Clock,
@@ -151,11 +139,6 @@ const NodeConfiguration = ({
   const Icon = getNodeIcon(node.type);
 
   const handleConfigChange = (key: string, value: any) => {
-    // Update local state immediately for UI responsiveness
-    const newConfig = { ...localConfig, [key]: value };
-    setLocalConfig(newConfig);
-    
-    // Update parent state
     onUpdateConfig(node.id, { [key]: value });
   };
 
@@ -163,8 +146,7 @@ const NodeConfiguration = ({
     <div className="space-y-2">
       <Label>AI Model</Label>
       <Select
-        key={`aiModel-${node.id}`}
-        value={localConfig.aiModel || 'gemini-1.5-flash-latest'}
+        value={node.config.aiModel || 'gemini-1.5-flash-latest'}
         onValueChange={(value) => handleConfigChange('aiModel', value)}
       >
         <SelectTrigger>
@@ -194,8 +176,7 @@ const NodeConfiguration = ({
           <div className="space-y-2">
             <Label>Schedule Type</Label>
             <Select
-              key={`schedule-${node.id}`}
-              value={localConfig.schedule || 'manual'}
+              value={node.config.schedule || 'manual'}
               onValueChange={(value) => handleConfigChange('schedule', value)}
             >
               <SelectTrigger>
@@ -209,13 +190,12 @@ const NodeConfiguration = ({
               </SelectContent>
             </Select>
           </div>
-          {localConfig.schedule !== 'manual' && (
+          {node.config.schedule !== 'manual' && (
             <div className="space-y-2">
               <Label>Time</Label>
               <Input
-                key={`time-${node.id}`}
                 type="time"
-                value={localConfig.time || '09:00'}
+                value={node.config.time || '09:00'}
                 onChange={(e) => handleConfigChange('time', e.target.value)}
               />
             </div>
@@ -229,26 +209,23 @@ const NodeConfiguration = ({
           <div className="space-y-2">
             <Label>URLs to Scrape (one per line)</Label>
             <Textarea
-              key={`urls-${node.id}`}
               placeholder="https://example.com/news&#10;https://another-site.com/articles"
               rows={4}
-              value={Array.isArray(localConfig.urls) ? localConfig.urls.join('\n') : ''}
+              value={Array.isArray(node.config.urls) ? node.config.urls.join('\n') : ''}
               onChange={(e) => handleConfigChange('urls', e.target.value.split('\n').filter(url => url.trim() !== ''))}
             />
           </div>
           <div className="space-y-2">
             <Label>Content Selector (CSS)</Label>
             <Input
-              key={`selector-${node.id}`}
               placeholder="article, .content, #main"
-              value={localConfig.selector || ''}
+              value={node.config.selector || ''}
               onChange={(e) => handleConfigChange('selector', e.target.value)}
             />
           </div>
           <div className="flex items-center space-x-2">
             <Switch
-              key={`followPagination-${node.id}`}
-              checked={localConfig.followPagination || false}
+              checked={node.config.followPagination || false}
               onCheckedChange={(checked) => handleConfigChange('followPagination', checked)}
             />
             <Label>Follow pagination</Label>
@@ -262,21 +239,19 @@ const NodeConfiguration = ({
           <div className="space-y-2">
             <Label>RSS Feed URLs (one per line)</Label>
             <Textarea
-              key={`rss-urls-${node.id}`}
               placeholder="https://example.com/feed.xml&#10;https://another-site.com/rss"
               rows={4}
-              value={Array.isArray(localConfig.urls) ? localConfig.urls.join('\n') : ''}
+              value={Array.isArray(node.config.urls) ? node.config.urls.join('\n') : ''}
               onChange={(e) => handleConfigChange('urls', e.target.value.split('\n').filter(url => url.trim() !== ''))}
             />
           </div>
           <div className="space-y-2">
             <Label>Maximum Items per Feed</Label>
             <Input
-              key={`maxItems-${node.id}`}
               type="number"
               min="1"
               max="50"
-              value={localConfig.maxItems || 10}
+              value={node.config.maxItems || 10}
               onChange={(e) => handleConfigChange('maxItems', parseInt(e.target.value, 10))}
             />
           </div>
@@ -289,20 +264,18 @@ const NodeConfiguration = ({
           <div className="space-y-2">
             <Label>Search Query</Label>
             <Input
-              key={`query-${node.id}`}
               placeholder="machine learning natural language processing"
-              value={localConfig.query || ''}
+              value={node.config.query || ''}
               onChange={(e) => handleConfigChange('query', e.target.value)}
             />
           </div>
           <div className="space-y-2">
             <Label>Number of Results</Label>
             <Input
-              key={`maxResults-${node.id}`}
               type="number"
               min="1"
               max="100"
-              value={localConfig.maxResults || 20}
+              value={node.config.maxResults || 20}
               onChange={(e) => handleConfigChange('maxResults', parseInt(e.target.value, 10))}
             />
           </div>
@@ -310,26 +283,23 @@ const NodeConfiguration = ({
             <Label>Publication Year Range</Label>
             <div className="flex gap-2">
               <Input
-                key={`yearFrom-${node.id}`}
                 type="number"
                 placeholder="2020"
-                value={localConfig.yearFrom || ''}
+                value={node.config.yearFrom || ''}
                 onChange={(e) => handleConfigChange('yearFrom', e.target.value)}
               />
               <span className="self-center text-sm">to</span>
               <Input
-                key={`yearTo-${node.id}`}
                 type="number"
                 placeholder="2024"
-                value={localConfig.yearTo || ''}
+                value={node.config.yearTo || ''}
                 onChange={(e) => handleConfigChange('yearTo', e.target.value)}
               />
             </div>
           </div>
           <div className="flex items-center space-x-2">
             <Switch
-              key={`includeAbstracts-${node.id}`}
-              checked={localConfig.includeAbstracts || true}
+              checked={node.config.includeAbstracts || true}
               onCheckedChange={(checked) => handleConfigChange('includeAbstracts', checked)}
             />
             <Label>Include abstracts</Label>
@@ -343,17 +313,15 @@ const NodeConfiguration = ({
           <div className="space-y-2">
             <Label>Search Keywords</Label>
             <Input
-              key={`keywords-${node.id}`}
               placeholder="artificial intelligence, technology"
-              value={localConfig.keywords || ''}
+              value={node.config.keywords || ''}
               onChange={(e) => handleConfigChange('keywords', e.target.value)}
             />
           </div>
           <div className="space-y-2">
             <Label>News Sources</Label>
             <Select
-              key={`source-${node.id}`}
-              value={localConfig.source || 'all'}
+              value={node.config.source || 'all'}
               onValueChange={(value) => handleConfigChange('source', value)}
             >
               <SelectTrigger>
@@ -370,8 +338,7 @@ const NodeConfiguration = ({
           <div className="space-y-2">
             <Label>Time Range</Label>
             <Select
-              key={`timeRange-${node.id}`}
-              value={localConfig.timeRange || 'day'}
+              value={node.config.timeRange || 'day'}
               onValueChange={(value) => handleConfigChange('timeRange', value)}
             >
               <SelectTrigger>
@@ -388,11 +355,10 @@ const NodeConfiguration = ({
           <div className="space-y-2">
             <Label>Maximum Articles</Label>
             <Input
-              key={`maxArticles-${node.id}`}
               type="number"
               min="1"
               max="50"
-              value={localConfig.maxResults || 10}
+              value={node.config.maxResults || 10}
               onChange={(e) => handleConfigChange('maxResults', parseInt(e.target.value, 10))}
             />
           </div>
@@ -406,18 +372,16 @@ const NodeConfiguration = ({
           <div className="space-y-2">
             <Label>Research Query</Label>
             <Textarea
-              key={`research-query-${node.id}`}
               placeholder="What are the latest developments in AI safety research?"
               rows={3}
-              value={localConfig.query || ''}
+              value={node.config.query || ''}
               onChange={(e) => handleConfigChange('query', e.target.value)}
             />
           </div>
           <div className="space-y-2">
             <Label>Research Depth</Label>
             <Select
-              key={`depth-${node.id}`}
-              value={localConfig.depth || 'medium'}
+              value={node.config.depth || 'medium'}
               onValueChange={(value) => handleConfigChange('depth', value)}
             >
               <SelectTrigger>
@@ -432,11 +396,64 @@ const NodeConfiguration = ({
           </div>
           <div className="flex items-center space-x-2">
             <Switch
-              key={`includeSources-${node.id}`}
-              checked={localConfig.includeSources || true}
+              checked={node.config.includeSources || true}
               onCheckedChange={(checked) => handleConfigChange('includeSources', checked)}
             />
             <Label>Include source citations</Label>
+          </div>
+        </div>
+      )}
+
+      {/* Multi-Source Synthesizer Configuration */}
+      {node.type === 'multi-source-synthesizer' && (
+        <div className="space-y-4">
+          {renderAIModelSelector()}
+          <div className="space-y-2">
+            <Label>Synthesis Style</Label>
+            <Select
+              value={node.config.style || 'comprehensive'}
+              onValueChange={(value) => handleConfigChange('style', value)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="summary">Summary</SelectItem>
+                <SelectItem value="comprehensive">Comprehensive Analysis</SelectItem>
+                <SelectItem value="comparison">Comparative Analysis</SelectItem>
+                <SelectItem value="narrative">Narrative Synthesis</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Target Length</Label>
+            <Select
+              value={node.config.targetLength || 'medium'}
+              onValueChange={(value) => handleConfigChange('targetLength', value)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="short">Short (500-800 words)</SelectItem>
+                <SelectItem value="medium">Medium (800-1500 words)</SelectItem>
+                <SelectItem value="long">Long (1500+ words)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Switch
+              checked={node.config.maintainAttribution || true}
+              onCheckedChange={(checked) => handleConfigChange('maintainAttribution', checked)}
+            />
+            <Label>Maintain source attribution</Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Switch
+              checked={node.config.resolveConflicts || true}
+              onCheckedChange={(checked) => handleConfigChange('resolveConflicts', checked)}
+            />
+            <Label>Resolve conflicting information</Label>
           </div>
         </div>
       )}
@@ -448,8 +465,7 @@ const NodeConfiguration = ({
           <div className="space-y-2">
             <Label>Content Type</Label>
             <Select
-              key={`contentType-${node.id}`}
-              value={localConfig.contentType || 'article'}
+              value={node.config.contentType || 'article'}
               onValueChange={(value) => handleConfigChange('contentType', value)}
             >
               <SelectTrigger>
@@ -465,11 +481,42 @@ const NodeConfiguration = ({
           <div className="space-y-2">
             <Label>Custom Prompt</Label>
             <Textarea
-              key={`prompt-${node.id}`}
               placeholder="Transform this content into a professional article..."
               rows={3}
-              value={localConfig.prompt || ''}
+              value={node.config.prompt || ''}
               onChange={(e) => handleConfigChange('prompt', e.target.value)}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Filter Configuration */}
+      {node.type === 'filter' && (
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label>Minimum Quality Score</Label>
+            <Input
+              type="number"
+              min="0"
+              max="100"
+              value={node.config.minQuality || 70}
+              onChange={(e) => handleConfigChange('minQuality', parseInt(e.target.value, 10))}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Required Keywords (comma separated)</Label>
+            <Input
+              placeholder="AI, technology, innovation"
+              value={Array.isArray(node.config.requiredKeywords) ? node.config.requiredKeywords.join(', ') : ''}
+              onChange={(e) => handleConfigChange('requiredKeywords', e.target.value.split(',').map(k => k.trim()))}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Blocked Keywords (comma separated)</Label>
+            <Input
+              placeholder="spam, promotional, advertisement"
+              value={Array.isArray(node.config.blockedKeywords) ? node.config.blockedKeywords.join(', ') : ''}
+              onChange={(e) => handleConfigChange('blockedKeywords', e.target.value.split(',').map(k => k.trim()))}
             />
           </div>
         </div>
@@ -481,8 +528,7 @@ const NodeConfiguration = ({
           <div className="space-y-2">
             <Label>Publish Status</Label>
             <Select
-              key={`status-${node.id}`}
-              value={localConfig.status || 'draft'}
+              value={node.config.status || 'draft'}
               onValueChange={(value) => handleConfigChange('status', value)}
             >
               <SelectTrigger>
@@ -497,15 +543,13 @@ const NodeConfiguration = ({
           <div className="space-y-2">
             <Label>Category</Label>
             <Input
-              key={`category-${node.id}`}
-              value={localConfig.category || 'AI Generated'}
+              value={node.config.category || 'AI Generated'}
               onChange={(e) => handleConfigChange('category', e.target.value)}
             />
           </div>
           <div className="flex items-center space-x-2">
             <Switch
-              key={`autoPublish-${node.id}`}
-              checked={localConfig.autoPublishConditional || false}
+              checked={node.config.autoPublishConditional || false}
               onCheckedChange={(checked) => handleConfigChange('autoPublishConditional', checked)}
             />
             <Label>Auto-publish if quality score greater than 80%</Label>

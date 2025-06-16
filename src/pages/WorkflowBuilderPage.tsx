@@ -176,7 +176,7 @@ const WorkflowBuilderPage = () => {
           <WorkflowCanvas
             nodes={nodes}
             selectedNode={selectedNode}
-            onSelectNode={setSelectedNode}
+            onSelectNode={node => setSelectedNodeId(node ? node.id : null)}
             onUpdateNodes={setNodes}
             onDeleteNode={deleteNode}
             connectingNodeId={connectingNodeId}

@@ -158,21 +158,21 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
   );
 
   return (
-    <div>
+    <div className="nodrag">
       <div className="mb-4 flex items-center gap-2">
         <Icon className="h-5 w-5" />
         <h3 className="font-semibold">{node.label}</h3>
       </div>
 
       {node.type === 'trigger' && (
-        <div className="space-y-4">
+        <div className="space-y-4 nodrag">
           <div>
             <Label>Schedule Type</Label>
             <Select
               value={node.config.schedule || 'manual'}
               onValueChange={(value) => handleConfigChange('schedule', value)}
             >
-              <SelectTrigger>
+              <SelectTrigger className="nodrag">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -187,6 +187,7 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
             <div>
               <Label>Time</Label>
               <Input
+                className="nodrag"
                 type="time"
                 value={node.config.time || '09:00'}
                 onChange={(e) => handleConfigChange('time', e.target.value)}
@@ -197,10 +198,11 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
       )}
 
       {node.type === 'scraper' && (
-        <div className="space-y-4">
+        <div className="space-y-4 nodrag">
           <div>
             <Label>URLs to Scrape (one per line)</Label>
             <Textarea
+              className="nodrag"
               placeholder="https://example.com/news&#10;https://another-site.com/articles"
               rows={4}
               value={Array.isArray(node.config.urls) ? node.config.urls.join('\n') : ''}
@@ -210,6 +212,7 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
           <div>
             <Label>Content Selector (CSS)</Label>
             <Input
+              className="nodrag"
               placeholder="article, .content, #main"
               value={node.config.selector || ''}
               onChange={(e) => handleConfigChange('selector', e.target.value)}
@@ -485,7 +488,7 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
       )}
 
       {node.type === 'ai-processor' && (
-        <div className="space-y-4">
+        <div className="space-y-4 nodrag">
           {renderAIModelSelector()}
           <div>
             <Label>Content Type</Label>
@@ -493,7 +496,7 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
               value={node.config.contentType || 'article'}
               onValueChange={(value) => handleConfigChange('contentType', value)}
             >
-              <SelectTrigger>
+              <SelectTrigger className="nodrag">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -506,6 +509,7 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
           <div>
             <Label>Custom Prompt</Label>
             <Textarea
+              className="nodrag"
               placeholder="Transform this content into a professional article..."
               rows={3}
               value={node.config.prompt || ''}
@@ -516,7 +520,7 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
       )}
 
       {node.type === 'publisher' && (
-        <div className="space-y-4">
+        <div className="space-y-4 nodrag">
           <div>
             <Label>Publish Status</Label>
             <Select
@@ -583,10 +587,11 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
       )}
 
       {node.type === 'email-sender' && (
-        <div className="space-y-4">
+        <div className="space-y-4 nodrag">
           <div>
             <Label>Recipient Email</Label>
             <Input
+              className="nodrag"
               type="email"
               placeholder="recipient@example.com"
               value={node.config.recipient || ''}
@@ -596,6 +601,7 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
           <div>
             <Label>Email Subject</Label>
             <Input
+              className="nodrag"
               placeholder="New Article: {{article.title}}"
               value={node.config.subject || ''}
               onChange={(e) => handleConfigChange('subject', e.target.value)}
@@ -607,6 +613,7 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
           <div>
             <Label>Email Body</Label>
             <Textarea
+              className="nodrag"
               rows={4}
               placeholder="A new article has been published. Read it here: {{article.url}}"
               value={node.config.body || ''}

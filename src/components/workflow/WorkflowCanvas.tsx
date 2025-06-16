@@ -1,3 +1,4 @@
+
 import { useState, useRef } from 'react';
 import { WorkflowNode } from '@/pages/WorkflowBuilderPage';
 import { Card } from '@/components/ui/card';
@@ -89,6 +90,12 @@ const WorkflowCanvas = ({
   };
 
   const handleMouseDown = (e: React.MouseEvent, nodeId: string) => {
+    // Don't start dragging if the target is an input element
+    const target = e.target as HTMLElement;
+    if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT' || target.closest('.nodrag')) {
+      return;
+    }
+
     const node = nodes.find(n => n.id === nodeId);
     if (!node) return;
 
@@ -186,7 +193,7 @@ const WorkflowCanvas = ({
           <ContextMenu key={node.id}>
             <ContextMenuTrigger asChild>
               <Card
-                className={`absolute w-60 cursor-move select-none ${
+                className={`absolute w-60 cursor-move ${
                   getNodeColor(node.type)
                 } ${isSelected ? 'ring-2 ring-blue-500 shadow-lg' : 'hover:shadow-md'}
                 ${isConnecting ? 'ring-2 ring-green-500 animate-pulse' : ''}

@@ -36,8 +36,11 @@ export type WorkflowNode = {
 
 const WorkflowBuilderPage = () => {
   const [nodes, setNodes] = useState<WorkflowNode[]>([]);
-  const [selectedNode, setSelectedNode] = useState<WorkflowNode | null>(null);
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [connectingNodeId, setConnectingNodeId] = useState<string | null>(null);
+
+  // Derive selectedNode from nodes array to ensure it's always current
+  const selectedNode = selectedNodeId ? nodes.find(node => node.id === selectedNodeId) || null : null;
 
   const generateNodeLabel = (type: WorkflowNode['type']) => {
     const labels = {
@@ -77,7 +80,7 @@ const WorkflowBuilderPage = () => {
       connected: [],
     };
     setNodes(prev => [...prev, newNode]);
-    setSelectedNode(newNode); // Auto-select new node for configuration
+    setSelectedNodeId(newNode.id); // Auto-select new node for configuration
     toast.success(`Added ${generateNodeLabel(type)} node`);
   }, []);
 
@@ -87,13 +90,6 @@ const WorkflowBuilderPage = () => {
         ? { ...node, config: { ...node.config, ...newConfig } }
         : node
     ));
-    
-    // Update selected node if it's the one being configured
-    setSelectedNode(prev => 
-      prev?.id === nodeId 
-        ? { ...prev, config: { ...prev.config, ...newConfig } }
-        : prev
-    );
   }, []);
 
   const deleteNode = useCallback((nodeId: string) => {
@@ -106,8 +102,8 @@ const WorkflowBuilderPage = () => {
       }));
     });
     
-    if (selectedNode?.id === nodeId) {
-      setSelectedNode(null);
+    if (selectedNodeId === nodeId) {
+      setSelectedNodeId(null);
     }
     
     if (connectingNodeId === nodeId) {
@@ -115,7 +111,11 @@ const WorkflowBuilderPage = () => {
     }
     
     toast.success('Node deleted');
-  }, [selectedNode, connectingNodeId]);
+  }, [selectedNodeId, connectingNodeId]);
+
+  const handleSelectNode = useCallback((node: WorkflowNode | null) => {
+    setSelectedNodeId(node?.id || null);
+  }, []);
 
   const handleConnectStart = useCallback((nodeId: string) => {
     setConnectingNodeId(nodeId);
@@ -244,7 +244,7 @@ const WorkflowBuilderPage = () => {
           const workflowData = JSON.parse(e.target?.result as string);
           if (workflowData.nodes && Array.isArray(workflowData.nodes)) {
             setNodes(workflowData.nodes);
-            setSelectedNode(null);
+            setSelectedNodeId(null);
             setConnectingNodeId(null);
             toast.success('Workflow loaded successfully');
           } else {
@@ -334,7 +334,7 @@ const WorkflowBuilderPage = () => {
           <WorkflowCanvas
             nodes={nodes}
             selectedNode={selectedNode}
-            onSelectNode={setSelectedNode}
+            onSelectNode={handleSelectNode}
             onUpdateNodes={setNodes}
             onDeleteNode={deleteNode}
             connectingNodeId={connectingNodeId}

@@ -75,7 +75,7 @@ const WorkflowBuilderPage = () => {
       ...node,
       connected: node.connected.filter(id => id !== nodeId)
     })));
-    if (selectedNodeId?.id === nodeId) {
+    if (selectedNodeId === nodeId) {
       setSelectedNodeId(null);
     }
     toast.success('Node deleted');

@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -40,31 +41,8 @@ const WorkflowSidebar = ({ selectedNode, onAddNode, onUpdateNodeConfig }: Workfl
     { type: 'content-performance-analyzer', icon: BarChart3, label: 'Content Performance Analyzer', description: 'Track and analyze content metrics' },
   ] as const;
 
-  // Prevent any mouse events from propagating to the canvas
-  useEffect(() => {
-    const sidebar = document.querySelector('.workflow-sidebar');
-    if (sidebar) {
-      const stopPropagation = (e: Event) => {
-        e.stopPropagation();
-      };
-      
-      sidebar.addEventListener('mousedown', stopPropagation, true);
-      sidebar.addEventListener('click', stopPropagation, true);
-      sidebar.addEventListener('mouseup', stopPropagation, true);
-      
-      return () => {
-        sidebar.removeEventListener('mousedown', stopPropagation, true);
-        sidebar.removeEventListener('click', stopPropagation, true);
-        sidebar.removeEventListener('mouseup', stopPropagation, true);
-      };
-    }
-  }, []);
-
   return (
-    <div 
-      className="workflow-sidebar w-80 border-r bg-muted/20 p-4 overflow-y-auto relative"
-      style={{ isolation: 'isolate', zIndex: 50 }}
-    >
+    <div className="w-80 border-r bg-muted/20 p-4 overflow-y-auto">
       {!selectedNode ? (
         <>
           <div className="mb-6">
@@ -119,13 +97,6 @@ const WorkflowSidebar = ({ selectedNode, onAddNode, onUpdateNodeConfig }: Workfl
 
 const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpdateConfig: (nodeId: string, newConfig: Partial<WorkflowNode['config']>) => void }) => {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-  // Create local state for each input field to ensure proper controlled components
-  const [localConfig, setLocalConfig] = useState(node.config);
-
-  // Update local state when node changes
-  useEffect(() => {
-    setLocalConfig(node.config);
-  }, [node.id, node.config]);
 
   const getNodeIcon = (type: WorkflowNode['type']) => {
     const icons = {
@@ -155,10 +126,7 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
   const Icon = getNodeIcon(node.type);
 
   const handleConfigChange = (key: string, value: any) => {
-    // Update local state immediately
-    setLocalConfig(prev => ({ ...prev, [key]: value }));
-    // Then update the parent
-    onUpdateNodeConfig(node.id, { [key]: value });
+    onUpdateConfig(node.id, { [key]: value });
   };
 
   const getInterpolatedValue = (template: string) => {
@@ -170,13 +138,13 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
   };
 
   const renderAIModelSelector = () => (
-    <div>
+    <div className="nodrag">
       <Label>AI Model</Label>
       <Select
-        value={localConfig.aiModel || 'gemini-1.5-flash-latest'}
+        value={node.config.aiModel || 'gemini-1.5-flash-latest'}
         onValueChange={(value) => handleConfigChange('aiModel', value)}
       >
-        <SelectTrigger>
+        <SelectTrigger className="nodrag">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -191,7 +159,7 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
   );
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" onMouseDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
       <div className="mb-4 flex items-center gap-2">
         <Icon className="h-5 w-5" />
         <h3 className="font-semibold">{node.label}</h3>
@@ -199,10 +167,10 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
 
       {node.type === 'trigger' && (
         <div className="space-y-4">
-          <div>
+          <div className="nodrag">
             <Label>Schedule Type</Label>
             <Select
-              value={localConfig.schedule || 'manual'}
+              value={node.config.schedule || 'manual'}
               onValueChange={(value) => handleConfigChange('schedule', value)}
             >
               <SelectTrigger>
@@ -216,13 +184,15 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
               </SelectContent>
             </Select>
           </div>
-          {localConfig.schedule !== 'manual' && (
-            <div>
+          {node.config.schedule !== 'manual' && (
+            <div className="nodrag">
               <Label>Time</Label>
               <Input
                 type="time"
-                value={localConfig.time || '09:00'}
+                value={node.config.time || '09:00'}
                 onChange={(e) => handleConfigChange('time', e.target.value)}
+                onMouseDown={(e) => e.stopPropagation()}
+                onFocus={(e) => e.stopPropagation()}
               />
             </div>
           )}
@@ -231,26 +201,30 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
 
       {node.type === 'scraper' && (
         <div className="space-y-4">
-          <div>
+          <div className="nodrag">
             <Label>URLs to Scrape (one per line)</Label>
             <Textarea
               placeholder="https://example.com/news&#10;https://another-site.com/articles"
               rows={4}
-              value={Array.isArray(localConfig.urls) ? localConfig.urls.join('\n') : ''}
+              value={Array.isArray(node.config.urls) ? node.config.urls.join('\n') : ''}
               onChange={(e) => handleConfigChange('urls', e.target.value.split('\n').filter(url => url.trim() !== ''))}
+              onMouseDown={(e) => e.stopPropagation()}
+              onFocus={(e) => e.stopPropagation()}
             />
           </div>
-          <div>
+          <div className="nodrag">
             <Label>Content Selector (CSS)</Label>
             <Input
               placeholder="article, .content, #main"
-              value={localConfig.selector || ''}
+              value={node.config.selector || ''}
               onChange={(e) => handleConfigChange('selector', e.target.value)}
+              onMouseDown={(e) => e.stopPropagation()}
+              onFocus={(e) => e.stopPropagation()}
             />
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2 nodrag">
             <Switch
-              checked={localConfig.followPagination || false}
+              checked={node.config.followPagination || false}
               onCheckedChange={(checked) => handleConfigChange('followPagination', checked)}
             />
             <Label>Follow pagination</Label>
@@ -260,45 +234,53 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
 
       {node.type === 'google-scholar-search' && (
         <div className="space-y-4">
-          <div>
+          <div className="nodrag">
             <Label>Search Query</Label>
             <Input
               placeholder="machine learning natural language processing"
-              value={localConfig.query || ''}
+              value={node.config.query || ''}
               onChange={(e) => handleConfigChange('query', e.target.value)}
+              onMouseDown={(e) => e.stopPropagation()}
+              onFocus={(e) => e.stopPropagation()}
             />
           </div>
-          <div>
+          <div className="nodrag">
             <Label>Number of Results</Label>
             <Input
               type="number"
               min="1"
               max="100"
-              value={localConfig.maxResults || 20}
+              value={node.config.maxResults || 20}
               onChange={(e) => handleConfigChange('maxResults', parseInt(e.target.value, 10))}
+              onMouseDown={(e) => e.stopPropagation()}
+              onFocus={(e) => e.stopPropagation()}
             />
           </div>
-          <div>
+          <div className="nodrag">
             <Label>Publication Year Range</Label>
             <div className="flex gap-2">
               <Input
                 type="number"
                 placeholder="2020"
-                value={localConfig.yearFrom || ''}
+                value={node.config.yearFrom || ''}
                 onChange={(e) => handleConfigChange('yearFrom', e.target.value)}
+                onMouseDown={(e) => e.stopPropagation()}
+                onFocus={(e) => e.stopPropagation()}
               />
               <span className="self-center">to</span>
               <Input
                 type="number"
                 placeholder="2024"
-                value={localConfig.yearTo || ''}
+                value={node.config.yearTo || ''}
                 onChange={(e) => handleConfigChange('yearTo', e.target.value)}
+                onMouseDown={(e) => e.stopPropagation()}
+                onFocus={(e) => e.stopPropagation()}
               />
             </div>
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2 nodrag">
             <Switch
-              checked={localConfig.includeAbstracts || true}
+              checked={node.config.includeAbstracts || true}
               onCheckedChange={(checked) => handleConfigChange('includeAbstracts', checked)}
             />
             <Label>Include abstracts</Label>
@@ -308,18 +290,20 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
 
       {node.type === 'news-discovery' && (
         <div className="space-y-4">
-          <div>
+          <div className="nodrag">
             <Label>Search Keywords</Label>
             <Input
               placeholder="artificial intelligence, technology"
-              value={localConfig.keywords || ''}
+              value={node.config.keywords || ''}
               onChange={(e) => handleConfigChange('keywords', e.target.value)}
+              onMouseDown={(e) => e.stopPropagation()}
+              onFocus={(e) => e.stopPropagation()}
             />
           </div>
-          <div>
+          <div className="nodrag">
             <Label>News Sources</Label>
             <Select
-              value={localConfig.source || 'all'}
+              value={node.config.source || 'all'}
               onValueChange={(value) => handleConfigChange('source', value)}
             >
               <SelectTrigger>
@@ -333,10 +317,10 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
               </SelectContent>
             </Select>
           </div>
-          <div>
+          <div className="nodrag">
             <Label>Time Range</Label>
             <Select
-              value={localConfig.timeRange || 'day'}
+              value={node.config.timeRange || 'day'}
               onValueChange={(value) => handleConfigChange('timeRange', value)}
             >
               <SelectTrigger>
@@ -350,14 +334,16 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
               </SelectContent>
             </Select>
           </div>
-          <div>
+          <div className="nodrag">
             <Label>Maximum Articles</Label>
             <Input
               type="number"
               min="1"
               max="50"
-              value={localConfig.maxResults || 10}
+              value={node.config.maxResults || 10}
               onChange={(e) => handleConfigChange('maxResults', parseInt(e.target.value, 10))}
+              onMouseDown={(e) => e.stopPropagation()}
+              onFocus={(e) => e.stopPropagation()}
             />
           </div>
         </div>
@@ -366,19 +352,21 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
       {node.type === 'perplexity-research' && (
         <div className="space-y-4">
           {renderAIModelSelector()}
-          <div>
+          <div className="nodrag">
             <Label>Research Query</Label>
             <Textarea
               placeholder="What are the latest developments in AI safety research?"
               rows={3}
-              value={localConfig.query || ''}
+              value={node.config.query || ''}
               onChange={(e) => handleConfigChange('query', e.target.value)}
+              onMouseDown={(e) => e.stopPropagation()}
+              onFocus={(e) => e.stopPropagation()}
             />
           </div>
-          <div>
+          <div className="nodrag">
             <Label>Research Depth</Label>
             <Select
-              value={localConfig.depth || 'medium'}
+              value={node.config.depth || 'medium'}
               onValueChange={(value) => handleConfigChange('depth', value)}
             >
               <SelectTrigger>
@@ -391,9 +379,9 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
               </SelectContent>
             </Select>
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2 nodrag">
             <Switch
-              checked={localConfig.includeSources || true}
+              checked={node.config.includeSources || true}
               onCheckedChange={(checked) => handleConfigChange('includeSources', checked)}
             />
             <Label>Include source citations</Label>
@@ -404,10 +392,10 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
       {node.type === 'multi-source-synthesizer' && (
         <div className="space-y-4">
           {renderAIModelSelector()}
-          <div>
+          <div className="nodrag">
             <Label>Synthesis Style</Label>
             <Select
-              value={localConfig.style || 'comprehensive'}
+              value={node.config.style || 'comprehensive'}
               onValueChange={(value) => handleConfigChange('style', value)}
             >
               <SelectTrigger>
@@ -421,10 +409,10 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
               </SelectContent>
             </Select>
           </div>
-          <div>
+          <div className="nodrag">
             <Label>Target Length</Label>
             <Select
-              value={localConfig.targetLength || 'medium'}
+              value={node.config.targetLength || 'medium'}
               onValueChange={(value) => handleConfigChange('targetLength', value)}
             >
               <SelectTrigger>
@@ -437,16 +425,16 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
               </SelectContent>
             </Select>
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2 nodrag">
             <Switch
-              checked={localConfig.maintainAttribution || true}
+              checked={node.config.maintainAttribution || true}
               onCheckedChange={(checked) => handleConfigChange('maintainAttribution', checked)}
             />
             <Label>Maintain source attribution</Label>
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2 nodrag">
             <Switch
-              checked={localConfig.resolveConflicts || true}
+              checked={node.config.resolveConflicts || true}
               onCheckedChange={(checked) => handleConfigChange('resolveConflicts', checked)}
             />
             <Label>Resolve conflicting information</Label>
@@ -457,10 +445,10 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
       {node.type === 'ai-processor' && (
         <div className="space-y-4">
           {renderAIModelSelector()}
-          <div>
+          <div className="nodrag">
             <Label>Content Type</Label>
             <Select
-              value={localConfig.contentType || 'article'}
+              value={node.config.contentType || 'article'}
               onValueChange={(value) => handleConfigChange('contentType', value)}
             >
               <SelectTrigger>
@@ -473,13 +461,15 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
               </SelectContent>
             </Select>
           </div>
-          <div>
+          <div className="nodrag">
             <Label>Custom Prompt</Label>
             <Textarea
               placeholder="Transform this content into a professional article..."
               rows={3}
-              value={localConfig.prompt || ''}
+              value={node.config.prompt || ''}
               onChange={(e) => handleConfigChange('prompt', e.target.value)}
+              onMouseDown={(e) => e.stopPropagation()}
+              onFocus={(e) => e.stopPropagation()}
             />
           </div>
         </div>
@@ -487,10 +477,10 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
 
       {node.type === 'publisher' && (
         <div className="space-y-4">
-          <div>
+          <div className="nodrag">
             <Label>Publish Status</Label>
             <Select
-              value={localConfig.status || 'draft'}
+              value={node.config.status || 'draft'}
               onValueChange={(value) => handleConfigChange('status', value)}
             >
               <SelectTrigger>
@@ -502,16 +492,18 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
               </SelectContent>
             </Select>
           </div>
-          <div>
+          <div className="nodrag">
             <Label>Category</Label>
             <Input
-              value={localConfig.category || 'AI Generated'}
+              value={node.config.category || 'AI Generated'}
               onChange={(e) => handleConfigChange('category', e.target.value)}
+              onMouseDown={(e) => e.stopPropagation()}
+              onFocus={(e) => e.stopPropagation()}
             />
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2 nodrag">
             <Switch
-              checked={localConfig.autoPublishConditional || false}
+              checked={node.config.autoPublishConditional || false}
               onCheckedChange={(checked) => handleConfigChange('autoPublishConditional', checked)}
             />
             <Label>Auto-publish if quality score greater than 80%</Label>
@@ -521,10 +513,10 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
 
       {node.type === 'social-poster' && (
         <div className="space-y-4">
-          <div>
+          <div className="nodrag">
             <Label>Social Platform</Label>
             <Select
-              value={localConfig.platform || 'twitter'}
+              value={node.config.platform || 'twitter'}
               onValueChange={(value) => handleConfigChange('platform', value)}
             >
               <SelectTrigger>
@@ -537,13 +529,15 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
               </SelectContent>
             </Select>
           </div>
-          <div>
+          <div className="nodrag">
             <Label>Post Content Template</Label>
             <Textarea
               placeholder="Check out our new article: {{article.title}} {{article.url}}"
               rows={4}
-              value={localConfig.content || ''}
+              value={node.config.content || ''}
               onChange={(e) => handleConfigChange('content', e.target.value)}
+              onMouseDown={(e) => e.stopPropagation()}
+              onFocus={(e) => e.stopPropagation()}
             />
             <p className="text-xs text-muted-foreground mt-1">
               Use `&#123;&#123;article.title&#125;&#125;` and `&#123;&#123;article.url&#125;&#125;` as placeholders.
@@ -554,57 +548,63 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
 
       {node.type === 'email-sender' && (
         <div className="space-y-4">
-          <div>
+          <div className="nodrag">
             <Label>Recipient Email</Label>
             <Input
               type="email"
               placeholder="recipient@example.com"
-              value={localConfig.recipient || ''}
+              value={node.config.recipient || ''}
               onChange={(e) => handleConfigChange('recipient', e.target.value)}
+              onMouseDown={(e) => e.stopPropagation()}
+              onFocus={(e) => e.stopPropagation()}
             />
           </div>
-          <div>
+          <div className="nodrag">
             <Label>Email Subject</Label>
             <Input
               placeholder="New Article: {{article.title}}"
-              value={localConfig.subject || ''}
+              value={node.config.subject || ''}
               onChange={(e) => handleConfigChange('subject', e.target.value)}
+              onMouseDown={(e) => e.stopPropagation()}
+              onFocus={(e) => e.stopPropagation()}
             />
              <p className="text-xs text-muted-foreground mt-1">
               Use `&#123;&#123;article.title&#125;&#125;` and `&#123;&#123;article.url&#125;&#125;` as placeholders.
             </p>
           </div>
-          <div>
+          <div className="nodrag">
             <Label>Email Body</Label>
             <Textarea
               rows={4}
               placeholder="A new article has been published. Read it here: {{article.url}}"
-              value={localConfig.body || ''}
+              value={node.config.body || ''}
               onChange={(e) => handleConfigChange('body', e.target.value)}
+              onMouseDown={(e) => e.stopPropagation()}
+              onFocus={(e) => e.stopPropagation()}
             />
             <p className="text-xs text-muted-foreground mt-1">
               Placeholders are supported here as well.
             </p>
           </div>
-          <Button variant="outline" onClick={() => setIsPreviewOpen(true)} className="w-full flex items-center gap-2">
+          <Button variant="outline" onClick={() => setIsPreviewOpen(true)} className="w-full flex items-center gap-2 nodrag">
             <Eye className="h-4 w-4" /> Preview Email
           </Button>
           <EmailPreviewDialog 
             isOpen={isPreviewOpen}
             onOpenChange={setIsPreviewOpen}
-            recipient={localConfig.recipient || ''}
-            subject={getInterpolatedValue(localConfig.subject || '')}
-            body={getInterpolatedValue(localConfig.body || '').replace(/\n/g, '<br />')}
+            recipient={node.config.recipient || ''}
+            subject={getInterpolatedValue(node.config.subject || '')}
+            body={getInterpolatedValue(node.config.body || '').replace(/\n/g, '<br />')}
           />
         </div>
       )}
 
       {node.type === 'image-generator' && (
         <div className="space-y-4">
-          <div>
+          <div className="nodrag">
             <Label>Image Provider</Label>
             <Select
-              value={localConfig.provider || 'dall-e-3'}
+              value={node.config.provider || 'dall-e-3'}
               onValueChange={(value) => handleConfigChange('provider', value)}
             >
               <SelectTrigger>
@@ -616,13 +616,15 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
               </SelectContent>
             </Select>
           </div>
-          <div>
+          <div className="nodrag">
             <Label>Image Prompt</Label>
             <Textarea
               placeholder="A photorealistic image of..."
               rows={4}
-              value={localConfig.prompt || ''}
+              value={node.config.prompt || ''}
               onChange={(e) => handleConfigChange('prompt', e.target.value)}
+              onMouseDown={(e) => e.stopPropagation()}
+              onFocus={(e) => e.stopPropagation()}
             />
             <p className="text-xs text-muted-foreground mt-1">
               Use `&#123;&#123;article.title&#125;&#125;` and `&#123;&#123;article.excerpt&#125;&#125;` as placeholders.
@@ -633,22 +635,26 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
 
       {node.type === 'seo-analyzer' && (
         <div className="space-y-4">
-          <div>
+          <div className="nodrag">
             <Label>Focus Keywords (comma separated)</Label>
             <Input
               placeholder="AI, automation, content creation"
-              value={Array.isArray(localConfig.keywords) ? localConfig.keywords.join(', ') : ''}
+              value={Array.isArray(node.config.keywords) ? node.config.keywords.join(', ') : ''}
               onChange={(e) => handleConfigChange('keywords', e.target.value.split(',').map(k => k.trim()))}
+              onMouseDown={(e) => e.stopPropagation()}
+              onFocus={(e) => e.stopPropagation()}
             />
           </div>
-          <div>
+          <div className="nodrag">
             <Label>Target SEO Score</Label>
             <Input
               type="number"
               min="0"
               max="100"
-              value={localConfig.targetScore || 80}
+              value={node.config.targetScore || 80}
               onChange={(e) => handleConfigChange('targetScore', parseInt(e.target.value, 10))}
+              onMouseDown={(e) => e.stopPropagation()}
+              onFocus={(e) => e.stopPropagation()}
             />
           </div>
         </div>
@@ -656,10 +662,10 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
       
       {node.type === 'translator' && (
         <div className="space-y-4">
-          <div>
+          <div className="nodrag">
             <Label>Translation Provider</Label>
             <Select
-              value={localConfig.provider || 'openai'}
+              value={node.config.provider || 'openai'}
               onValueChange={(value) => handleConfigChange('provider', value)}
             >
               <SelectTrigger>
@@ -673,16 +679,16 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground mt-1">
-              {localConfig.provider === 'google' 
+              {node.config.provider === 'google' 
                 ? 'Professional translation service - requires Cloud Translation API enabled'
                 : 'AI-powered translation - more cost-effective and good quality'
               }
             </p>
           </div>
-          <div>
+          <div className="nodrag">
             <Label>Target Language</Label>
             <Select
-              value={localConfig.targetLanguage || 'es'}
+              value={node.config.targetLanguage || 'es'}
               onValueChange={(value) => handleConfigChange('targetLanguage', value)}
             >
               <SelectTrigger>
@@ -707,13 +713,15 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
 
       {node.type === 'rss-aggregator' && (
         <div className="space-y-4">
-          <div>
+          <div className="nodrag">
             <Label>RSS Feed URLs (one per line)</Label>
             <Textarea
               placeholder="https://example.com/feed.xml&#10;https://another-site.com/rss"
               rows={4}
-              value={Array.isArray(localConfig.urls) ? localConfig.urls.join('\n') : ''}
+              value={Array.isArray(node.config.urls) ? node.config.urls.join('\n') : ''}
               onChange={(e) => handleConfigChange('urls', e.target.value.split('\n').filter(url => url.trim() !== ''))}
+              onMouseDown={(e) => e.stopPropagation()}
+              onFocus={(e) => e.stopPropagation()}
             />
           </div>
         </div>
@@ -749,43 +757,43 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
       {node.type === 'content-performance-analyzer' && (
         <div className="space-y-4">
           {renderAIModelSelector()}
-          <div>
+          <div className="nodrag">
             <Label>Analysis Metrics</Label>
             <div className="space-y-2">
               <div className="flex items-center space-x-2">
                 <Switch
-                  checked={localConfig.trackViews || true}
+                  checked={node.config.trackViews || true}
                   onCheckedChange={(checked) => handleConfigChange('trackViews', checked)}
                 />
                 <Label>Page views</Label>
               </div>
               <div className="flex items-center space-x-2">
                 <Switch
-                  checked={localConfig.trackEngagement || true}
+                  checked={node.config.trackEngagement || true}
                   onCheckedChange={(checked) => handleConfigChange('trackEngagement', checked)}
                 />
                 <Label>Engagement metrics</Label>
               </div>
               <div className="flex items-center space-x-2">
                 <Switch
-                  checked={localConfig.trackSEO || true}
+                  checked={node.config.trackSEO || true}
                   onCheckedChange={(checked) => handleConfigChange('trackSEO', checked)}
                 />
                 <Label>SEO performance</Label>
               </div>
               <div className="flex items-center space-x-2">
                 <Switch
-                  checked={localConfig.trackSocial || false}
+                  checked={node.config.trackSocial || false}
                   onCheckedChange={(checked) => handleConfigChange('trackSocial', checked)}
                 />
                 <Label>Social media metrics</Label>
               </div>
             </div>
           </div>
-          <div>
+          <div className="nodrag">
             <Label>Analysis Period</Label>
             <Select
-              value={localConfig.period || 'week'}
+              value={node.config.period || 'week'}
               onValueChange={(value) => handleConfigChange('period', value)}
             >
               <SelectTrigger>
@@ -799,9 +807,9 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
               </SelectContent>
             </Select>
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2 nodrag">
             <Switch
-              checked={localConfig.generateRecommendations || true}
+              checked={node.config.generateRecommendations || true}
               onCheckedChange={(checked) => handleConfigChange('generateRecommendations', checked)}
             />
             <Label>Generate AI recommendations</Label>

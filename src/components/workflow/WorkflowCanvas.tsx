@@ -1,13 +1,9 @@
+
 import { useState, useRef } from 'react';
 import { WorkflowNode } from '@/pages/WorkflowBuilderPage';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Clock, Globe, Brain, Filter, Send, ArrowRight, Trash2, 
-  Link as LinkIcon, XCircle, Share2, Mail, ImagePlay, 
-  SearchCheck, Languages, Rss, Award, TrendingUp, HeartPulse, 
-  GraduationCap, Newspaper, Search, Combine, BarChart3 
-} from 'lucide-react';
+import { Clock, Globe, Brain, Filter, Send, ArrowRight, Trash2, Link as LinkIcon, XCircle, Share2, Mail, ImagePlay, SearchCheck, Languages, Rss, Award, TrendingUp, HeartPulse, GraduationCap, Newspaper, Search, Combine, BarChart3 } from 'lucide-react';
 import {
   ContextMenu,
   ContextMenuContent,
@@ -65,7 +61,7 @@ const WorkflowCanvas = ({
       'engagement-forecaster': HeartPulse,
       'content-performance-analyzer': BarChart3,
     };
-    return icons[type] || Clock;
+    return icons[type];
   };
 
   const getNodeColor = (type: WorkflowNode['type']) => {
@@ -90,17 +86,42 @@ const WorkflowCanvas = ({
       'engagement-forecaster': 'border-rose-200 bg-rose-50',
       'content-performance-analyzer': 'border-slate-200 bg-slate-50',
     };
-    return colors[type] || 'border-gray-200 bg-gray-50';
+    return colors[type];
   };
 
-  // Only allow dragging from the header area (icon + title)
+  const isDragTarget = (target: HTMLElement): boolean => {
+    // Allow dragging only from the card header area, not from input areas
+    if (
+      target.tagName === 'INPUT' ||
+      target.tagName === 'TEXTAREA' ||
+      target.tagName === 'SELECT' ||
+      target.tagName === 'BUTTON' ||
+      target.closest('input') ||
+      target.closest('textarea') ||
+      target.closest('select') ||
+      target.closest('button') ||
+      target.closest('[contenteditable]') ||
+      target.hasAttribute('contenteditable')
+    ) {
+      return false;
+    }
+
+    // Only allow dragging from the node header (icon and title area)
+    const nodeHeader = target.closest('.node-header');
+    if (nodeHeader) {
+      return true;
+    }
+
+    // Also allow dragging from the card background but not from content areas
+    return target.classList.contains('node-card') || target.closest('.node-card') === target;
+  };
+
   const handleMouseDown = (e: React.MouseEvent, nodeId: string) => {
-    // Check if the click is on the drag handle area
     const target = e.target as HTMLElement;
-    const isDragHandle = target.closest('.drag-handle');
     
-    if (!isDragHandle) {
-      return; // Don't start drag if not clicking on drag handle
+    // Only prevent default if we're actually starting a drag operation
+    if (!isDragTarget(target)) {
+      return; // Let the event bubble normally for input elements
     }
 
     e.preventDefault();
@@ -136,30 +157,14 @@ const WorkflowCanvas = ({
     setDraggedNode(null);
   };
 
-  const handleNodeClick = (e: React.MouseEvent, nodeId: string) => {
-    e.stopPropagation();
-    if (connectingNodeId && connectingNodeId !== nodeId) {
-      onConnectEnd(connectingNodeId, nodeId);
-    } else {
-      onSelectNode(nodes.find(n => n.id === nodeId) || null);
-    }
-  };
-
-  const handleCanvasClick = (e: React.MouseEvent) => {
-    // Only deselect if clicking directly on canvas
-    if (e.target === e.currentTarget) {
-      onSelectNode(null);
-    }
-  };
-
   const renderConnections = () => {
     return nodes.map(node => 
       node.connected.map(connectedId => {
         const connectedNode = nodes.find(n => n.id === connectedId);
         if (!connectedNode) return null;
 
-        const startX = node.position.x + 120; // Node width / 2
-        const startY = node.position.y + 40; // Node height / 2
+        const startX = node.position.x + 120;
+        const startY = node.position.y + 40;
         const endX = connectedNode.position.x;
         const endY = connectedNode.position.y + 40;
 
@@ -205,7 +210,7 @@ const WorkflowCanvas = ({
       className={`relative w-full h-full bg-grid-pattern bg-gray-50 ${connectingNodeId ? 'cursor-crosshair' : ''}`}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
-      onClick={handleCanvasClick}
+      onClick={() => onSelectNode(null)}
     >
       {renderConnections()}
       
@@ -219,7 +224,7 @@ const WorkflowCanvas = ({
           <ContextMenu key={node.id}>
             <ContextMenuTrigger asChild>
               <Card
-                className={`absolute w-60 select-none ${
+                className={`node-card absolute w-60 ${
                   getNodeColor(node.type)
                 } ${isSelected ? 'ring-2 ring-blue-500 shadow-lg' : 'hover:shadow-md'}
                 ${isConnecting ? 'ring-2 ring-green-500 animate-pulse' : ''}
@@ -228,30 +233,34 @@ const WorkflowCanvas = ({
                   left: node.position.x,
                   top: node.position.y,
                   zIndex: draggedNode === node.id ? 10 : 2,
-                  cursor: draggedNode === node.id ? 'grabbing' : 'default'
+                  cursor: draggedNode === node.id ? 'grabbing' : 'grab'
                 }}
-                onMouseDown={(e) => handleMouseDown(e, node.id)}
-                onClick={(e) => handleNodeClick(e, node.id)}
+                onMouseDown={(e) => {
+                  handleMouseDown(e, node.id);
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (canConnectTo && connectingNodeId) {
+                    onConnectEnd(connectingNodeId, node.id);
+                  } else {
+                    onSelectNode(node);
+                  }
+                }}
               >
                 <div className="p-4">
-                  {/* Drag Handle - Only this area allows dragging */}
-                  <div className="drag-handle flex items-center gap-2 mb-2 cursor-grab hover:bg-black/5 rounded p-1 -m-1">
-                    <Icon className="h-4 w-4 pointer-events-none" />
-                    <h4 className="font-medium text-sm pointer-events-none">{node.label}</h4>
+                  <div className="node-header flex items-center gap-2 mb-2 cursor-grab">
+                    <Icon className="h-4 w-4" />
+                    <h4 className="font-medium text-sm">{node.label}</h4>
                   </div>
-                  
-                  {/* Content Area - No drag interference */}
-                  <div className="space-y-2">
-                    <Badge variant="outline" className="text-xs">
-                      {node.type.replace('-', ' ')}
-                    </Badge>
-                    {node.connected.length > 0 && (
-                      <div className="flex items-center text-xs text-muted-foreground">
-                        <ArrowRight className="h-3 w-3 mr-1" />
-                        Connected to {node.connected.length} node(s)
-                      </div>
-                    )}
-                  </div>
+                  <Badge variant="outline" className="text-xs">
+                    {node.type.replace('-', ' ')}
+                  </Badge>
+                  {node.connected.length > 0 && (
+                    <div className="mt-2 flex items-center text-xs text-muted-foreground">
+                      <ArrowRight className="h-3 w-3 mr-1" />
+                      Connected to {node.connected.length} node(s)
+                    </div>
+                  )}
                 </div>
               </Card>
             </ContextMenuTrigger>
@@ -278,7 +287,7 @@ const WorkflowCanvas = ({
           <div className="text-center text-muted-foreground">
             <div className="text-4xl mb-2">🔧</div>
             <h3 className="text-lg font-medium mb-1">Start Building Your Workflow</h3>
-            <p className="text-sm">Add components from the sidebar to get started</p>
+            <p className="text-sm">Add research and processing components from the sidebar to get started</p>
           </div>
         </div>
       )}

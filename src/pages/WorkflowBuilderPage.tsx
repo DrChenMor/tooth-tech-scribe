@@ -18,9 +18,8 @@ export type WorkflowNode = {
 
 const WorkflowBuilderPage = () => {
   const [nodes, setNodes] = useState<WorkflowNode[]>([]);
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [selectedNode, setSelectedNode] = useState<WorkflowNode | null>(null);
   const [connectingNodeId, setConnectingNodeId] = useState<string | null>(null);
-  const selectedNode = nodes.find(node => node.id === selectedNodeId) || null;
 
   const generateNodeLabel = (type: WorkflowNode['type']) => {
     const labels = {
@@ -75,11 +74,11 @@ const WorkflowBuilderPage = () => {
       ...node,
       connected: node.connected.filter(id => id !== nodeId)
     })));
-    if (selectedNodeId === nodeId) {
-      setSelectedNodeId(null);
+    if (selectedNode?.id === nodeId) {
+      setSelectedNode(null);
     }
     toast.success('Node deleted');
-  }, [selectedNodeId]);
+  }, [selectedNode]);
 
   const handleConnectStart = useCallback((nodeId: string) => {
     setConnectingNodeId(nodeId);
@@ -176,7 +175,7 @@ const WorkflowBuilderPage = () => {
           <WorkflowCanvas
             nodes={nodes}
             selectedNode={selectedNode}
-            onSelectNode={node => setSelectedNodeId(node ? node.id : null)}
+            onSelectNode={setSelectedNode}
             onUpdateNodes={setNodes}
             onDeleteNode={deleteNode}
             connectingNodeId={connectingNodeId}

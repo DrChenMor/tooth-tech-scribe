@@ -197,29 +197,9 @@ const WorkflowCanvas = ({
                   zIndex: draggedNode === node.id ? 10 : 2
                 }}
                 onMouseDown={(e) => {
-                  // Check if user is clicking an input, textarea, select, button, or contenteditable area.
-                  const target = e.target as HTMLElement;
-                  const tagName = target.tagName.toLowerCase();
-                  if (
-                    tagName === 'input' ||
-                    tagName === 'textarea' ||
-                    tagName === 'select' ||
-                    tagName === 'button' ||
-                    target.closest('input') ||
-                    target.closest('textarea') ||
-                    target.closest('select') ||
-                    target.closest('button') ||
-                    target.hasAttribute('contenteditable') ||
-                    target.closest('[contenteditable]')
-                  ) {
-                    // If so, do nothing—let the typing/clicking work!
-                    return;
-                  }
-                  // Only if it’s NOT a form element, do drag and stop event:
                   e.stopPropagation();
                   handleMouseDown(e, node.id);
                 }}
-
                 onClick={(e) => {
                   e.stopPropagation();
                   if (canConnectTo && connectingNodeId) {

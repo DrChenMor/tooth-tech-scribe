@@ -6,10 +6,21 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { Clock, Globe, Brain, Filter, Send, Plus, Share2, Mail, ImagePlay, SearchCheck, Languages, Eye, Award, TrendingUp, HeartPulse, Rss, GraduationCap, Newspaper, Search, Combine, BarChart3 } from 'lucide-react';
+import { 
+  Clock, Globe, Brain, Filter, Send, Plus, Share2, Mail, 
+  ImagePlay, SearchCheck, Languages, Eye, Award, TrendingUp, 
+  HeartPulse, Rss, GraduationCap, Newspaper, Search, Combine, BarChart3 
+} from 'lucide-react';
 import { WorkflowNode } from '@/pages/WorkflowBuilderPage';
 import { EmailPreviewDialog } from './EmailPreviewDialog';
-import { AVAILABLE_MODELS } from '@/services/aiModelService';
+
+// Mock AI models - replace with actual import if available
+const AVAILABLE_MODELS = [
+  { id: 'gpt-4', name: 'GPT-4', provider: 'OpenAI' },
+  { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo', provider: 'OpenAI' },
+  { id: 'claude-3-sonnet', name: 'Claude 3 Sonnet', provider: 'Anthropic' },
+  { id: 'gemini-1.5-flash-latest', name: 'Gemini 1.5 Flash', provider: 'Google' },
+];
 
 interface WorkflowSidebarProps {
   selectedNode: WorkflowNode | null;
@@ -94,7 +105,13 @@ const WorkflowSidebar = ({ selectedNode, onAddNode, onUpdateNodeConfig }: Workfl
   );
 };
 
-const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpdateConfig: (nodeId: string, newConfig: Partial<WorkflowNode['config']>) => void }) => {
+const NodeConfiguration = ({ 
+  node, 
+  onUpdateConfig 
+}: { 
+  node: WorkflowNode; 
+  onUpdateConfig: (nodeId: string, newConfig: Partial<WorkflowNode['config']>) => void; 
+}) => {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   const getNodeIcon = (type: WorkflowNode['type']) => {
@@ -119,7 +136,7 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
       'engagement-forecaster': HeartPulse,
       'content-performance-analyzer': BarChart3,
     };
-    return icons[type];
+    return icons[type] || Clock;
   };
 
   const Icon = getNodeIcon(node.type);
@@ -137,7 +154,7 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
   };
 
   const renderAIModelSelector = () => (
-    <div>
+    <div className="space-y-2">
       <Label>AI Model</Label>
       <Select
         value={node.config.aiModel || 'gemini-1.5-flash-latest'}
@@ -158,15 +175,16 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
   );
 
   return (
-    <div className="space-y-4">
-      <div className="mb-4 flex items-center gap-2">
+    <div className="space-y-6">
+      <div className="flex items-center gap-2">
         <Icon className="h-5 w-5" />
         <h3 className="font-semibold">{node.label}</h3>
       </div>
 
+      {/* Trigger Configuration */}
       {node.type === 'trigger' && (
         <div className="space-y-4">
-          <div>
+          <div className="space-y-2">
             <Label>Schedule Type</Label>
             <Select
               value={node.config.schedule || 'manual'}
@@ -184,7 +202,7 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
             </Select>
           </div>
           {node.config.schedule !== 'manual' && (
-            <div>
+            <div className="space-y-2">
               <Label>Time</Label>
               <Input
                 type="time"
@@ -196,9 +214,10 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
         </div>
       )}
 
+      {/* Web Scraper Configuration */}
       {node.type === 'scraper' && (
         <div className="space-y-4">
-          <div>
+          <div className="space-y-2">
             <Label>URLs to Scrape (one per line)</Label>
             <Textarea
               placeholder="https://example.com/news&#10;https://another-site.com/articles"
@@ -207,7 +226,7 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
               onChange={(e) => handleConfigChange('urls', e.target.value.split('\n').filter(url => url.trim() !== ''))}
             />
           </div>
-          <div>
+          <div className="space-y-2">
             <Label>Content Selector (CSS)</Label>
             <Input
               placeholder="article, .content, #main"
@@ -225,9 +244,35 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
         </div>
       )}
 
+      {/* RSS Aggregator Configuration */}
+      {node.type === 'rss-aggregator' && (
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label>RSS Feed URLs (one per line)</Label>
+            <Textarea
+              placeholder="https://example.com/feed.xml&#10;https://another-site.com/rss"
+              rows={4}
+              value={Array.isArray(node.config.urls) ? node.config.urls.join('\n') : ''}
+              onChange={(e) => handleConfigChange('urls', e.target.value.split('\n').filter(url => url.trim() !== ''))}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Maximum Items per Feed</Label>
+            <Input
+              type="number"
+              min="1"
+              max="50"
+              value={node.config.maxItems || 10}
+              onChange={(e) => handleConfigChange('maxItems', parseInt(e.target.value, 10))}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Google Scholar Search Configuration */}
       {node.type === 'google-scholar-search' && (
         <div className="space-y-4">
-          <div>
+          <div className="space-y-2">
             <Label>Search Query</Label>
             <Input
               placeholder="machine learning natural language processing"
@@ -235,7 +280,7 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
               onChange={(e) => handleConfigChange('query', e.target.value)}
             />
           </div>
-          <div>
+          <div className="space-y-2">
             <Label>Number of Results</Label>
             <Input
               type="number"
@@ -245,7 +290,7 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
               onChange={(e) => handleConfigChange('maxResults', parseInt(e.target.value, 10))}
             />
           </div>
-          <div>
+          <div className="space-y-2">
             <Label>Publication Year Range</Label>
             <div className="flex gap-2">
               <Input
@@ -254,7 +299,7 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
                 value={node.config.yearFrom || ''}
                 onChange={(e) => handleConfigChange('yearFrom', e.target.value)}
               />
-              <span className="self-center">to</span>
+              <span className="self-center text-sm">to</span>
               <Input
                 type="number"
                 placeholder="2024"
@@ -273,9 +318,10 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
         </div>
       )}
 
+      {/* News Discovery Configuration */}
       {node.type === 'news-discovery' && (
         <div className="space-y-4">
-          <div>
+          <div className="space-y-2">
             <Label>Search Keywords</Label>
             <Input
               placeholder="artificial intelligence, technology"
@@ -283,7 +329,7 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
               onChange={(e) => handleConfigChange('keywords', e.target.value)}
             />
           </div>
-          <div>
+          <div className="space-y-2">
             <Label>News Sources</Label>
             <Select
               value={node.config.source || 'all'}
@@ -300,7 +346,7 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
               </SelectContent>
             </Select>
           </div>
-          <div>
+          <div className="space-y-2">
             <Label>Time Range</Label>
             <Select
               value={node.config.timeRange || 'day'}
@@ -317,7 +363,7 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
               </SelectContent>
             </Select>
           </div>
-          <div>
+          <div className="space-y-2">
             <Label>Maximum Articles</Label>
             <Input
               type="number"
@@ -330,10 +376,11 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
         </div>
       )}
 
+      {/* Perplexity Research Configuration */}
       {node.type === 'perplexity-research' && (
         <div className="space-y-4">
           {renderAIModelSelector()}
-          <div>
+          <div className="space-y-2">
             <Label>Research Query</Label>
             <Textarea
               placeholder="What are the latest developments in AI safety research?"
@@ -342,7 +389,7 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
               onChange={(e) => handleConfigChange('query', e.target.value)}
             />
           </div>
-          <div>
+          <div className="space-y-2">
             <Label>Research Depth</Label>
             <Select
               value={node.config.depth || 'medium'}
@@ -368,10 +415,11 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
         </div>
       )}
 
+      {/* Multi-Source Synthesizer Configuration */}
       {node.type === 'multi-source-synthesizer' && (
         <div className="space-y-4">
           {renderAIModelSelector()}
-          <div>
+          <div className="space-y-2">
             <Label>Synthesis Style</Label>
             <Select
               value={node.config.style || 'comprehensive'}
@@ -388,7 +436,7 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
               </SelectContent>
             </Select>
           </div>
-          <div>
+          <div className="space-y-2">
             <Label>Target Length</Label>
             <Select
               value={node.config.targetLength || 'medium'}
@@ -421,10 +469,11 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
         </div>
       )}
 
+      {/* AI Processor Configuration */}
       {node.type === 'ai-processor' && (
         <div className="space-y-4">
           {renderAIModelSelector()}
-          <div>
+          <div className="space-y-2">
             <Label>Content Type</Label>
             <Select
               value={node.config.contentType || 'article'}
@@ -440,7 +489,7 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
               </SelectContent>
             </Select>
           </div>
-          <div>
+          <div className="space-y-2">
             <Label>Custom Prompt</Label>
             <Textarea
               placeholder="Transform this content into a professional article..."
@@ -452,9 +501,42 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
         </div>
       )}
 
+      {/* Filter Configuration */}
+      {node.type === 'filter' && (
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label>Minimum Quality Score</Label>
+            <Input
+              type="number"
+              min="0"
+              max="100"
+              value={node.config.minQuality || 70}
+              onChange={(e) => handleConfigChange('minQuality', parseInt(e.target.value, 10))}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Required Keywords (comma separated)</Label>
+            <Input
+              placeholder="AI, technology, innovation"
+              value={Array.isArray(node.config.requiredKeywords) ? node.config.requiredKeywords.join(', ') : ''}
+              onChange={(e) => handleConfigChange('requiredKeywords', e.target.value.split(',').map(k => k.trim()))}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Blocked Keywords (comma separated)</Label>
+            <Input
+              placeholder="spam, promotional, advertisement"
+              value={Array.isArray(node.config.blockedKeywords) ? node.config.blockedKeywords.join(', ') : ''}
+              onChange={(e) => handleConfigChange('blockedKeywords', e.target.value.split(',').map(k => k.trim()))}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Publisher Configuration */}
       {node.type === 'publisher' && (
         <div className="space-y-4">
-          <div>
+          <div className="space-y-2">
             <Label>Publish Status</Label>
             <Select
               value={node.config.status || 'draft'}
@@ -469,7 +551,7 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
               </SelectContent>
             </Select>
           </div>
-          <div>
+          <div className="space-y-2">
             <Label>Category</Label>
             <Input
               value={node.config.category || 'AI Generated'}
@@ -486,9 +568,10 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
         </div>
       )}
 
+      {/* Social Poster Configuration */}
       {node.type === 'social-poster' && (
         <div className="space-y-4">
-          <div>
+          <div className="space-y-2">
             <Label>Social Platform</Label>
             <Select
               value={node.config.platform || 'twitter'}
@@ -504,7 +587,7 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
               </SelectContent>
             </Select>
           </div>
-          <div>
+          <div className="space-y-2">
             <Label>Post Content Template</Label>
             <Textarea
               placeholder="Check out our new article: {{article.title}} {{article.url}}"
@@ -512,16 +595,17 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
               value={node.config.content || ''}
               onChange={(e) => handleConfigChange('content', e.target.value)}
             />
-            <p className="text-xs text-muted-foreground mt-1">
-              Use `&#123;&#123;article.title&#125;&#125;` and `&#123;&#123;article.url&#125;&#125;` as placeholders.
+            <p className="text-xs text-muted-foreground">
+              Use {{article.title}} and {{article.url}} as placeholders.
             </p>
           </div>
         </div>
       )}
 
+      {/* Email Sender Configuration */}
       {node.type === 'email-sender' && (
         <div className="space-y-4">
-          <div>
+          <div className="space-y-2">
             <Label>Recipient Email</Label>
             <Input
               type="email"
@@ -530,18 +614,18 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
               onChange={(e) => handleConfigChange('recipient', e.target.value)}
             />
           </div>
-          <div>
+          <div className="space-y-2">
             <Label>Email Subject</Label>
             <Input
               placeholder="New Article: {{article.title}}"
               value={node.config.subject || ''}
               onChange={(e) => handleConfigChange('subject', e.target.value)}
             />
-             <p className="text-xs text-muted-foreground mt-1">
-              Use `&#123;&#123;article.title&#125;&#125;` and `&#123;&#123;article.url&#125;&#125;` as placeholders.
+            <p className="text-xs text-muted-foreground">
+              Use {{article.title}} and {{article.url}} as placeholders.
             </p>
           </div>
-          <div>
+          <div className="space-y-2">
             <Label>Email Body</Label>
             <Textarea
               rows={4}
@@ -549,11 +633,15 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
               value={node.config.body || ''}
               onChange={(e) => handleConfigChange('body', e.target.value)}
             />
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="text-xs text-muted-foreground">
               Placeholders are supported here as well.
             </p>
           </div>
-          <Button variant="outline" onClick={() => setIsPreviewOpen(true)} className="w-full flex items-center gap-2">
+          <Button 
+            variant="outline" 
+            onClick={() => setIsPreviewOpen(true)} 
+            className="w-full flex items-center gap-2"
+          >
             <Eye className="h-4 w-4" /> Preview Email
           </Button>
           <EmailPreviewDialog 
@@ -566,9 +654,10 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
         </div>
       )}
 
+      {/* Image Generator Configuration */}
       {node.type === 'image-generator' && (
         <div className="space-y-4">
-          <div>
+          <div className="space-y-2">
             <Label>Image Provider</Label>
             <Select
               value={node.config.provider || 'dall-e-3'}
@@ -583,7 +672,7 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
               </SelectContent>
             </Select>
           </div>
-          <div>
+          <div className="space-y-2">
             <Label>Image Prompt</Label>
             <Textarea
               placeholder="A photorealistic image of..."
@@ -591,16 +680,17 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
               value={node.config.prompt || ''}
               onChange={(e) => handleConfigChange('prompt', e.target.value)}
             />
-            <p className="text-xs text-muted-foreground mt-1">
-              Use `&#123;&#123;article.title&#125;&#125;` and `&#123;&#123;article.excerpt&#125;&#125;` as placeholders.
+            <p className="text-xs text-muted-foreground">
+              Use {{article.title}} and {{article.excerpt}} as placeholders.
             </p>
           </div>
         </div>
       )}
 
+      {/* SEO Analyzer Configuration */}
       {node.type === 'seo-analyzer' && (
         <div className="space-y-4">
-          <div>
+          <div className="space-y-2">
             <Label>Focus Keywords (comma separated)</Label>
             <Input
               placeholder="AI, automation, content creation"
@@ -608,7 +698,7 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
               onChange={(e) => handleConfigChange('keywords', e.target.value.split(',').map(k => k.trim()))}
             />
           </div>
-          <div>
+          <div className="space-y-2">
             <Label>Target SEO Score</Label>
             <Input
               type="number"
@@ -621,9 +711,10 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
         </div>
       )}
       
+      {/* Translator Configuration */}
       {node.type === 'translator' && (
         <div className="space-y-4">
-          <div>
+          <div className="space-y-2">
             <Label>Translation Provider</Label>
             <Select
               value={node.config.provider || 'openai'}
@@ -639,14 +730,14 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
                 <SelectItem value="google">Google Translate API (Most accurate)</SelectItem>
               </SelectContent>
             </Select>
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="text-xs text-muted-foreground">
               {node.config.provider === 'google' 
                 ? 'Professional translation service - requires Cloud Translation API enabled'
                 : 'AI-powered translation - more cost-effective and good quality'
               }
             </p>
           </div>
-          <div>
+          <div className="space-y-2">
             <Label>Target Language</Label>
             <Select
               value={node.config.targetLanguage || 'es'}
@@ -672,51 +763,119 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
         </div>
       )}
 
-      {node.type === 'rss-aggregator' && (
-        <div className="space-y-4">
-          <div>
-            <Label>RSS Feed URLs (one per line)</Label>
-            <Textarea
-              placeholder="https://example.com/feed.xml&#10;https://another-site.com/rss"
-              rows={4}
-              value={Array.isArray(node.config.urls) ? node.config.urls.join('\n') : ''}
-              onChange={(e) => handleConfigChange('urls', e.target.value.split('\n').filter(url => url.trim() !== ''))}
-            />
-          </div>
-        </div>
-      )}
-
+      {/* Content Quality Analyzer Configuration */}
       {node.type === 'content-quality-analyzer' && (
         <div className="space-y-4">
           {renderAIModelSelector()}
+          <div className="space-y-2">
+            <Label>Quality Metrics</Label>
+            <div className="space-y-2">
+              <div className="flex items-center space-x-2">
+                <Switch
+                  checked={node.config.checkReadability || true}
+                  onCheckedChange={(checked) => handleConfigChange('checkReadability', checked)}
+                />
+                <Label>Readability score</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  checked={node.config.checkGrammar || true}
+                  onCheckedChange={(checked) => handleConfigChange('checkGrammar', checked)}
+                />
+                <Label>Grammar and style</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  checked={node.config.checkCoherence || true}
+                  onCheckedChange={(checked) => handleConfigChange('checkCoherence', checked)}
+                />
+                <Label>Content coherence</Label>
+              </div>
+            </div>
+          </div>
           <p className="text-sm text-muted-foreground">
             This node uses AI to analyze article quality and generate improvement suggestions for articles with a quality score below 70.
           </p>
         </div>
       )}
 
+      {/* AI SEO Optimizer Configuration */}
       {node.type === 'ai-seo-optimizer' && (
         <div className="space-y-4">
           {renderAIModelSelector()}
+          <div className="space-y-2">
+            <Label>Optimization Focus</Label>
+            <div className="space-y-2">
+              <div className="flex items-center space-x-2">
+                <Switch
+                  checked={node.config.optimizeKeywords || true}
+                  onCheckedChange={(checked) => handleConfigChange('optimizeKeywords', checked)}
+                />
+                <Label>Keyword optimization</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  checked={node.config.optimizeHeadings || true}
+                  onCheckedChange={(checked) => handleConfigChange('optimizeHeadings', checked)}
+                />
+                <Label>Heading structure</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  checked={node.config.generateMetaDesc || true}
+                  onCheckedChange={(checked) => handleConfigChange('generateMetaDesc', checked)}
+                />
+                <Label>Meta descriptions</Label>
+              </div>
+            </div>
+          </div>
           <p className="text-sm text-muted-foreground">
             This node uses AI to analyze articles and generate SEO keywords, meta descriptions, and other on-page improvements.
           </p>
         </div>
       )}
 
+      {/* Engagement Forecaster Configuration */}
       {node.type === 'engagement-forecaster' && (
         <div className="space-y-4">
           {renderAIModelSelector()}
+          <div className="space-y-2">
+            <Label>Prediction Metrics</Label>
+            <div className="space-y-2">
+              <div className="flex items-center space-x-2">
+                <Switch
+                  checked={node.config.predictShares || true}
+                  onCheckedChange={(checked) => handleConfigChange('predictShares', checked)}
+                />
+                <Label>Social media shares</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  checked={node.config.predictComments || true}
+                  onCheckedChange={(checked) => handleConfigChange('predictComments', checked)}
+                />
+                <Label>Comment engagement</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  checked={node.config.predictViews || true}
+                  onCheckedChange={(checked) => handleConfigChange('predictViews', checked)}
+                />
+                <Label>Page views</Label>
+              </div>
+            </div>
+          </div>
           <p className="text-sm text-muted-foreground">
             This node uses AI to predict engagement potential and suggests social media posts for high-potential articles.
           </p>
         </div>
       )}
 
+      {/* Content Performance Analyzer Configuration */}
       {node.type === 'content-performance-analyzer' && (
         <div className="space-y-4">
           {renderAIModelSelector()}
-          <div>
+          <div className="space-y-2">
             <Label>Analysis Metrics</Label>
             <div className="space-y-2">
               <div className="flex items-center space-x-2">
@@ -749,7 +908,7 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
               </div>
             </div>
           </div>
-          <div>
+          <div className="space-y-2">
             <Label>Analysis Period</Label>
             <Select
               value={node.config.period || 'week'}

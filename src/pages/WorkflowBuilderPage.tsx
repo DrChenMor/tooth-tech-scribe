@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import WorkflowCanvas from '@/components/workflow/WorkflowCanvas';
 import WorkflowSidebar from '@/components/workflow/WorkflowSidebar';
-import { Play, Save, Download, Upload } from 'lucide-react';
+import { Play, Save, Download, Upload, Square, RefreshCw } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 export type WorkflowNode = {
   id: string;
@@ -34,10 +35,23 @@ export type WorkflowNode = {
   connected: string[];
 };
 
+interface ExecutionLog {
+  id: string;
+  nodeId: string;
+  nodeName: string;
+  status: 'running' | 'completed' | 'error';
+  message: string;
+  timestamp: Date;
+  data?: any;
+}
+
 const WorkflowBuilderPage = () => {
   const [nodes, setNodes] = useState<WorkflowNode[]>([]);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [connectingNodeId, setConnectingNodeId] = useState<string | null>(null);
+  const [isExecuting, setIsExecuting] = useState(false);
+  const [executionLogs, setExecutionLogs] = useState<ExecutionLog[]>([]);
+  const [showLogs, setShowLogs] = useState(false);
 
   // Derive selectedNode from nodes array to ensure it's always current
   const selectedNode = selectedNodeId ? nodes.find(node => node.id === selectedNodeId) || null : null;
@@ -67,6 +81,356 @@ const WorkflowBuilderPage = () => {
     return labels[type];
   };
 
+  const addLog = (nodeId: string, nodeName: string, status: ExecutionLog['status'], message: string, data?: any) => {
+    const log: ExecutionLog = {
+      id: Date.now().toString(),
+      nodeId,
+      nodeName,
+      status,
+      message,
+      timestamp: new Date(),
+      data
+    };
+    setExecutionLogs(prev => [...prev, log]);
+  };
+
+  // ACTUAL WORKFLOW EXECUTION ENGINE
+  const executeNode = async (node: WorkflowNode, previousData: any = null): Promise<any> => {
+    addLog(node.id, node.label, 'running', `Starting ${node.type} execution...`);
+
+    try {
+      let result: any = null;
+
+      switch (node.type) {
+        case 'trigger':
+          result = { triggered: true, timestamp: new Date().toISOString() };
+          addLog(node.id, node.label, 'completed', 'Workflow triggered successfully');
+          break;
+
+        case 'scraper':
+          if (!node.config.urls || node.config.urls.length === 0) {
+            throw new Error('No URLs configured for web scraper');
+          }
+          
+          const scrapedContent = [];
+          for (const url of node.config.urls) {
+            try {
+              const { data, error } = await supabase.functions.invoke('web-scraper', {
+                body: { url, selector: node.config.selector }
+              });
+              if (error) throw new Error(error.message);
+              scrapedContent.push({ url, content: data.content });
+              addLog(node.id, node.label, 'completed', `Scraped content from ${url}`);
+            } catch (error) {
+              addLog(node.id, node.label, 'error', `Failed to scrape ${url}: ${error.message}`);
+            }
+          }
+          result = { scrapedContent, urls: node.config.urls };
+          break;
+
+        case 'rss-aggregator':
+          if (!node.config.urls || node.config.urls.length === 0) {
+            throw new Error('No RSS URLs configured');
+          }
+          
+          const { data: rssData, error: rssError } = await supabase.functions.invoke('rss-aggregator', {
+            body: { urls: node.config.urls }
+          });
+          if (rssError) throw new Error(rssError.message);
+          
+          result = { articles: rssData.articles };
+          addLog(node.id, node.label, 'completed', `Fetched ${rssData.articles.length} articles from RSS feeds`);
+          break;
+
+        case 'google-scholar-search':
+          if (!node.config.query) {
+            throw new Error('No search query configured');
+          }
+          
+          const { data: scholarData, error: scholarError } = await supabase.functions.invoke('google-scholar-search', {
+            body: {
+              query: node.config.query,
+              maxResults: node.config.maxResults || 20,
+              yearFrom: node.config.yearFrom,
+              yearTo: node.config.yearTo,
+              includeAbstracts: node.config.includeAbstracts
+            }
+          });
+          if (scholarError) throw new Error(scholarError.message);
+          
+          result = { papers: scholarData.papers };
+          addLog(node.id, node.label, 'completed', `Found ${scholarData.papers.length} academic papers`);
+          break;
+
+        case 'news-discovery':
+          if (!node.config.keywords) {
+            throw new Error('No keywords configured for news discovery');
+          }
+          
+          const { data: newsData, error: newsError } = await supabase.functions.invoke('news-discovery', {
+            body: {
+              keywords: node.config.keywords,
+              source: node.config.source || 'all',
+              timeRange: node.config.timeRange || 'day',
+              maxResults: node.config.maxResults || 10
+            }
+          });
+          if (newsError) throw new Error(newsError.message);
+          
+          result = { articles: newsData.articles };
+          addLog(node.id, node.label, 'completed', `Discovered ${newsData.articles.length} news articles`);
+          break;
+
+        case 'perplexity-research':
+          if (!node.config.query) {
+            throw new Error('No research query configured');
+          }
+          
+          const { data: researchData, error: researchError } = await supabase.functions.invoke('perplexity-research', {
+            body: {
+              query: node.config.query,
+              depth: node.config.depth || 'medium',
+              includeSources: node.config.includeSources
+            }
+          });
+          if (researchError) throw new Error(researchError.message);
+          
+          result = { 
+            research: researchData.research, 
+            sources: researchData.sources,
+            relatedQuestions: researchData.relatedQuestions
+          };
+          addLog(node.id, node.label, 'completed', `Completed research with ${researchData.sources.length} sources`);
+          break;
+
+        case 'multi-source-synthesizer':
+          if (!previousData || (!previousData.scrapedContent && !previousData.articles && !previousData.papers)) {
+            throw new Error('No content to synthesize. Connect this node to a content source.');
+          }
+          
+          // Prepare sources from previous data
+          const sources = [];
+          if (previousData.scrapedContent) {
+            sources.push(...previousData.scrapedContent.map((item: any) => ({
+              title: item.url,
+              url: item.url,
+              content: item.content
+            })));
+          }
+          if (previousData.articles) {
+            sources.push(...previousData.articles.map((item: any) => ({
+              title: item.title,
+              url: item.link || item.url,
+              content: item.description || item.content
+            })));
+          }
+          if (previousData.papers) {
+            sources.push(...previousData.papers.map((item: any) => ({
+              title: item.title,
+              url: item.url,
+              content: item.abstract
+            })));
+          }
+          
+          const { data: synthData, error: synthError } = await supabase.functions.invoke('multi-source-synthesizer', {
+            body: {
+              sources,
+              style: node.config.style || 'comprehensive',
+              targetLength: node.config.targetLength || 'medium',
+              maintainAttribution: node.config.maintainAttribution !== false,
+              resolveConflicts: node.config.resolveConflicts !== false,
+              aiModel: node.config.aiModel || 'gemini-2.0-flash'
+            }
+          });
+          if (synthError) throw new Error(synthError.message);
+          
+          result = { 
+            synthesizedContent: synthData.synthesizedContent,
+            sourceCount: synthData.sourceCount,
+            style: synthData.style
+          };
+          addLog(node.id, node.label, 'completed', `Synthesized content from ${synthData.sourceCount} sources`);
+          break;
+
+        case 'ai-processor':
+          if (!previousData || !previousData.synthesizedContent) {
+            throw new Error('No content to process. Connect this node to a content source.');
+          }
+          
+          const { data: processedData, error: processError } = await supabase.functions.invoke('run-ai-agent-analysis', {
+            body: {
+              prompt: `Transform this content into a ${node.config.contentType || 'article'}: ${previousData.synthesizedContent}`,
+              agentConfig: { ai_model: node.config.aiModel || 'gemini-1.5-flash-latest' }
+            }
+          });
+          if (processError) throw new Error(processError.message);
+          
+          result = { 
+            processedContent: processedData.analysis,
+            contentType: node.config.contentType || 'article'
+          };
+          addLog(node.id, node.label, 'completed', `Processed content with AI`);
+          break;
+
+        case 'publisher':
+          if (!previousData || (!previousData.processedContent && !previousData.synthesizedContent)) {
+            throw new Error('No content to publish. Connect this node to a content processor.');
+          }
+          
+          const contentToPublish = previousData.processedContent || previousData.synthesizedContent;
+          
+          // Extract title from content or use a default
+          const titleMatch = contentToPublish.match(/^#\s+(.+)$/m);
+          const title = titleMatch ? titleMatch[1] : `Auto-Generated Article - ${new Date().toLocaleDateString()}`;
+          
+          // Generate slug
+          const slug = title.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').trim() + '-' + Date.now();
+          
+          // Create article in database
+          const { data: articleData, error: articleError } = await supabase
+            .from('articles')
+            .insert({
+              title,
+              slug,
+              content: contentToPublish,
+              excerpt: contentToPublish.substring(0, 200) + '...',
+              category: node.config.category || 'Auto-Generated',
+              author_name: 'Workflow Bot',
+              status: node.config.status || 'draft',
+              published_date: new Date().toISOString()
+            })
+            .select()
+            .single();
+            
+          if (articleError) throw new Error(articleError.message);
+          
+          result = { 
+            articleId: articleData.id,
+            title,
+            slug,
+            status: node.config.status || 'draft'
+          };
+          addLog(node.id, node.label, 'completed', `Published article: "${title}" as ${node.config.status || 'draft'}`);
+          break;
+
+        case 'email-sender':
+          if (!node.config.recipient || !node.config.subject) {
+            throw new Error('Email recipient and subject are required');
+          }
+          
+          // Use previous data to build email content
+          const emailBody = node.config.body || 
+            (previousData?.title ? `New article published: ${previousData.title}` : 'Workflow execution completed');
+          
+          const { data: emailData, error: emailError } = await supabase.functions.invoke('send-email', {
+            body: {
+              to: node.config.recipient,
+              subject: node.config.subject,
+              body: emailBody
+            }
+          });
+          if (emailError) throw new Error(emailError.message);
+          
+          result = { emailSent: true, recipient: node.config.recipient };
+          addLog(node.id, node.label, 'completed', `Email sent to ${node.config.recipient}`);
+          break;
+
+        case 'translator':
+          if (!previousData || (!previousData.processedContent && !previousData.synthesizedContent)) {
+            throw new Error('No content to translate. Connect this node to a content source.');
+          }
+          
+          const contentToTranslate = previousData.processedContent || previousData.synthesizedContent;
+          
+          const { data: translatedData, error: translateError } = await supabase.functions.invoke('translator', {
+            body: {
+              content: contentToTranslate,
+              targetLanguage: node.config.targetLanguage || 'es',
+              provider: node.config.provider || 'google'
+            }
+          });
+          if (translateError) throw new Error(translateError.message);
+          
+          result = { 
+            translatedContent: translatedData.content,
+            targetLanguage: node.config.targetLanguage,
+            originalContent: contentToTranslate
+          };
+          addLog(node.id, node.label, 'completed', `Translated content to ${node.config.targetLanguage}`);
+          break;
+
+        default:
+          // For nodes without implementations, just pass through the data
+          result = previousData || { message: `${node.type} node executed (placeholder)` };
+          addLog(node.id, node.label, 'completed', `${node.type} executed (no specific implementation yet)`);
+          break;
+      }
+
+      return result;
+    } catch (error) {
+      addLog(node.id, node.label, 'error', `Error: ${error.message}`);
+      throw error;
+    }
+  };
+
+  const executeWorkflow = async () => {
+    if (nodes.length === 0) {
+      toast.error('Add some nodes to run the workflow');
+      return;
+    }
+
+    const triggerNodes = nodes.filter(node => node.type === 'trigger');
+    if (triggerNodes.length === 0) {
+      toast.error('Add a trigger node to start the workflow');
+      return;
+    }
+
+    setIsExecuting(true);
+    setExecutionLogs([]);
+    setShowLogs(true);
+    
+    try {
+      // Start with trigger nodes
+      for (const triggerNode of triggerNodes) {
+        let currentData = await executeNode(triggerNode);
+        
+        // Execute connected nodes in sequence
+        await executeConnectedNodes(triggerNode, currentData);
+      }
+      
+      toast.success('Workflow execution completed!');
+    } catch (error) {
+      toast.error(`Workflow execution failed: ${error.message}`);
+    } finally {
+      setIsExecuting(false);
+    }
+  };
+
+  const executeConnectedNodes = async (currentNode: WorkflowNode, data: any) => {
+    for (const connectedNodeId of currentNode.connected) {
+      const connectedNode = nodes.find(n => n.id === connectedNodeId);
+      if (connectedNode) {
+        try {
+          const result = await executeNode(connectedNode, data);
+          // Recursively execute the next connected nodes
+          await executeConnectedNodes(connectedNode, result);
+        } catch (error) {
+          // Log error but continue with other nodes
+          console.error(`Error executing node ${connectedNode.label}:`, error);
+        }
+      }
+    }
+  };
+
+  const stopExecution = () => {
+    setIsExecuting(false);
+    toast.info('Workflow execution stopped');
+  };
+
+  const clearLogs = () => {
+    setExecutionLogs([]);
+  };
+
   const addNode = useCallback((type: WorkflowNode['type']) => {
     const newNode: WorkflowNode = {
       id: `${type}-${Date.now()}`,
@@ -77,7 +441,7 @@ const WorkflowBuilderPage = () => {
       connected: [],
     };
     setNodes(prev => [...prev, newNode]);
-    setSelectedNodeId(newNode.id); // Auto-select for configuration
+    setSelectedNodeId(newNode.id);
     toast.success(`Added ${generateNodeLabel(type)} node`);
   }, []);
 
@@ -91,7 +455,6 @@ const WorkflowBuilderPage = () => {
 
   const deleteNode = useCallback((nodeId: string) => {
     setNodes(prev => prev.filter(node => node.id !== nodeId));
-    // Also remove connections to this node
     setNodes(prev => prev.map(node => ({
       ...node,
       connected: node.connected.filter(id => id !== nodeId)
@@ -136,35 +499,6 @@ const WorkflowBuilderPage = () => {
     toast.success('All connections removed');
   }, []);
 
-  const runWorkflow = useCallback(() => {
-    if (nodes.length === 0) {
-      toast.error('Add some nodes to run the workflow');
-      return;
-    }
-
-    const triggerNodes = nodes.filter(node => node.type === 'trigger');
-    if (triggerNodes.length === 0) {
-      toast.error('Add a trigger node to start the workflow');
-      return;
-    }
-
-    // ==== REPLACE THIS SECTION WITH YOUR OLD EXECUTION CODE ====
-    // This is where your actual workflow execution logic was that:
-    // - Showed the execution logs panel
-    // - Actually ran the workflows
-    // - Created articles
-    // - Sent emails
-    // - Ran translations
-    // - etc.
-    
-    toast.success('Workflow started! (This is a preview - full execution coming soon)');
-    
-    // Your old code probably looked something like:
-    // executeWorkflow(nodes);
-    // showExecutionPanel();
-    // etc.
-  }, [nodes]);
-
   const saveWorkflow = useCallback(() => {
     const workflowData = {
       nodes,
@@ -196,10 +530,25 @@ const WorkflowBuilderPage = () => {
               <Download className="h-4 w-4" />
               Export
             </Button>
-            <Button onClick={runWorkflow} className="flex items-center gap-2">
-              <Play className="h-4 w-4" />
-              Run Workflow
+            <Button 
+              variant="outline" 
+              onClick={() => setShowLogs(!showLogs)} 
+              className="flex items-center gap-2"
+            >
+              <RefreshCw className="h-4 w-4" />
+              {showLogs ? 'Hide' : 'Show'} Logs
             </Button>
+            {isExecuting ? (
+              <Button variant="destructive" onClick={stopExecution} className="flex items-center gap-2">
+                <Square className="h-4 w-4" />
+                Stop
+              </Button>
+            ) : (
+              <Button onClick={executeWorkflow} className="flex items-center gap-2">
+                <Play className="h-4 w-4" />
+                Run Workflow
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -211,18 +560,63 @@ const WorkflowBuilderPage = () => {
           onUpdateNodeConfig={updateNodeConfig}
         />
         
-        <div className="flex-1">
-          <WorkflowCanvas
-            nodes={nodes}
-            selectedNode={selectedNode}
-            onSelectNode={handleSelectNode}
-            onUpdateNodes={setNodes}
-            onDeleteNode={deleteNode}
-            connectingNodeId={connectingNodeId}
-            onConnectStart={handleConnectStart}
-            onConnectEnd={handleConnectEnd}
-            onDisconnectNode={handleDisconnectNode}
-          />
+        <div className="flex-1 flex">
+          <div className="flex-1">
+            <WorkflowCanvas
+              nodes={nodes}
+              selectedNode={selectedNode}
+              onSelectNode={handleSelectNode}
+              onUpdateNodes={setNodes}
+              onDeleteNode={deleteNode}
+              connectingNodeId={connectingNodeId}
+              onConnectStart={handleConnectStart}
+              onConnectEnd={handleConnectEnd}
+              onDisconnectNode={handleDisconnectNode}
+            />
+          </div>
+          
+          {/* Execution Logs Panel */}
+          {showLogs && (
+            <div className="w-80 border-l bg-muted/20 flex flex-col">
+              <div className="p-4 border-b">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold">Execution Logs</h3>
+                  <Button size="sm" variant="outline" onClick={clearLogs}>
+                    Clear
+                  </Button>
+                </div>
+              </div>
+              <div className="flex-1 overflow-y-auto p-4 space-y-2">
+                {executionLogs.length === 0 ? (
+                  <p className="text-muted-foreground text-sm">No logs yet. Run a workflow to see execution details.</p>
+                ) : (
+                  executionLogs.map((log) => (
+                    <div 
+                      key={log.id} 
+                      className={`p-2 rounded text-xs border-l-2 ${
+                        log.status === 'completed' ? 'border-green-500 bg-green-50' :
+                        log.status === 'error' ? 'border-red-500 bg-red-50' :
+                        'border-blue-500 bg-blue-50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-medium">{log.nodeName}</span>
+                        <span className={`px-1 py-0.5 rounded text-xs font-medium ${
+                          log.status === 'completed' ? 'bg-green-200 text-green-800' :
+                          log.status === 'error' ? 'bg-red-200 text-red-800' :
+                          'bg-blue-200 text-blue-800'
+                        }`}>
+                          {log.status}
+                        </span>
+                      </div>
+                      <p className="text-gray-700">{log.message}</p>
+                      <p className="text-gray-500 mt-1">{log.timestamp.toLocaleTimeString()}</p>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

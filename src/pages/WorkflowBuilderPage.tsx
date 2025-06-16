@@ -75,11 +75,11 @@ const WorkflowBuilderPage = () => {
       ...node,
       connected: node.connected.filter(id => id !== nodeId)
     })));
-    if (selectedNode?.id === nodeId) {
-      setSelectedNode(null);
+    if (selectedNodeId?.id === nodeId) {
+      setSelectedNodeId(null);
     }
     toast.success('Node deleted');
-  }, [selectedNode]);
+  }, [selectedNodeId]);
 
   const handleConnectStart = useCallback((nodeId: string) => {
     setConnectingNodeId(nodeId);

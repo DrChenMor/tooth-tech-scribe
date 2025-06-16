@@ -203,63 +203,139 @@ const WorkflowBuilderPage = () => {
           addLog(node.id, node.label, 'completed', `Completed research with ${researchData.sources.length} sources`);
           break;
 
-        case 'multi-source-synthesizer':
-          if (!previousData || (!previousData.scrapedContent && !previousData.articles && !previousData.papers)) {
-            throw new Error('No content to synthesize. Connect this node to a content source.');
-          }
-          
-          // Prepare sources from previous data
-          const sources = [];
-          if (previousData.scrapedContent) {
-            sources.push(...previousData.scrapedContent.map((item: any) => ({
-              title: item.url,
-              url: item.url,
-              content: item.content
-            })));
-          }
-          if (previousData.articles) {
-            sources.push(...previousData.articles.map((item: any) => ({
-              title: item.title,
-              url: item.link || item.url,
-              content: item.description || item.content
-            })));
-          }
-          if (previousData.papers) {
-            sources.push(...previousData.papers.map((item: any) => ({
-              title: item.title,
-              url: item.url,
-              content: item.abstract
-            })));
-          }
-          
-          const { data: synthData, error: synthError } = await supabase.functions.invoke('multi-source-synthesizer', {
-            body: {
-              sources,
-              style: node.config.style || 'comprehensive',
-              targetLength: node.config.targetLength || 'medium',
-              maintainAttribution: node.config.maintainAttribution !== false,
-              resolveConflicts: node.config.resolveConflicts !== false,
-              aiModel: node.config.aiModel || 'gemini-2.0-flash'
-            }
-          });
-          if (synthError) throw new Error(synthError.message);
-          
-          result = { 
-            synthesizedContent: synthData.synthesizedContent,
-            sourceCount: synthData.sourceCount,
-            style: synthData.style
-          };
-          addLog(node.id, node.label, 'completed', `Synthesized content from ${synthData.sourceCount} sources`);
-          break;
+case 'multi-source-synthesizer':
+  // Enhanced input handling - accept various data formats
+  let sources = [];
+  
+  if (previousData) {
+    if (previousData.scrapedContent && Array.isArray(previousData.scrapedContent)) {
+      sources.push(...previousData.scrapedContent.map((item: any) => ({
+        title: item.url || 'Scraped Content',
+        url: item.url || '',
+        content: item.content || ''
+      })));
+    }
+    
+    if (previousData.articles && Array.isArray(previousData.articles)) {
+      sources.push(...previousData.articles.map((item: any) => ({
+        title: item.title || 'Article',
+        url: item.link || item.url || '',
+        content: item.description || item.content || item.summary || ''
+      })));
+    }
+    
+    if (previousData.papers && Array.isArray(previousData.papers)) {
+      sources.push(...previousData.papers.map((item: any) => ({
+        title: item.title || 'Research Paper',
+        url: item.url || '',
+        content: item.abstract || item.content || ''
+      })));
+    }
+    
+    // Handle research data from Perplexity
+    if (previousData.research) {
+      sources.push({
+        title: 'Research Findings',
+        url: '',
+        content: previousData.research
+      });
+    }
+    
+    // Handle direct content
+    if (previousData.content) {
+      sources.push({
+        title: 'Content',
+        url: '',
+        content: previousData.content
+      });
+    }
+    
+    // Handle string data directly
+    if (typeof previousData === 'string') {
+      sources.push({
+        title: 'Input Content',
+        url: '',
+        content: previousData
+      });
+    }
+  }
+  
+  if (sources.length === 0) {
+    throw new Error('No content sources found. Connect this node to web scrapers, RSS feeds, news discovery, research tools, or other content sources.');
+  }
+  
+  addLog(node.id, node.label, 'running', `Synthesizing content from ${sources.length} sources`);
+  
+  const { data: synthData, error: synthError } = await supabase.functions.invoke('multi-source-synthesizer', {
+    body: {
+      sources,
+      style: node.config.style || 'comprehensive',
+      targetLength: node.config.targetLength || 'medium',
+      maintainAttribution: node.config.maintainAttribution !== false,
+      resolveConflicts: node.config.resolveConflicts !== false,
+      aiModel: node.config.aiModel || 'gemini-2.0-flash'
+    }
+  });
+  if (synthError) throw new Error(synthError.message);
+  
+  result = { 
+    synthesizedContent: synthData.synthesizedContent,
+    sourceCount: synthData.sourceCount,
+    style: synthData.style
+  };
+  addLog(node.id, node.label, 'completed', `Synthesized content from ${synthData.sourceCount} sources`);
+  break;
 
         case 'ai-processor':
-          if (!previousData || !previousData.synthesizedContent) {
-            throw new Error('No content to process. Connect this node to a content source.');
+          // Enhanced content extraction - handle multiple data sources
+          let contentToProcess = null;
+          
+          if (previousData) {
+            // Try different content sources in order of preference
+            if (previousData.synthesizedContent) {
+              contentToProcess = previousData.synthesizedContent;
+            } else if (previousData.processedContent) {
+              contentToProcess = previousData.processedContent;
+            } else if (previousData.research) {
+              contentToProcess = previousData.research;
+            } else if (previousData.scrapedContent && Array.isArray(previousData.scrapedContent)) {
+              // Combine scraped content
+              contentToProcess = previousData.scrapedContent
+                .map((item: any) => item.content)
+                .join('\n\n');
+            } else if (previousData.articles && Array.isArray(previousData.articles)) {
+              // Combine RSS/news articles
+              contentToProcess = previousData.articles
+                .map((item: any) => `${item.title}: ${item.description || item.content || ''}`)
+                .join('\n\n');
+            } else if (previousData.papers && Array.isArray(previousData.papers)) {
+              // Combine academic papers
+              contentToProcess = previousData.papers
+                .map((item: any) => `${item.title}: ${item.abstract || ''}`)
+                .join('\n\n');
+            } else if (typeof previousData === 'string') {
+              // Direct string content
+              contentToProcess = previousData;
+            } else if (previousData.content) {
+              // Generic content field
+              contentToProcess = previousData.content;
+            }
           }
+          
+          // Also check if the node has custom prompt content
+          if (!contentToProcess && node.config.prompt) {
+            contentToProcess = node.config.prompt;
+          }
+          
+          if (!contentToProcess) {
+            throw new Error('No content to process. This node needs to be connected to a content source (scraper, RSS aggregator, news discovery, research, etc.) or have custom content configured.');
+          }
+          
+          addLog(node.id, node.label, 'running', `Processing ${contentToProcess.length} characters of content`);
           
           const { data: processedData, error: processError } = await supabase.functions.invoke('run-ai-agent-analysis', {
             body: {
-              prompt: `Transform this content into a ${node.config.contentType || 'article'}: ${previousData.synthesizedContent}`,
+              prompt: `Transform this content into a ${node.config.contentType || 'article'}. Make it engaging, well-structured, and informative:\n\n${contentToProcess}`,
               agentConfig: { ai_model: node.config.aiModel || 'gemini-1.5-flash-latest' }
             }
           });
@@ -267,11 +343,11 @@ const WorkflowBuilderPage = () => {
           
           result = { 
             processedContent: processedData.analysis,
-            contentType: node.config.contentType || 'article'
+            contentType: node.config.contentType || 'article',
+            originalContentLength: contentToProcess.length
           };
-          addLog(node.id, node.label, 'completed', `Processed content with AI`);
+          addLog(node.id, node.label, 'completed', `Processed content with AI (${node.config.aiModel || 'gemini-1.5-flash-latest'})`);
           break;
-
         case 'publisher':
           if (!previousData || (!previousData.processedContent && !previousData.synthesizedContent)) {
             throw new Error('No content to publish. Connect this node to a content processor.');

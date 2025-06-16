@@ -1,3 +1,4 @@
+
 import { useState, useRef } from 'react';
 import { WorkflowNode } from '@/pages/WorkflowBuilderPage';
 import { Card } from '@/components/ui/card';
@@ -293,3 +294,5 @@ const WorkflowCanvas = ({
     </div>
   );
 };
+
+export default WorkflowCanvas;

@@ -1,4 +1,3 @@
-
 import { useState, useRef } from 'react';
 import { WorkflowNode } from '@/pages/WorkflowBuilderPage';
 import { Card } from '@/components/ui/card';
@@ -89,39 +88,20 @@ const WorkflowCanvas = ({
     return colors[type];
   };
 
-  const isDragTarget = (target: HTMLElement): boolean => {
-    // Allow dragging only from the card header area, not from input areas
-    if (
-      target.tagName === 'INPUT' ||
-      target.tagName === 'TEXTAREA' ||
-      target.tagName === 'SELECT' ||
-      target.tagName === 'BUTTON' ||
-      target.closest('input') ||
-      target.closest('textarea') ||
-      target.closest('select') ||
-      target.closest('button') ||
-      target.closest('[contenteditable]') ||
-      target.hasAttribute('contenteditable')
-    ) {
-      return false;
-    }
-
-    // Only allow dragging from the node header (icon and title area)
-    const nodeHeader = target.closest('.node-header');
-    if (nodeHeader) {
-      return true;
-    }
-
-    // Also allow dragging from the card background but not from content areas
-    return target.classList.contains('node-card') || target.closest('.node-card') === target;
-  };
-
   const handleMouseDown = (e: React.MouseEvent, nodeId: string) => {
     const target = e.target as HTMLElement;
     
-    // Only prevent default if we're actually starting a drag operation
-    if (!isDragTarget(target)) {
-      return; // Let the event bubble normally for input elements
+    // Check if click originated from the sidebar - if so, ignore it completely
+    if (target.closest('.workflow-sidebar') || target.closest('.sidebar-config')) {
+      return;
+    }
+
+    // Only allow dragging from the card header (icon and title area)
+    const nodeHeader = target.closest('.node-header');
+    const nodeCard = target.closest('.node-card');
+    
+    if (!nodeHeader && nodeCard !== e.currentTarget) {
+      return; // Not clicking on the header or card background
     }
 
     e.preventDefault();
@@ -235,9 +215,7 @@ const WorkflowCanvas = ({
                   zIndex: draggedNode === node.id ? 10 : 2,
                   cursor: draggedNode === node.id ? 'grabbing' : 'grab'
                 }}
-                onMouseDown={(e) => {
-                  handleMouseDown(e, node.id);
-                }}
+                onMouseDown={(e) => handleMouseDown(e, node.id)}
                 onClick={(e) => {
                   e.stopPropagation();
                   if (canConnectTo && connectingNodeId) {

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -40,8 +40,31 @@ const WorkflowSidebar = ({ selectedNode, onAddNode, onUpdateNodeConfig }: Workfl
     { type: 'content-performance-analyzer', icon: BarChart3, label: 'Content Performance Analyzer', description: 'Track and analyze content metrics' },
   ] as const;
 
+  // Prevent any mouse events from propagating to the canvas
+  useEffect(() => {
+    const sidebar = document.querySelector('.workflow-sidebar');
+    if (sidebar) {
+      const stopPropagation = (e: Event) => {
+        e.stopPropagation();
+      };
+      
+      sidebar.addEventListener('mousedown', stopPropagation, true);
+      sidebar.addEventListener('click', stopPropagation, true);
+      sidebar.addEventListener('mouseup', stopPropagation, true);
+      
+      return () => {
+        sidebar.removeEventListener('mousedown', stopPropagation, true);
+        sidebar.removeEventListener('click', stopPropagation, true);
+        sidebar.removeEventListener('mouseup', stopPropagation, true);
+      };
+    }
+  }, []);
+
   return (
-    <div className="w-80 border-r bg-muted/20 p-4 overflow-y-auto workflow-sidebar">
+    <div 
+      className="workflow-sidebar w-80 border-r bg-muted/20 p-4 overflow-y-auto relative"
+      style={{ isolation: 'isolate', zIndex: 50 }}
+    >
       {!selectedNode ? (
         <>
           <div className="mb-6">
@@ -96,6 +119,13 @@ const WorkflowSidebar = ({ selectedNode, onAddNode, onUpdateNodeConfig }: Workfl
 
 const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpdateConfig: (nodeId: string, newConfig: Partial<WorkflowNode['config']>) => void }) => {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  // Create local state for each input field to ensure proper controlled components
+  const [localConfig, setLocalConfig] = useState(node.config);
+
+  // Update local state when node changes
+  useEffect(() => {
+    setLocalConfig(node.config);
+  }, [node.id, node.config]);
 
   const getNodeIcon = (type: WorkflowNode['type']) => {
     const icons = {
@@ -125,7 +155,10 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
   const Icon = getNodeIcon(node.type);
 
   const handleConfigChange = (key: string, value: any) => {
-    onUpdateConfig(node.id, { [key]: value });
+    // Update local state immediately
+    setLocalConfig(prev => ({ ...prev, [key]: value }));
+    // Then update the parent
+    onUpdateNodeConfig(node.id, { [key]: value });
   };
 
   const getInterpolatedValue = (template: string) => {
@@ -140,7 +173,7 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
     <div>
       <Label>AI Model</Label>
       <Select
-        value={node.config.aiModel || 'gemini-1.5-flash-latest'}
+        value={localConfig.aiModel || 'gemini-1.5-flash-latest'}
         onValueChange={(value) => handleConfigChange('aiModel', value)}
       >
         <SelectTrigger>
@@ -158,7 +191,7 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
   );
 
   return (
-    <div className="space-y-4 sidebar-config">
+    <div className="space-y-4">
       <div className="mb-4 flex items-center gap-2">
         <Icon className="h-5 w-5" />
         <h3 className="font-semibold">{node.label}</h3>
@@ -169,7 +202,7 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
           <div>
             <Label>Schedule Type</Label>
             <Select
-              value={node.config.schedule || 'manual'}
+              value={localConfig.schedule || 'manual'}
               onValueChange={(value) => handleConfigChange('schedule', value)}
             >
               <SelectTrigger>
@@ -183,12 +216,12 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
               </SelectContent>
             </Select>
           </div>
-          {node.config.schedule !== 'manual' && (
+          {localConfig.schedule !== 'manual' && (
             <div>
               <Label>Time</Label>
               <Input
                 type="time"
-                value={node.config.time || '09:00'}
+                value={localConfig.time || '09:00'}
                 onChange={(e) => handleConfigChange('time', e.target.value)}
               />
             </div>
@@ -203,7 +236,7 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
             <Textarea
               placeholder="https://example.com/news&#10;https://another-site.com/articles"
               rows={4}
-              value={Array.isArray(node.config.urls) ? node.config.urls.join('\n') : ''}
+              value={Array.isArray(localConfig.urls) ? localConfig.urls.join('\n') : ''}
               onChange={(e) => handleConfigChange('urls', e.target.value.split('\n').filter(url => url.trim() !== ''))}
             />
           </div>
@@ -211,13 +244,13 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
             <Label>Content Selector (CSS)</Label>
             <Input
               placeholder="article, .content, #main"
-              value={node.config.selector || ''}
+              value={localConfig.selector || ''}
               onChange={(e) => handleConfigChange('selector', e.target.value)}
             />
           </div>
           <div className="flex items-center space-x-2">
             <Switch
-              checked={node.config.followPagination || false}
+              checked={localConfig.followPagination || false}
               onCheckedChange={(checked) => handleConfigChange('followPagination', checked)}
             />
             <Label>Follow pagination</Label>
@@ -231,7 +264,7 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
             <Label>Search Query</Label>
             <Input
               placeholder="machine learning natural language processing"
-              value={node.config.query || ''}
+              value={localConfig.query || ''}
               onChange={(e) => handleConfigChange('query', e.target.value)}
             />
           </div>
@@ -241,7 +274,7 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
               type="number"
               min="1"
               max="100"
-              value={node.config.maxResults || 20}
+              value={localConfig.maxResults || 20}
               onChange={(e) => handleConfigChange('maxResults', parseInt(e.target.value, 10))}
             />
           </div>
@@ -251,21 +284,21 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
               <Input
                 type="number"
                 placeholder="2020"
-                value={node.config.yearFrom || ''}
+                value={localConfig.yearFrom || ''}
                 onChange={(e) => handleConfigChange('yearFrom', e.target.value)}
               />
               <span className="self-center">to</span>
               <Input
                 type="number"
                 placeholder="2024"
-                value={node.config.yearTo || ''}
+                value={localConfig.yearTo || ''}
                 onChange={(e) => handleConfigChange('yearTo', e.target.value)}
               />
             </div>
           </div>
           <div className="flex items-center space-x-2">
             <Switch
-              checked={node.config.includeAbstracts || true}
+              checked={localConfig.includeAbstracts || true}
               onCheckedChange={(checked) => handleConfigChange('includeAbstracts', checked)}
             />
             <Label>Include abstracts</Label>
@@ -279,14 +312,14 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
             <Label>Search Keywords</Label>
             <Input
               placeholder="artificial intelligence, technology"
-              value={node.config.keywords || ''}
+              value={localConfig.keywords || ''}
               onChange={(e) => handleConfigChange('keywords', e.target.value)}
             />
           </div>
           <div>
             <Label>News Sources</Label>
             <Select
-              value={node.config.source || 'all'}
+              value={localConfig.source || 'all'}
               onValueChange={(value) => handleConfigChange('source', value)}
             >
               <SelectTrigger>
@@ -303,7 +336,7 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
           <div>
             <Label>Time Range</Label>
             <Select
-              value={node.config.timeRange || 'day'}
+              value={localConfig.timeRange || 'day'}
               onValueChange={(value) => handleConfigChange('timeRange', value)}
             >
               <SelectTrigger>
@@ -323,7 +356,7 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
               type="number"
               min="1"
               max="50"
-              value={node.config.maxResults || 10}
+              value={localConfig.maxResults || 10}
               onChange={(e) => handleConfigChange('maxResults', parseInt(e.target.value, 10))}
             />
           </div>
@@ -338,14 +371,14 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
             <Textarea
               placeholder="What are the latest developments in AI safety research?"
               rows={3}
-              value={node.config.query || ''}
+              value={localConfig.query || ''}
               onChange={(e) => handleConfigChange('query', e.target.value)}
             />
           </div>
           <div>
             <Label>Research Depth</Label>
             <Select
-              value={node.config.depth || 'medium'}
+              value={localConfig.depth || 'medium'}
               onValueChange={(value) => handleConfigChange('depth', value)}
             >
               <SelectTrigger>
@@ -360,7 +393,7 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
           </div>
           <div className="flex items-center space-x-2">
             <Switch
-              checked={node.config.includeSources || true}
+              checked={localConfig.includeSources || true}
               onCheckedChange={(checked) => handleConfigChange('includeSources', checked)}
             />
             <Label>Include source citations</Label>
@@ -374,7 +407,7 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
           <div>
             <Label>Synthesis Style</Label>
             <Select
-              value={node.config.style || 'comprehensive'}
+              value={localConfig.style || 'comprehensive'}
               onValueChange={(value) => handleConfigChange('style', value)}
             >
               <SelectTrigger>
@@ -391,7 +424,7 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
           <div>
             <Label>Target Length</Label>
             <Select
-              value={node.config.targetLength || 'medium'}
+              value={localConfig.targetLength || 'medium'}
               onValueChange={(value) => handleConfigChange('targetLength', value)}
             >
               <SelectTrigger>
@@ -406,14 +439,14 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
           </div>
           <div className="flex items-center space-x-2">
             <Switch
-              checked={node.config.maintainAttribution || true}
+              checked={localConfig.maintainAttribution || true}
               onCheckedChange={(checked) => handleConfigChange('maintainAttribution', checked)}
             />
             <Label>Maintain source attribution</Label>
           </div>
           <div className="flex items-center space-x-2">
             <Switch
-              checked={node.config.resolveConflicts || true}
+              checked={localConfig.resolveConflicts || true}
               onCheckedChange={(checked) => handleConfigChange('resolveConflicts', checked)}
             />
             <Label>Resolve conflicting information</Label>
@@ -427,7 +460,7 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
           <div>
             <Label>Content Type</Label>
             <Select
-              value={node.config.contentType || 'article'}
+              value={localConfig.contentType || 'article'}
               onValueChange={(value) => handleConfigChange('contentType', value)}
             >
               <SelectTrigger>
@@ -445,7 +478,7 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
             <Textarea
               placeholder="Transform this content into a professional article..."
               rows={3}
-              value={node.config.prompt || ''}
+              value={localConfig.prompt || ''}
               onChange={(e) => handleConfigChange('prompt', e.target.value)}
             />
           </div>
@@ -457,7 +490,7 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
           <div>
             <Label>Publish Status</Label>
             <Select
-              value={node.config.status || 'draft'}
+              value={localConfig.status || 'draft'}
               onValueChange={(value) => handleConfigChange('status', value)}
             >
               <SelectTrigger>
@@ -472,13 +505,13 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
           <div>
             <Label>Category</Label>
             <Input
-              value={node.config.category || 'AI Generated'}
+              value={localConfig.category || 'AI Generated'}
               onChange={(e) => handleConfigChange('category', e.target.value)}
             />
           </div>
           <div className="flex items-center space-x-2">
             <Switch
-              checked={node.config.autoPublishConditional || false}
+              checked={localConfig.autoPublishConditional || false}
               onCheckedChange={(checked) => handleConfigChange('autoPublishConditional', checked)}
             />
             <Label>Auto-publish if quality score greater than 80%</Label>
@@ -491,7 +524,7 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
           <div>
             <Label>Social Platform</Label>
             <Select
-              value={node.config.platform || 'twitter'}
+              value={localConfig.platform || 'twitter'}
               onValueChange={(value) => handleConfigChange('platform', value)}
             >
               <SelectTrigger>
@@ -509,7 +542,7 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
             <Textarea
               placeholder="Check out our new article: {{article.title}} {{article.url}}"
               rows={4}
-              value={node.config.content || ''}
+              value={localConfig.content || ''}
               onChange={(e) => handleConfigChange('content', e.target.value)}
             />
             <p className="text-xs text-muted-foreground mt-1">
@@ -526,7 +559,7 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
             <Input
               type="email"
               placeholder="recipient@example.com"
-              value={node.config.recipient || ''}
+              value={localConfig.recipient || ''}
               onChange={(e) => handleConfigChange('recipient', e.target.value)}
             />
           </div>
@@ -534,7 +567,7 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
             <Label>Email Subject</Label>
             <Input
               placeholder="New Article: {{article.title}}"
-              value={node.config.subject || ''}
+              value={localConfig.subject || ''}
               onChange={(e) => handleConfigChange('subject', e.target.value)}
             />
              <p className="text-xs text-muted-foreground mt-1">
@@ -546,7 +579,7 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
             <Textarea
               rows={4}
               placeholder="A new article has been published. Read it here: {{article.url}}"
-              value={node.config.body || ''}
+              value={localConfig.body || ''}
               onChange={(e) => handleConfigChange('body', e.target.value)}
             />
             <p className="text-xs text-muted-foreground mt-1">
@@ -559,9 +592,9 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
           <EmailPreviewDialog 
             isOpen={isPreviewOpen}
             onOpenChange={setIsPreviewOpen}
-            recipient={node.config.recipient || ''}
-            subject={getInterpolatedValue(node.config.subject || '')}
-            body={getInterpolatedValue(node.config.body || '').replace(/\n/g, '<br />')}
+            recipient={localConfig.recipient || ''}
+            subject={getInterpolatedValue(localConfig.subject || '')}
+            body={getInterpolatedValue(localConfig.body || '').replace(/\n/g, '<br />')}
           />
         </div>
       )}
@@ -571,7 +604,7 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
           <div>
             <Label>Image Provider</Label>
             <Select
-              value={node.config.provider || 'dall-e-3'}
+              value={localConfig.provider || 'dall-e-3'}
               onValueChange={(value) => handleConfigChange('provider', value)}
             >
               <SelectTrigger>
@@ -588,7 +621,7 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
             <Textarea
               placeholder="A photorealistic image of..."
               rows={4}
-              value={node.config.prompt || ''}
+              value={localConfig.prompt || ''}
               onChange={(e) => handleConfigChange('prompt', e.target.value)}
             />
             <p className="text-xs text-muted-foreground mt-1">
@@ -604,7 +637,7 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
             <Label>Focus Keywords (comma separated)</Label>
             <Input
               placeholder="AI, automation, content creation"
-              value={Array.isArray(node.config.keywords) ? node.config.keywords.join(', ') : ''}
+              value={Array.isArray(localConfig.keywords) ? localConfig.keywords.join(', ') : ''}
               onChange={(e) => handleConfigChange('keywords', e.target.value.split(',').map(k => k.trim()))}
             />
           </div>
@@ -614,7 +647,7 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
               type="number"
               min="0"
               max="100"
-              value={node.config.targetScore || 80}
+              value={localConfig.targetScore || 80}
               onChange={(e) => handleConfigChange('targetScore', parseInt(e.target.value, 10))}
             />
           </div>
@@ -626,7 +659,7 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
           <div>
             <Label>Translation Provider</Label>
             <Select
-              value={node.config.provider || 'openai'}
+              value={localConfig.provider || 'openai'}
               onValueChange={(value) => handleConfigChange('provider', value)}
             >
               <SelectTrigger>
@@ -640,7 +673,7 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground mt-1">
-              {node.config.provider === 'google' 
+              {localConfig.provider === 'google' 
                 ? 'Professional translation service - requires Cloud Translation API enabled'
                 : 'AI-powered translation - more cost-effective and good quality'
               }
@@ -649,7 +682,7 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
           <div>
             <Label>Target Language</Label>
             <Select
-              value={node.config.targetLanguage || 'es'}
+              value={localConfig.targetLanguage || 'es'}
               onValueChange={(value) => handleConfigChange('targetLanguage', value)}
             >
               <SelectTrigger>
@@ -679,7 +712,7 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
             <Textarea
               placeholder="https://example.com/feed.xml&#10;https://another-site.com/rss"
               rows={4}
-              value={Array.isArray(node.config.urls) ? node.config.urls.join('\n') : ''}
+              value={Array.isArray(localConfig.urls) ? localConfig.urls.join('\n') : ''}
               onChange={(e) => handleConfigChange('urls', e.target.value.split('\n').filter(url => url.trim() !== ''))}
             />
           </div>
@@ -721,28 +754,28 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
             <div className="space-y-2">
               <div className="flex items-center space-x-2">
                 <Switch
-                  checked={node.config.trackViews || true}
+                  checked={localConfig.trackViews || true}
                   onCheckedChange={(checked) => handleConfigChange('trackViews', checked)}
                 />
                 <Label>Page views</Label>
               </div>
               <div className="flex items-center space-x-2">
                 <Switch
-                  checked={node.config.trackEngagement || true}
+                  checked={localConfig.trackEngagement || true}
                   onCheckedChange={(checked) => handleConfigChange('trackEngagement', checked)}
                 />
                 <Label>Engagement metrics</Label>
               </div>
               <div className="flex items-center space-x-2">
                 <Switch
-                  checked={node.config.trackSEO || true}
+                  checked={localConfig.trackSEO || true}
                   onCheckedChange={(checked) => handleConfigChange('trackSEO', checked)}
                 />
                 <Label>SEO performance</Label>
               </div>
               <div className="flex items-center space-x-2">
                 <Switch
-                  checked={node.config.trackSocial || false}
+                  checked={localConfig.trackSocial || false}
                   onCheckedChange={(checked) => handleConfigChange('trackSocial', checked)}
                 />
                 <Label>Social media metrics</Label>
@@ -752,7 +785,7 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
           <div>
             <Label>Analysis Period</Label>
             <Select
-              value={node.config.period || 'week'}
+              value={localConfig.period || 'week'}
               onValueChange={(value) => handleConfigChange('period', value)}
             >
               <SelectTrigger>
@@ -768,7 +801,7 @@ const NodeConfiguration = ({ node, onUpdateConfig }: { node: WorkflowNode, onUpd
           </div>
           <div className="flex items-center space-x-2">
             <Switch
-              checked={node.config.generateRecommendations || true}
+              checked={localConfig.generateRecommendations || true}
               onCheckedChange={(checked) => handleConfigChange('generateRecommendations', checked)}
             />
             <Label>Generate AI recommendations</Label>

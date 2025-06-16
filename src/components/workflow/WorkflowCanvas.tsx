@@ -92,7 +92,7 @@ const WorkflowCanvas = ({
     const target = e.target as HTMLElement;
     
     // Check if click originated from the sidebar - if so, ignore it completely
-    if (target.closest('.workflow-sidebar') || target.closest('.sidebar-config')) {
+    if (target.closest('.workflow-sidebar')) {
       return;
     }
 
@@ -135,6 +135,13 @@ const WorkflowCanvas = ({
 
   const handleMouseUp = () => {
     setDraggedNode(null);
+  };
+
+  const handleCanvasClick = (e: React.MouseEvent) => {
+    // Only deselect if clicking directly on canvas, not on a node
+    if (e.target === e.currentTarget) {
+      onSelectNode(null);
+    }
   };
 
   const renderConnections = () => {
@@ -190,7 +197,7 @@ const WorkflowCanvas = ({
       className={`relative w-full h-full bg-grid-pattern bg-gray-50 ${connectingNodeId ? 'cursor-crosshair' : ''}`}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
-      onClick={() => onSelectNode(null)}
+      onClick={handleCanvasClick}
     >
       {renderConnections()}
       

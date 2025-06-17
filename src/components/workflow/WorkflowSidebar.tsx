@@ -326,13 +326,13 @@ const NodeConfiguration = ({
               />
             </div>
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="space-y-2">
+            <Label>Include abstracts</Label>
             <Switch
               key={`includeAbstracts-${node.id}`}
               checked={localConfig.includeAbstracts || true}
               onCheckedChange={(checked) => handleConfigChange('includeAbstracts', checked)}
             />
-            <Label>Include abstracts</Label>
           </div>
         </div>
       )}
@@ -441,7 +441,7 @@ const NodeConfiguration = ({
         </div>
       )}
 
-      {/* AI Processor Configuration */}
+      {/* Enhanced AI Processor Configuration */}
       {node.type === 'ai-processor' && (
         <div className="space-y-4">
           {renderAIModelSelector()}
@@ -459,14 +459,63 @@ const NodeConfiguration = ({
                 <SelectItem value="article">Full Article</SelectItem>
                 <SelectItem value="summary">Summary</SelectItem>
                 <SelectItem value="analysis">Analysis</SelectItem>
+                <SelectItem value="news-report">News Report</SelectItem>
+                <SelectItem value="tutorial">Tutorial</SelectItem>
               </SelectContent>
             </Select>
           </div>
           <div className="space-y-2">
-            <Label>Custom Prompt</Label>
+            <Label>Writing Style</Label>
+            <Select
+              key={`writingStyle-${node.id}`}
+              value={localConfig.writingStyle || 'Professional'}
+              onValueChange={(value) => handleConfigChange('writingStyle', value)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Professional">Professional</SelectItem>
+                <SelectItem value="Casual">Casual</SelectItem>
+                <SelectItem value="Academic">Academic</SelectItem>
+                <SelectItem value="Technical">Technical</SelectItem>
+                <SelectItem value="Conversational">Conversational</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Target Audience</Label>
+            <Select
+              key={`targetAudience-${node.id}`}
+              value={localConfig.targetAudience || 'General readers'}
+              onValueChange={(value) => handleConfigChange('targetAudience', value)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="General readers">General Readers</SelectItem>
+                <SelectItem value="Experts">Industry Experts</SelectItem>
+                <SelectItem value="Students">Students</SelectItem>
+                <SelectItem value="Beginners">Beginners</SelectItem>
+                <SelectItem value="Professionals">Professionals</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Article Category</Label>
+            <Input
+              key={`category-${node.id}`}
+              placeholder="Technology, Business, Science..."
+              value={localConfig.category || ''}
+              onChange={(e) => handleConfigChange('category', e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Custom Instructions (Optional)</Label>
             <Textarea
               key={`prompt-${node.id}`}
-              placeholder="Transform this content into a professional article..."
+              placeholder="Add specific instructions for content transformation..."
               rows={3}
               value={localConfig.prompt || ''}
               onChange={(e) => handleConfigChange('prompt', e.target.value)}
@@ -475,7 +524,7 @@ const NodeConfiguration = ({
         </div>
       )}
 
-      {/* Publisher Configuration */}
+      {/* Enhanced Publisher Configuration */}
       {node.type === 'publisher' && (
         <div className="space-y-4">
           <div className="space-y-2">
@@ -495,26 +544,28 @@ const NodeConfiguration = ({
             </Select>
           </div>
           <div className="space-y-2">
-            <Label>Category</Label>
+            <Label>Category Override</Label>
             <Input
               key={`category-${node.id}`}
-              value={localConfig.category || 'AI Generated'}
+              placeholder="Leave empty to use AI Processor category"
+              value={localConfig.category || ''}
               onChange={(e) => handleConfigChange('category', e.target.value)}
             />
           </div>
-          <div className="flex items-center space-x-2">
-            <Switch
-              key={`autoPublish-${node.id}`}
-              checked={localConfig.autoPublishConditional || false}
-              onCheckedChange={(checked) => handleConfigChange('autoPublishConditional', checked)}
+          <div className="space-y-2">
+            <Label>Author Name Override</Label>
+            <Input
+              key={`authorName-${node.id}`}
+              placeholder="Leave empty for default AI author"
+              value={localConfig.authorName || ''}
+              onChange={(e) => handleConfigChange('authorName', e.target.value)}
             />
-            <Label>Auto-publish if quality score greater than 80%</Label>
+          </div>
+          <div className="text-sm text-muted-foreground bg-blue-50 p-3 rounded">
+            <strong>Article Structure:</strong> The publisher automatically extracts titles, creates proper excerpts, and ensures articles follow your site's structure. Content will be validated for proper markdown formatting.
           </div>
         </div>
       )}
-
-      {/* Add other node configurations following the same pattern... */}
-      {/* I'll include a few more key ones */}
 
       {/* Email Sender Configuration */}
       {node.type === 'email-sender' && (

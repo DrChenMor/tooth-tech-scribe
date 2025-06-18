@@ -416,18 +416,37 @@ case 'publisher':
   const contentToPublish = previousData.processedContent || previousData.synthesizedContent;
   const titleToPublish = previousData.title || 'Untitled Article';
   
-  addLog(node.id, node.label, 'running', `Publishing article: "${titleToPublish}"`);
+  // 🚀 NEW: Use English slug if available (from translator), otherwise create one
+  let slugToUse = '';
+  if (previousData.englishSlug) {
+    // Use the English slug from translator
+    slugToUse = previousData.englishSlug;
+  } else {
+    // Create English slug from title
+    slugToUse = titleToPublish
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '')
+      .trim();
+  }
+  
+  addLog(node.id, node.label, 'running', `Publishing article: "${titleToPublish}" with slug: ${slugToUse}`);
   
   // Create a properly formatted content for the publisher
   const formattedContent = {
     title: titleToPublish,
-    content: contentToPublish
+    content: contentToPublish,
+    slug: slugToUse, // 🚀 Force English slug
+    isRTL: previousData.isRTL || false, // 🚀 Pass RTL info
+    targetLanguage: previousData.targetLanguage || 'en'
   };
   
   // Use the create-article-from-ai edge function for proper article creation
   const { data: publishResult, error: publishError } = await supabase.functions.invoke('create-article-from-ai', {
     body: {
-      content: JSON.stringify(formattedContent), // Send as JSON so parser can handle it
+      content: JSON.stringify(formattedContent),
       category: node.config.category || previousData.category || 'AI Generated',
       provider: previousData.aiModel || 'AI Processor',
       status: node.config.status || 'draft'
@@ -443,7 +462,7 @@ case 'publisher':
     status: publishResult.article.status,
     url: `/articles/${publishResult.article.slug}`
   };
-  addLog(node.id, node.label, 'completed', `Article published successfully: "${publishResult.article.title}" (${publishResult.article.status})`);
+  addLog(node.id, node.label, 'completed', `Article published: "${publishResult.article.title}" (${publishResult.article.status})`);
   break;
 
         case 'email-sender':
@@ -514,7 +533,6 @@ case 'publisher':
       }
     });
     if (titleError) {
-      // If title translation fails, just use original title
       console.warn('Title translation failed, using original title');
       translatedTitle = titleToTranslate;
     } else {
@@ -522,18 +540,34 @@ case 'publisher':
     }
   }
   
+  // 🚀 NEW: Create English slug from original title (ALWAYS English for URLs!)
+  const englishSlugBase = previousData.title || titleToTranslate || 'translated-article';
+  const englishSlug = englishSlugBase
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '') // Remove non-English characters
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+    .trim();
+  
+  // 🚀 NEW: Detect if target language is RTL
+  const rtlLanguages = ['he', 'ar', 'fa', 'ur']; // Hebrew, Arabic, Persian, Urdu
+  const isRTL = rtlLanguages.includes(node.config.targetLanguage || 'es');
+  
   result = { 
-    title: translatedTitle, // ✅ TRANSLATED TITLE
-    processedContent: translatedContent, // ✅ TRANSLATED CONTENT
+    title: translatedTitle,
+    processedContent: translatedContent,
     translatedContent: translatedContent,
     translatedTitle: translatedTitle,
+    englishSlug: englishSlug, // 🚀 ALWAYS English slug!
     targetLanguage: node.config.targetLanguage,
+    isRTL: isRTL, // 🚀 RTL flag for styling
     originalContent: contentToTranslate,
     originalTitle: titleToTranslate,
     category: previousData.category,
     aiModel: previousData.aiModel
   };
-  addLog(node.id, node.label, 'completed', `Translated content and title to ${node.config.targetLanguage}`);
+  addLog(node.id, node.label, 'completed', `Translated content to ${node.config.targetLanguage} with English slug: ${englishSlug}`);
   break;
           
         case 'article-structure-validator':

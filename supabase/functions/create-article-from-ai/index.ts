@@ -97,23 +97,24 @@ function parseAIContent(content: string): {
 
 // 🚀 UPDATED: Always create English-compatible slugs
 function generateSlug(title: string, forceSlug?: string): string {
-  // If we have a forced English slug, use it
+  // If we have a forced English slug from translator, use it
   if (forceSlug && forceSlug.trim()) {
     return forceSlug.trim();
   }
   
-  // Otherwise, create slug but ensure it's English-compatible
+  // Try to create slug from title
   let slug = title
     .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, '') // 🚀 Remove ALL non-English characters
+    .replace(/[^a-z0-9\s-]/g, '') // Remove non-English characters
     .replace(/\s+/g, '-')
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '')
     .trim();
     
-  // If slug is empty after cleaning (e.g., all Hebrew), create a fallback
-  if (!slug) {
-    slug = 'translated-article-' + Date.now();
+  // 🚀 FIXED: If slug is empty or too short (common with non-English titles)
+  if (!slug || slug.length < 3) {
+    const timestamp = Date.now().toString().slice(-6);
+    slug = `article-${timestamp}`;
   }
   
   return slug;

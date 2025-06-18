@@ -1,3 +1,5 @@
+// FIX 5: Update ArticlePage.tsx to handle RTL languages properly
+
 import { useParams, Link } from 'react-router-dom';
 import NotFound from './NotFound';
 import Footer from '@/components/Footer';
@@ -19,11 +21,30 @@ const fetchArticleBySlug = async (slug: string): Promise<Article | null> => {
     .eq('slug', slug)
     .single();
 
-  if (error && error.code !== 'PGRST116') { // PGRST116 means no rows returned
+  if (error && error.code !== 'PGRST116') {
     console.error('Error fetching article:', error);
     throw new Error(error.message);
   }
   return data;
+};
+
+// 🚀 NEW: Function to detect if text is RTL
+const detectRTL = (text: string): boolean => {
+  // Hebrew Unicode range: \u0590-\u05FF
+  // Arabic Unicode range: \u0600-\u06FF
+  const rtlRegex = /[\u0590-\u05FF\u0600-\u06FF]/;
+  return rtlRegex.test(text);
+};
+
+// 🚀 NEW: Function to get text direction
+const getTextDirection = (article: Article): 'rtl' | 'ltr' => {
+  if (!article) return 'ltr';
+  
+  // Check title and content for RTL characters
+  const titleIsRTL = detectRTL(article.title);
+  const contentIsRTL = detectRTL(article.content || '');
+  
+  return (titleIsRTL || contentIsRTL) ? 'rtl' : 'ltr';
 };
 
 const ArticlePage = () => {
@@ -83,6 +104,10 @@ const ArticlePage = () => {
     return <NotFound />;
   }
 
+  // 🚀 NEW: Detect text direction
+  const textDirection = getTextDirection(article);
+  const isRTL = textDirection === 'rtl';
+
   return (
     <div className="flex flex-col flex-grow">
       <main className="flex-grow">
@@ -92,7 +117,18 @@ const ArticlePage = () => {
               <Link to="/" className="text-primary font-semibold hover:underline">
                 &larr; Back to all articles
               </Link>
-              <h1 className="text-4xl md:text-5xl font-serif font-bold mt-4 leading-tight">{article.title}</h1>
+              {/* 🚀 NEW: Apply RTL direction and text alignment */}
+              <h1 
+                className={`text-4xl md:text-5xl font-serif font-bold mt-4 leading-tight ${isRTL ? 'text-right' : 'text-left'}`}
+                dir={textDirection}
+                style={{ 
+                  direction: textDirection,
+                  textAlign: isRTL ? 'right' : 'left',
+                  unicodeBidi: 'embed'
+                }}
+              >
+                {article.title}
+              </h1>
               <div className="mt-6 flex justify-center items-center flex-wrap gap-x-6 gap-y-2 text-muted-foreground text-sm">
                 <div className="flex items-center space-x-2">
                   <User size={16} />
@@ -110,17 +146,33 @@ const ArticlePage = () => {
                 )}
               </div>
             </div>
-            <img src={article.image_url || 'https://placehold.co/1280x720/EEE/BDBDBD?text=Denti-AI'} alt={article.title} className="w-full h-auto max-h-[500px] object-cover rounded-lg shadow-lg mb-8" />
-            <div className="w-full" data-color-mode="light">
+            <img 
+              src={article.image_url || 'https://placehold.co/1280x720/EEE/BDBDBD?text=Denti-AI'} 
+              alt={article.title} 
+              className="w-full h-auto max-h-[500px] object-cover rounded-lg shadow-lg mb-8" 
+            />
+            {/* 🚀 NEW: Apply RTL styling to content */}
+            <div 
+              className="w-full" 
+              data-color-mode="light"
+              dir={textDirection}
+              style={{ 
+                direction: textDirection,
+                textAlign: isRTL ? 'right' : 'left'
+              }}
+            >
               <MDEditor.Markdown 
                 source={article.content || ''} 
                 style={{ 
                   backgroundColor: 'transparent',
                   fontSize: '18px',
                   lineHeight: '1.8',
-                  fontFamily: 'inherit'
+                  fontFamily: isRTL ? 'Arial, "Helvetica Neue", Helvetica, sans-serif' : 'inherit', // Better RTL font
+                  direction: textDirection,
+                  textAlign: isRTL ? 'right' : 'left',
+                  unicodeBidi: 'embed'
                 }}
-                className="prose prose-lg max-w-none"
+                className={`prose prose-lg max-w-none ${isRTL ? 'prose-rtl' : ''}`}
               />
             </div>
           </div>

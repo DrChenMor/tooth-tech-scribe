@@ -15,22 +15,34 @@ interface CreateArticleRequest {
 }
 
 function parseAIContent(content: string): { title: string; subtitle?: string; actualContent: string } {
+  // First check if it's clean markdown (starts with # heading)
+  if (content.trim().startsWith('#')) {
+    const lines = content.split('\n');
+    let title = '';
+    let actualContent = content;
+
+    // Extract title from first # heading
+    const titleMatch = content.match(/^#\s+(.+)$/m);
+    if (titleMatch) {
+      title = titleMatch[1].trim();
+      // Remove the title line from content to avoid duplication
+      actualContent = content.replace(/^#\s+.+$/m, '').trim();
+    }
+
+    return {
+      title: title || 'Untitled Article',
+      subtitle: undefined,
+      actualContent: actualContent
+    };
+  }
+
+  // Try to parse as JSON if it doesn't look like markdown
   try {
-    // Try to parse as JSON first (from AI structured response)
     const parsed = JSON.parse(content);
     
-    // Handle the specific JSON structure we're getting from the AI Processor
-    if (parsed.Title && parsed.Content) {
-      return {
-        title: parsed.Title,
-        subtitle: parsed.Subtitle || undefined,
-        actualContent: parsed.Content
-      };
-    }
-    
-    // Handle nested structure with Title, Subtitle, Content
+    // Handle various JSON structures
     if (typeof parsed === 'object' && parsed !== null) {
-      const title = parsed.Title || parsed.title || '';
+      const title = parsed.Title || parsed.title || parsed.main_title || '';
       const subtitle = parsed.Subtitle || parsed.subtitle || undefined;
       let actualContent = parsed.Content || parsed.content || '';
       
@@ -47,44 +59,27 @@ function parseAIContent(content: string): { title: string; subtitle?: string; ac
         };
       }
     }
-    
   } catch (e) {
-    // Not JSON, continue with text parsing
+    // Not JSON, treat as plain text
   }
 
-  // Handle markdown content
+  // Fallback: treat as plain text and try to extract title
   const lines = content.split('\n');
-  let title = '';
-  let subtitle = '';
-  let actualContent = content;
-
-  // Extract title from first # heading
-  const titleMatch = content.match(/^#\s+(.+)$/m);
-  if (titleMatch) {
-    title = titleMatch[1].trim();
-    // Remove the title line from content to avoid duplication
-    actualContent = content.replace(/^#\s+.+$/m, '').trim();
-  }
-
-  // Extract subtitle from second heading or subtitle pattern
-  const subtitleMatch = actualContent.match(/^##\s+(.+)$/m) || 
-                       actualContent.match(/^\*\*(.+)\*\*$/m);
-  if (subtitleMatch) {
-    subtitle = subtitleMatch[1].trim();
-  }
-
-  // Fallback: use first line as title if no markdown title found
-  if (!title && lines.length > 0) {
-    title = lines[0].replace(/^#+\s*/, '').trim();
-    if (title.length > 100) {
-      title = title.substring(0, 100) + '...';
+  let title = 'Untitled Article';
+  
+  // Try to find a title in the first few lines
+  for (let i = 0; i < Math.min(3, lines.length); i++) {
+    const line = lines[i].trim();
+    if (line.length > 10 && line.length < 100) {
+      title = line.replace(/^#+\s*/, '').trim();
+      break;
     }
   }
 
   return {
-    title: title || 'Untitled Article',
-    subtitle: subtitle || undefined,
-    actualContent: actualContent
+    title,
+    subtitle: undefined,
+    actualContent: content
   };
 }
 

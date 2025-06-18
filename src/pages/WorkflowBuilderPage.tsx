@@ -335,32 +335,22 @@ const WorkflowBuilderPage = () => {
           
           addLog(node.id, node.label, 'running', `Processing ${contentToProcess.length} characters of content`);
           
-          // Create a clean, structured prompt for article generation that returns ONLY markdown
-          const articlePrompt = `You are a professional content writer. Transform the following content into a well-structured article.
+          // Simplified prompt that ONLY generates clean markdown
+          const articlePrompt = `Transform the following content into a well-structured markdown article. 
 
-CRITICAL REQUIREMENTS:
-1. Return ONLY clean markdown content - NO JSON, NO metadata, NO additional formatting
-2. Start with a single # heading for the main title
-3. Use ## for section headings
-4. Write in ${node.config.writingStyle || 'professional'} style
-5. Target audience: ${node.config.targetAudience || 'general readers'}
-6. Content type: ${node.config.contentType || 'article'}
-7. Minimum 500 words
+Write a professional article with:
+- A clear title using # heading
+- 2-3 main sections with ## headings  
+- Professional ${node.config.writingStyle || 'informative'} writing style
+- Target audience: ${node.config.targetAudience || 'general readers'}
+- At least 500 words
 
-STRUCTURE REQUIREMENTS:
-- # Main Title (clear and engaging)
-- Introduction paragraph
-- ## Section headings (2-3 main sections)
-- Use **bold** and *italic* for emphasis
-- Bullet points (-) where appropriate
-- Conclusion paragraph
+Return ONLY the markdown article content, no JSON, no metadata, just clean markdown text.
 
-${node.config.prompt ? `ADDITIONAL INSTRUCTIONS: ${node.config.prompt}\n\n` : ''}
+${node.config.prompt ? `Additional instructions: ${node.config.prompt}\n\n` : ''}
 
-CONTENT TO TRANSFORM:
-${contentToProcess}
-
-Remember: Return ONLY the markdown article content, nothing else.`;
+Content to transform:
+${contentToProcess}`;
           
           const { data: processedData, error: processError } = await supabase.functions.invoke('run-ai-agent-analysis', {
             body: {
@@ -450,9 +440,12 @@ Remember: Return ONLY the markdown article content, nothing else.`;
           if (translateError) throw new Error(translateError.message);
           
           result = { 
+            processedContent: translatedData.content, // Keep it as processedContent for Publisher
             translatedContent: translatedData.content,
             targetLanguage: node.config.targetLanguage,
-            originalContent: contentToTranslate
+            originalContent: contentToTranslate,
+            category: previousData.category,
+            aiModel: previousData.aiModel
           };
           addLog(node.id, node.label, 'completed', `Translated content to ${node.config.targetLanguage}`);
           break;
@@ -638,12 +631,40 @@ Remember: Return ONLY the markdown article content, nothing else.`;
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'workflow.json';
+    a.download = `workflow_${Date.now()}.json`;
     a.click();
     URL.revokeObjectURL(url);
     
-    toast.success('Workflow exported');
+    toast.success('Workflow exported successfully');
   }, [nodes]);
+
+  const loadWorkflow = useCallback(() => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            const workflowData = JSON.parse(e.target?.result as string);
+            if (workflowData.nodes && Array.isArray(workflowData.nodes)) {
+              setNodes(workflowData.nodes);
+              setSelectedNodeId(null);
+              toast.success('Workflow imported successfully');
+            } else {
+              toast.error('Invalid workflow file format');
+            }
+          } catch (error) {
+            toast.error('Failed to parse workflow file');
+          }
+        };
+        reader.readAsText(file);
+      }
+    };
+    input.click();
+  }, []);
 
   return (
     <div className="h-full flex flex-col">
@@ -654,6 +675,10 @@ Remember: Return ONLY the markdown article content, nothing else.`;
             <p className="text-muted-foreground">Build automated content research and publishing workflows</p>
           </div>
           <div className="flex gap-2">
+            <Button variant="outline" onClick={loadWorkflow} className="flex items-center gap-2">
+              <Upload className="h-4 w-4" />
+              Import
+            </Button>
             <Button variant="outline" onClick={saveWorkflow} className="flex items-center gap-2">
               <Download className="h-4 w-4" />
               Export

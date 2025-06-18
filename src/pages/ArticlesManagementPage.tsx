@@ -24,7 +24,7 @@ const fetchArticles = async (): Promise<Article[]> => {
 
 const ArticlesManagementPage = () => {
   const { data: articles, isLoading } = useQuery({
-    queryKey: ['admin-articles'],
+    queryKey: ['articles'], // Use consistent key
     queryFn: fetchArticles,
   });
 

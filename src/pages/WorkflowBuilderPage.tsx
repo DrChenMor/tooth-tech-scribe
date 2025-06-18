@@ -335,38 +335,49 @@ const WorkflowBuilderPage = () => {
           
           addLog(node.id, node.label, 'running', `Processing ${contentToProcess.length} characters of content`);
           
-          // Import the article generation prompt
-          const { ARTICLE_GENERATION_PROMPT } = await import('@/lib/articleStructureTemplate');
-          
-          // Create structured prompt using the template
-          const structuredPrompt = `${ARTICLE_GENERATION_PROMPT}
+          // Create a clean, structured prompt for article generation
+          const articlePrompt = `You are a professional content writer. Transform the following content into a well-structured article following these exact requirements:
 
-ADDITIONAL INSTRUCTIONS:
-- Content Type: ${node.config.contentType || 'article'}
-- Writing Style: ${node.config.writingStyle || 'Professional'}
-- Target Audience: ${node.config.targetAudience || 'General readers'}
-- Category: ${node.config.category || 'General'}
-${node.config.prompt ? `- Custom Instructions: ${node.config.prompt}` : ''}
+ARTICLE STRUCTURE:
+1. Start with a clear, engaging title (# Main Title)
+2. Add 2-3 main sections with ## headings
+3. Use proper markdown formatting
+4. Include an introduction and conclusion
+5. Write in ${node.config.writingStyle || 'professional'} style
+6. Target audience: ${node.config.targetAudience || 'general readers'}
+7. Content type: ${node.config.contentType || 'article'}
+
+FORMATTING REQUIREMENTS:
+- Use # for the main title (only once)
+- Use ## for section headings
+- Use **bold** and *italic* for emphasis
+- Keep paragraphs concise (2-3 sentences)
+- Use bullet points (-) where appropriate
+- Minimum 500 words
+
+IMPORTANT: Return ONLY the article content in clean markdown format. Do not include any JSON structure, metadata, or additional formatting.
+
+${node.config.prompt ? `ADDITIONAL INSTRUCTIONS: ${node.config.prompt}\n\n` : ''}
 
 CONTENT TO TRANSFORM:
 ${contentToProcess}`;
           
           const { data: processedData, error: processError } = await supabase.functions.invoke('run-ai-agent-analysis', {
             body: {
-              prompt: structuredPrompt,
+              prompt: articlePrompt,
               agentConfig: { ai_model: node.config.aiModel || 'gemini-1.5-flash-latest' }
             }
           });
           if (processError) throw new Error(processError.message);
           
           result = { 
-            processedContent: processedData.analysis,
+            processedContent: processedData.analysis, // This should now be clean markdown
             contentType: node.config.contentType || 'article',
             category: node.config.category || 'General',
             originalContentLength: contentToProcess.length,
             aiModel: node.config.aiModel || 'gemini-1.5-flash-latest'
           };
-          addLog(node.id, node.label, 'completed', `Generated structured article content using ${node.config.aiModel || 'gemini-1.5-flash-latest'}`);
+          addLog(node.id, node.label, 'completed', `Generated clean article content (${processedData.analysis.length} characters)`);
           break;
 
         case 'publisher':

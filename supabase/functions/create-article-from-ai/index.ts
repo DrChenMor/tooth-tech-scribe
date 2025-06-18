@@ -14,16 +14,56 @@ interface CreateArticleRequest {
   status?: 'draft' | 'published';
 }
 
-function extractTitleFromContent(content: string): string {
-  // Try to extract title from markdown heading
+function parseAIContent(content: string): { title: string; subtitle?: string; actualContent: string } {
+  try {
+    // Try to parse as JSON first (from AI structured response)
+    const parsed = JSON.parse(content);
+    
+    if (parsed.Title && parsed.Content) {
+      return {
+        title: parsed.Title,
+        subtitle: parsed.Subtitle || undefined,
+        actualContent: parsed.Content
+      };
+    }
+  } catch (e) {
+    // Not JSON, continue with text parsing
+  }
+
+  // Handle markdown content
+  const lines = content.split('\n');
+  let title = '';
+  let subtitle = '';
+  let actualContent = content;
+
+  // Extract title from first # heading
   const titleMatch = content.match(/^#\s+(.+)$/m);
   if (titleMatch) {
-    return titleMatch[1];
+    title = titleMatch[1].trim();
+    // Remove the title line from content to avoid duplication
+    actualContent = content.replace(/^#\s+.+$/m, '').trim();
   }
-  
-  // Fallback: use first sentence or first 60 characters
-  const firstLine = content.split('\n')[0];
-  return firstLine.length > 60 ? firstLine.substring(0, 60) + '...' : firstLine;
+
+  // Extract subtitle from second heading or subtitle pattern
+  const subtitleMatch = actualContent.match(/^##\s+(.+)$/m) || 
+                       actualContent.match(/^\*\*(.+)\*\*$/m);
+  if (subtitleMatch) {
+    subtitle = subtitleMatch[1].trim();
+  }
+
+  // Fallback: use first line as title if no markdown title found
+  if (!title && lines.length > 0) {
+    title = lines[0].replace(/^#+\s*/, '').trim();
+    if (title.length > 100) {
+      title = title.substring(0, 100) + '...';
+    }
+  }
+
+  return {
+    title: title || 'Untitled Article',
+    subtitle: subtitle || undefined,
+    actualContent: actualContent
+  };
 }
 
 function generateSlug(title: string): string {
@@ -32,21 +72,25 @@ function generateSlug(title: string): string {
     .replace(/[^a-z0-9\s-]/g, '')
     .replace(/\s+/g, '-')
     .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
     .trim();
 }
 
 function extractExcerpt(content: string): string {
-  // Remove markdown headings and get first paragraph
+  // Remove markdown syntax and get first meaningful paragraph
   const cleanContent = content
-    .replace(/^#+\s+.+$/gm, '')
-    .replace(/\*\*/g, '')
-    .replace(/\*/g, '')
+    .replace(/^#+\s+.+$/gm, '') // Remove headings
+    .replace(/\*\*/g, '') // Remove bold
+    .replace(/\*/g, '') // Remove italic
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // Convert links to text
     .trim();
   
-  const firstParagraph = cleanContent.split('\n\n')[0];
+  const paragraphs = cleanContent.split('\n\n').filter(p => p.trim().length > 20);
+  const firstParagraph = paragraphs[0] || cleanContent.split('\n')[0] || '';
+  
   return firstParagraph.length > 200 
-    ? firstParagraph.substring(0, 200) + '...' 
-    : firstParagraph;
+    ? firstParagraph.substring(0, 200).trim() + '...' 
+    : firstParagraph.trim();
 }
 
 serve(async (req) => {
@@ -56,16 +100,22 @@ serve(async (req) => {
 
   try {
     const request: CreateArticleRequest = await req.json();
-    console.log('Creating article from AI content:', request);
+    console.log('Creating article from AI content:', { 
+      contentLength: request.content?.length,
+      category: request.category,
+      provider: request.provider
+    });
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Extract article components from AI-generated content
-    const title = extractTitleFromContent(request.content);
+    // Parse the AI-generated content properly
+    const { title, subtitle, actualContent } = parseAIContent(request.content);
     const slug = generateSlug(title);
-    const excerpt = extractExcerpt(request.content);
+    const excerpt = extractExcerpt(actualContent);
+
+    console.log('Parsed content:', { title, subtitle, contentLength: actualContent.length });
 
     // Check if slug already exists and make it unique if needed
     const { data: existingArticle } = await supabase
@@ -81,33 +131,38 @@ serve(async (req) => {
     const status = request.status || 'draft';
     const published_date = status === 'published' ? new Date().toISOString() : new Date(0).toISOString();
 
-    // Create the article
+    // Create the article with properly formatted content
+    const articleData = {
+      title,
+      slug: finalSlug,
+      content: actualContent, // Use the clean content, not the raw JSON
+      excerpt,
+      category: request.category || 'AI Generated',
+      author_name: `AI Content Generator (${request.provider})`,
+      author_avatar_url: null,
+      status: status,
+      published_date: published_date,
+    };
+
+    console.log('Creating article with data:', articleData);
+
     const { data, error } = await supabase
       .from('articles')
-      .insert([
-        {
-          title,
-          slug: finalSlug,
-          content: request.content,
-          excerpt,
-          category: request.category || 'AI Generated',
-          author_name: `AI Content Generator (${request.provider})`,
-          author_avatar_url: null,
-          status: status,
-          published_date: published_date,
-        }
-      ])
+      .insert([articleData])
       .select()
       .single();
 
     if (error) {
+      console.error('Database error:', error);
       throw new Error(`Failed to create article: ${error.message}`);
     }
+
+    console.log('Article created successfully:', data.id);
 
     return new Response(JSON.stringify({ 
       success: true, 
       article: data,
-      message: `Article created successfully as ${status}`
+      message: `Article "${title}" created successfully as ${status}`
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
@@ -123,4 +178,3 @@ serve(async (req) => {
     );
   }
 });
-

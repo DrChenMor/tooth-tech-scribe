@@ -16,7 +16,7 @@ const fetchAllArticles = async (): Promise<Article[]> => {
   const { data, error } = await supabase
     .from('articles')
     .select('*')
-    .order('published_date', { ascending: false });
+    .order('created_at', { ascending: false });
   if (error) throw new Error(error.message);
   return data || [];
 };
@@ -33,14 +33,16 @@ const AdminPage = () => {
   const [mutating, setMutating] = useState<number | null>(null);
 
   const { data: articles, isLoading, isError } = useQuery({
-    queryKey: ['all-articles'],
+    queryKey: ['articles'],
     queryFn: fetchAllArticles,
   });
 
   const statusMutation = useMutation({
     mutationFn: updateArticleStatus,
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['articles'] });
       queryClient.invalidateQueries({ queryKey: ['all-articles'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-articles'] });
     },
     onSettled: () => setMutating(null),
     onError: (error) => {
@@ -56,7 +58,9 @@ const AdminPage = () => {
     mutationFn: deleteArticle,
     onSuccess: () => {
       toast({ title: "Article deleted successfully!" });
+      queryClient.invalidateQueries({ queryKey: ['articles'] });
       queryClient.invalidateQueries({ queryKey: ['all-articles'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-articles'] });
     },
     onError: (error) => {
       toast({

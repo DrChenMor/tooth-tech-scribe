@@ -217,3 +217,128 @@
   overflow-x: auto !important;
   margin: 2rem 0 !important;
 }
+
+/* Add this CSS to your global styles (app.css or index.css) */
+
+/* RTL Support for Hebrew and Arabic content */
+.prose-rtl {
+  direction: rtl;
+  text-align: right;
+}
+
+.prose-rtl h1,
+.prose-rtl h2, 
+.prose-rtl h3,
+.prose-rtl h4,
+.prose-rtl h5,
+.prose-rtl h6 {
+  text-align: right;
+  direction: rtl;
+}
+
+.prose-rtl p {
+  text-align: right;
+  direction: rtl;
+}
+
+.prose-rtl ul,
+.prose-rtl ol {
+  text-align: right;
+  direction: rtl;
+  padding-right: 1.5rem;
+  padding-left: 0;
+}
+
+.prose-rtl li {
+  text-align: right;
+  direction: rtl;
+}
+
+.prose-rtl blockquote {
+  text-align: right;
+  direction: rtl;
+  border-right: 4px solid #e5e7eb;
+  border-left: none;
+  padding-right: 1rem;
+  padding-left: 0;
+  margin-right: 0;
+  margin-left: 1.5rem;
+}
+
+.prose-rtl table {
+  direction: rtl;
+}
+
+.prose-rtl th,
+.prose-rtl td {
+  text-align: right;
+}
+
+/* Hebrew and Arabic font improvements */
+[dir="rtl"] {
+  font-family: "Segoe UI", "Tahoma", "Arial", "Helvetica Neue", sans-serif;
+}
+
+/* Better spacing for RTL languages */
+[dir="rtl"] .prose {
+  --tw-prose-bullets: "•";
+}
+
+/* Fix markdown editor RTL display */
+.w-md-editor-text[dir="rtl"] {
+  direction: rtl;
+  text-align: right;
+}
+
+.w-md-editor-text[dir="rtl"] .token {
+  direction: rtl;
+  unicode-bidi: embed;
+}
+
+/* RTL markdown content styling */
+.markdown-body[dir="rtl"] {
+  direction: rtl;
+  text-align: right;
+}
+
+.markdown-body[dir="rtl"] h1,
+.markdown-body[dir="rtl"] h2,
+.markdown-body[dir="rtl"] h3,
+.markdown-body[dir="rtl"] h4,
+.markdown-body[dir="rtl"] h5,
+.markdown-body[dir="rtl"] h6 {
+  text-align: right;
+  direction: rtl;
+}
+
+.markdown-body[dir="rtl"] p {
+  text-align: right;
+  direction: rtl;
+  unicode-bidi: embed;
+}
+
+.markdown-body[dir="rtl"] ul,
+.markdown-body[dir="rtl"] ol {
+  padding-right: 2rem;
+  padding-left: 0;
+  text-align: right;
+  direction: rtl;
+}
+
+.markdown-body[dir="rtl"] li {
+  text-align: right;
+  direction: rtl;
+}
+
+/* Ensure proper text flow for mixed content */
+.rtl-content {
+  direction: rtl;
+  text-align: right;
+  unicode-bidi: embed;
+}
+
+.rtl-content * {
+  direction: rtl;
+  text-align: right;
+  unicode-bidi: embed;
+}

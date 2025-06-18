@@ -335,32 +335,32 @@ const WorkflowBuilderPage = () => {
           
           addLog(node.id, node.label, 'running', `Processing ${contentToProcess.length} characters of content`);
           
-          // Create a clean, structured prompt for article generation
-          const articlePrompt = `You are a professional content writer. Transform the following content into a well-structured article following these exact requirements:
+          // Create a clean, structured prompt for article generation that returns ONLY markdown
+          const articlePrompt = `You are a professional content writer. Transform the following content into a well-structured article.
 
-ARTICLE STRUCTURE:
-1. Start with a clear, engaging title (# Main Title)
-2. Add 2-3 main sections with ## headings
-3. Use proper markdown formatting
-4. Include an introduction and conclusion
-5. Write in ${node.config.writingStyle || 'professional'} style
-6. Target audience: ${node.config.targetAudience || 'general readers'}
-7. Content type: ${node.config.contentType || 'article'}
+CRITICAL REQUIREMENTS:
+1. Return ONLY clean markdown content - NO JSON, NO metadata, NO additional formatting
+2. Start with a single # heading for the main title
+3. Use ## for section headings
+4. Write in ${node.config.writingStyle || 'professional'} style
+5. Target audience: ${node.config.targetAudience || 'general readers'}
+6. Content type: ${node.config.contentType || 'article'}
+7. Minimum 500 words
 
-FORMATTING REQUIREMENTS:
-- Use # for the main title (only once)
-- Use ## for section headings
+STRUCTURE REQUIREMENTS:
+- # Main Title (clear and engaging)
+- Introduction paragraph
+- ## Section headings (2-3 main sections)
 - Use **bold** and *italic* for emphasis
-- Keep paragraphs concise (2-3 sentences)
-- Use bullet points (-) where appropriate
-- Minimum 500 words
-
-IMPORTANT: Return ONLY the article content in clean markdown format. Do not include any JSON structure, metadata, or additional formatting.
+- Bullet points (-) where appropriate
+- Conclusion paragraph
 
 ${node.config.prompt ? `ADDITIONAL INSTRUCTIONS: ${node.config.prompt}\n\n` : ''}
 
 CONTENT TO TRANSFORM:
-${contentToProcess}`;
+${contentToProcess}
+
+Remember: Return ONLY the markdown article content, nothing else.`;
           
           const { data: processedData, error: processError } = await supabase.functions.invoke('run-ai-agent-analysis', {
             body: {

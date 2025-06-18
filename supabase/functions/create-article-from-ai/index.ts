@@ -19,6 +19,7 @@ function parseAIContent(content: string): { title: string; subtitle?: string; ac
     // Try to parse as JSON first (from AI structured response)
     const parsed = JSON.parse(content);
     
+    // Handle the specific JSON structure we're getting from the AI Processor
     if (parsed.Title && parsed.Content) {
       return {
         title: parsed.Title,
@@ -26,6 +27,27 @@ function parseAIContent(content: string): { title: string; subtitle?: string; ac
         actualContent: parsed.Content
       };
     }
+    
+    // Handle nested structure with Title, Subtitle, Content
+    if (typeof parsed === 'object' && parsed !== null) {
+      const title = parsed.Title || parsed.title || '';
+      const subtitle = parsed.Subtitle || parsed.subtitle || undefined;
+      let actualContent = parsed.Content || parsed.content || '';
+      
+      // If content is still an object, try to extract meaningful text
+      if (typeof actualContent === 'object') {
+        actualContent = JSON.stringify(actualContent, null, 2);
+      }
+      
+      if (title && actualContent) {
+        return {
+          title,
+          subtitle,
+          actualContent
+        };
+      }
+    }
+    
   } catch (e) {
     // Not JSON, continue with text parsing
   }

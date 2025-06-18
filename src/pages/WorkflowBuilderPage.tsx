@@ -289,131 +289,162 @@ const WorkflowBuilderPage = () => {
           break;
 
         case 'ai-processor':
-          // Enhanced content extraction - handle multiple data sources
-          let contentToProcess = null;
-          
-          if (previousData) {
-            // Try different content sources in order of preference
-            if (previousData.synthesizedContent) {
-              contentToProcess = previousData.synthesizedContent;
-            } else if (previousData.processedContent) {
-              contentToProcess = previousData.processedContent;
-            } else if (previousData.research) {
-              contentToProcess = previousData.research;
-            } else if (previousData.scrapedContent && Array.isArray(previousData.scrapedContent)) {
-              // Combine scraped content
-              contentToProcess = previousData.scrapedContent
-                .map((item: any) => item.content)
-                .join('\n\n');
-            } else if (previousData.articles && Array.isArray(previousData.articles)) {
-              // Combine RSS/news articles
-              contentToProcess = previousData.articles
-                .map((item: any) => `${item.title}: ${item.description || item.content || ''}`)
-                .join('\n\n');
-            } else if (previousData.papers && Array.isArray(previousData.papers)) {
-              // Combine academic papers
-              contentToProcess = previousData.papers
-                .map((item: any) => `${item.title}: ${item.abstract || ''}`)
-                .join('\n\n');
-            } else if (typeof previousData === 'string') {
-              // Direct string content
-              contentToProcess = previousData;
-            } else if (previousData.content) {
-              // Generic content field
-              contentToProcess = previousData.content;
-            }
-          }
-          
-          // Also check if the node has custom prompt content
-          if (!contentToProcess && node.config.prompt) {
-            contentToProcess = node.config.prompt;
-          }
-          
-          if (!contentToProcess) {
-            throw new Error('No content to process. This node needs to be connected to a content source (scraper, RSS aggregator, news discovery, research, etc.) or have custom content configured.');
-          }
-          
-          addLog(node.id, node.label, 'running', `Processing ${contentToProcess.length} characters of content`);
-          
-          // Enhanced prompt that generates ONLY clean markdown
-          const articlePrompt = `You are a professional content writer. Transform the following content into a well-structured markdown article.
+  // Enhanced content extraction - handle multiple data sources
+  let contentToProcess = null;
+  
+  if (previousData) {
+    // Try different content sources in order of preference
+    if (previousData.synthesizedContent) {
+      contentToProcess = previousData.synthesizedContent;
+    } else if (previousData.processedContent) {
+      contentToProcess = previousData.processedContent;
+    } else if (previousData.research) {
+      contentToProcess = previousData.research;
+    } else if (previousData.scrapedContent && Array.isArray(previousData.scrapedContent)) {
+      // Combine scraped content
+      contentToProcess = previousData.scrapedContent
+        .map((item: any) => item.content)
+        .join('\n\n');
+    } else if (previousData.articles && Array.isArray(previousData.articles)) {
+      // Combine RSS/news articles
+      contentToProcess = previousData.articles
+        .map((item: any) => `${item.title}: ${item.description || item.content || ''}`)
+        .join('\n\n');
+    } else if (previousData.papers && Array.isArray(previousData.papers)) {
+      // Combine academic papers
+      contentToProcess = previousData.papers
+        .map((item: any) => `${item.title}: ${item.abstract || ''}`)
+        .join('\n\n');
+    } else if (typeof previousData === 'string') {
+      // Direct string content
+      contentToProcess = previousData;
+    } else if (previousData.content) {
+      // Generic content field
+      contentToProcess = previousData.content;
+    }
+  }
+  
+  // Also check if the node has custom prompt content
+  if (!contentToProcess && node.config.prompt) {
+    contentToProcess = node.config.prompt;
+  }
+  
+  if (!contentToProcess) {
+    throw new Error('No content to process. This node needs to be connected to a content source (scraper, RSS aggregator, news discovery, research, etc.) or have custom content configured.');
+  }
+  
+  addLog(node.id, node.label, 'running', `Processing ${contentToProcess.length} characters of content`);
+  
+  // FIXED PROMPT - This tells the AI to create a JSON with title and content separated
+  const articlePrompt = `You are a professional content writer. Transform the following content into a well-structured article.
 
-IMPORTANT: Return ONLY clean markdown text. No JSON, no code blocks, no metadata - just the article content.
+IMPORTANT: Return your response as a JSON object with this exact structure:
+{
+  "title": "A clear, engaging title for the article",
+  "content": "The main article content in markdown format starting with ## headings (no # title since title is separate)"
+}
 
-Requirements:
-- Start with a clear # title (one line only)
-- Use ## for main sections
+Requirements for the content:
+- Use ## for main sections (NOT # since title is separate)
 - Write in ${node.config.writingStyle || 'professional, informative'} style
 - Target audience: ${node.config.targetAudience || 'general readers'}
 - Minimum 500 words
 - Include clear introduction and conclusion
+- Use proper markdown formatting
 
 ${node.config.prompt ? `Additional instructions: ${node.config.prompt}\n\n` : ''}
 
 Content to transform:
 ${contentToProcess}
 
-Remember: Return ONLY the markdown article, nothing else.`;
-          
-          const { data: processedData, error: processError } = await supabase.functions.invoke('run-ai-agent-analysis', {
-            body: {
-              prompt: articlePrompt,
-              agentConfig: { ai_model: node.config.aiModel || 'gemini-1.5-flash-latest' }
-            }
-          });
-          if (processError) throw new Error(processError.message);
-          
-          // Ensure we get clean markdown content
-          let cleanContent = processedData.analysis;
-          
-          // Remove any JSON wrapping if it exists
-          if (cleanContent.includes('```markdown')) {
-            cleanContent = cleanContent.replace(/```markdown\s*/, '').replace(/```\s*$/, '');
-          }
-          if (cleanContent.includes('```json')) {
-            cleanContent = cleanContent.replace(/```json\s*/, '').replace(/```\s*$/, '');
-          }
-          
-          result = { 
-            processedContent: cleanContent.trim(), // Clean markdown content
-            contentType: node.config.contentType || 'article',
-            category: node.config.category || 'General',
-            originalContentLength: contentToProcess.length,
-            aiModel: node.config.aiModel || 'gemini-1.5-flash-latest'
-          };
-          addLog(node.id, node.label, 'completed', `Generated clean article content (${cleanContent.length} characters)`);
-          break;
+Remember: Return ONLY the JSON object with "title" and "content" fields.`;
+  
+  const { data: processedData, error: processError } = await supabase.functions.invoke('run-ai-agent-analysis', {
+    body: {
+      prompt: articlePrompt,
+      agentConfig: { ai_model: node.config.aiModel || 'gemini-1.5-flash-latest' }
+    }
+  });
+  if (processError) throw new Error(processError.message);
+  
+  // Parse the AI response to extract title and content properly
+  let title = 'Untitled Article';
+  let cleanContent = processedData.analysis;
+  
+  try {
+    // Try to parse as JSON first
+    const parsed = JSON.parse(processedData.analysis);
+    if (parsed.title && parsed.content) {
+      title = parsed.title;
+      cleanContent = parsed.content;
+    }
+  } catch (e) {
+    // If not JSON, try to extract title from markdown
+    if (cleanContent.includes('# ')) {
+      const titleMatch = cleanContent.match(/^# (.+)$/m);
+      if (titleMatch) {
+        title = titleMatch[1];
+        cleanContent = cleanContent.replace(/^# .+$/m, '').trim();
+      }
+    }
+  }
+  
+  // Clean up any remaining markdown code blocks
+  if (cleanContent.includes('```markdown')) {
+    cleanContent = cleanContent.replace(/```markdown\s*/, '').replace(/```\s*$/, '');
+  }
+  if (cleanContent.includes('```json')) {
+    cleanContent = cleanContent.replace(/```json\s*/, '').replace(/```\s*$/, '');
+  }
+  
+  result = { 
+    title: title.trim(), // ✅ TITLE IS NOW SEPARATE!
+    processedContent: cleanContent.trim(), // ✅ CONTENT WITHOUT TITLE
+    contentType: node.config.contentType || 'article',
+    category: node.config.category || 'General',
+    originalContentLength: contentToProcess.length,
+    aiModel: node.config.aiModel || 'gemini-1.5-flash-latest'
+  };
+  addLog(node.id, node.label, 'completed', `Generated article: "${title}" (${cleanContent.length} characters)`);
+  break;
 
-        case 'publisher':
-          if (!previousData || !previousData.processedContent) {
-            throw new Error('No processed content to publish. Connect this node to an AI Processor that generates structured content.');
-          }
-          
-          const contentToPublish = previousData.processedContent;
-          
-          addLog(node.id, node.label, 'running', `Publishing article content...`);
-          
-          // Use the create-article-from-ai edge function for proper article creation
-          const { data: publishResult, error: publishError } = await supabase.functions.invoke('create-article-from-ai', {
-            body: {
-              content: contentToPublish,
-              category: node.config.category || previousData.category || 'AI Generated',
-              provider: previousData.aiModel || 'AI Processor',
-              status: node.config.status || 'draft'
-            }
-          });
-          
-          if (publishError) throw new Error(publishError.message);
-          
-          result = { 
-            articleId: publishResult.article.id,
-            title: publishResult.article.title,
-            slug: publishResult.article.slug,
-            status: publishResult.article.status,
-            url: `/articles/${publishResult.article.slug}`
-          };
-          addLog(node.id, node.label, 'completed', `Article published successfully: "${publishResult.article.title}" (${publishResult.article.status})`);
-          break;
+case 'publisher':
+  if (!previousData || (!previousData.processedContent && !previousData.synthesizedContent)) {
+    throw new Error('No processed content to publish. Connect this node to an AI Processor that generates structured content.');
+  }
+  
+  const contentToPublish = previousData.processedContent || previousData.synthesizedContent;
+  const titleToPublish = previousData.title || 'Untitled Article';
+  
+  addLog(node.id, node.label, 'running', `Publishing article: "${titleToPublish}"`);
+  
+  // Create a properly formatted content for the publisher
+  const formattedContent = {
+    title: titleToPublish,
+    content: contentToPublish
+  };
+  
+  // Use the create-article-from-ai edge function for proper article creation
+  const { data: publishResult, error: publishError } = await supabase.functions.invoke('create-article-from-ai', {
+    body: {
+      content: JSON.stringify(formattedContent), // Send as JSON so parser can handle it
+      category: node.config.category || previousData.category || 'AI Generated',
+      provider: previousData.aiModel || 'AI Processor',
+      status: node.config.status || 'draft'
+    }
+  });
+  
+  if (publishError) throw new Error(publishError.message);
+  
+  result = { 
+    articleId: publishResult.article.id,
+    title: publishResult.article.title,
+    slug: publishResult.article.slug,
+    status: publishResult.article.status,
+    url: `/articles/${publishResult.article.slug}`
+  };
+  addLog(node.id, node.label, 'completed', `Article published successfully: "${publishResult.article.title}" (${publishResult.article.status})`);
+  break;
 
         case 'email-sender':
           if (!node.config.recipient || !node.config.subject) {
@@ -438,32 +469,73 @@ Remember: Return ONLY the markdown article, nothing else.`;
           break;
 
         case 'translator':
-          if (!previousData || (!previousData.processedContent && !previousData.synthesizedContent)) {
-            throw new Error('No content to translate. Connect this node to a content source.');
-          }
+  if (!previousData || (!previousData.processedContent && !previousData.synthesizedContent && !previousData.content)) {
+    throw new Error('No content to translate. Connect this node to a content source.');
+  }
+  
+  // Get content to translate - try multiple sources
+  const contentToTranslate = previousData.processedContent || 
+                            previousData.synthesizedContent || 
+                            previousData.content ||
+                            '';
+  
+  // Get title to translate if it exists
+  const titleToTranslate = previousData.title || '';
+  
+  if (!contentToTranslate && !titleToTranslate) {
+    throw new Error('No content found to translate.');
+  }
+  
+  addLog(node.id, node.label, 'running', `Translating content to ${node.config.targetLanguage || 'es'}`);
+  
+  let translatedContent = contentToTranslate;
+  let translatedTitle = titleToTranslate;
+  
+  // Translate content if it exists
+  if (contentToTranslate) {
+    const { data: contentTranslation, error: contentError } = await supabase.functions.invoke('translator', {
+      body: {
+        content: contentToTranslate,
+        targetLanguage: node.config.targetLanguage || 'es',
+        provider: node.config.provider || 'google'
+      }
+    });
+    if (contentError) throw new Error(`Content translation failed: ${contentError.message}`);
+    translatedContent = contentTranslation.content;
+  }
+  
+  // Translate title if it exists
+  if (titleToTranslate) {
+    const { data: titleTranslation, error: titleError } = await supabase.functions.invoke('translator', {
+      body: {
+        content: titleToTranslate,
+        targetLanguage: node.config.targetLanguage || 'es',
+        provider: node.config.provider || 'google'
+      }
+    });
+    if (titleError) {
+      // If title translation fails, just use original title
+      console.warn('Title translation failed, using original title');
+      translatedTitle = titleToTranslate;
+    } else {
+      translatedTitle = titleTranslation.content;
+    }
+  }
+  
+  result = { 
+    title: translatedTitle, // ✅ TRANSLATED TITLE
+    processedContent: translatedContent, // ✅ TRANSLATED CONTENT
+    translatedContent: translatedContent,
+    translatedTitle: translatedTitle,
+    targetLanguage: node.config.targetLanguage,
+    originalContent: contentToTranslate,
+    originalTitle: titleToTranslate,
+    category: previousData.category,
+    aiModel: previousData.aiModel
+  };
+  addLog(node.id, node.label, 'completed', `Translated content and title to ${node.config.targetLanguage}`);
+  break;
           
-          const contentToTranslate = previousData.processedContent || previousData.synthesizedContent;
-          
-          const { data: translatedData, error: translateError } = await supabase.functions.invoke('translator', {
-            body: {
-              content: contentToTranslate,
-              targetLanguage: node.config.targetLanguage || 'es',
-              provider: node.config.provider || 'google'
-            }
-          });
-          if (translateError) throw new Error(translateError.message);
-          
-          result = { 
-            processedContent: translatedData.content, // Keep it as processedContent for Publisher
-            translatedContent: translatedData.content,
-            targetLanguage: node.config.targetLanguage,
-            originalContent: contentToTranslate,
-            category: previousData.category,
-            aiModel: previousData.aiModel
-          };
-          addLog(node.id, node.label, 'completed', `Translated content to ${node.config.targetLanguage}`);
-          break;
-
         case 'article-structure-validator':
           if (!previousData || (!previousData.processedContent && !previousData.synthesizedContent)) {
             throw new Error('No content to validate. Connect this node to a content processor.');

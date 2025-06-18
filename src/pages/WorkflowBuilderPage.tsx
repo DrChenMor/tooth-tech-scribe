@@ -487,7 +487,9 @@ case 'publisher':
           addLog(node.id, node.label, 'completed', `Email sent to ${node.config.recipient}`);
           break;
 
-        case 'translator':
+        // FIXED VERSION - Update your WorkflowBuilderPage.tsx translator case
+
+case 'translator':
   if (!previousData || (!previousData.processedContent && !previousData.synthesizedContent && !previousData.content)) {
     throw new Error('No content to translate. Connect this node to a content source.');
   }
@@ -540,15 +542,22 @@ case 'publisher':
     }
   }
   
-  // 🚀 NEW: Create English slug from original title (ALWAYS English for URLs!)
+  // 🚀 FIXED: Create English slug from ORIGINAL title (before translation!)
   const englishSlugBase = previousData.title || titleToTranslate || 'translated-article';
-  const englishSlug = englishSlugBase
+  let englishSlug = englishSlugBase
     .toLowerCase()
     .replace(/[^a-z0-9\s-]/g, '') // Remove non-English characters
     .replace(/\s+/g, '-')
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '')
     .trim();
+  
+  // 🚀 FIXED: If slug is empty (all non-English), create a meaningful fallback
+  if (!englishSlug || englishSlug.length < 3) {
+    const targetLang = node.config.targetLanguage || 'translated';
+    const timestamp = Date.now().toString().slice(-6); // Last 6 digits
+    englishSlug = `${targetLang}-article-${timestamp}`;
+  }
   
   // 🚀 NEW: Detect if target language is RTL
   const rtlLanguages = ['he', 'ar', 'fa', 'ur']; // Hebrew, Arabic, Persian, Urdu
@@ -559,17 +568,18 @@ case 'publisher':
     processedContent: translatedContent,
     translatedContent: translatedContent,
     translatedTitle: translatedTitle,
-    englishSlug: englishSlug, // 🚀 ALWAYS English slug!
+    englishSlug: englishSlug, // 🚀 Always has a valid English slug!
     targetLanguage: node.config.targetLanguage,
-    isRTL: isRTL, // 🚀 RTL flag for styling
+    isRTL: isRTL,
     originalContent: contentToTranslate,
     originalTitle: titleToTranslate,
     category: previousData.category,
     aiModel: previousData.aiModel
   };
-  addLog(node.id, node.label, 'completed', `Translated content to ${node.config.targetLanguage} with English slug: ${englishSlug}`);
+  addLog(node.id, node.label, 'completed', `Translated to ${node.config.targetLanguage} with slug: ${englishSlug}`);
   break;
-          
+
+  
         case 'article-structure-validator':
           if (!previousData || (!previousData.processedContent && !previousData.synthesizedContent)) {
             throw new Error('No content to validate. Connect this node to a content processor.');

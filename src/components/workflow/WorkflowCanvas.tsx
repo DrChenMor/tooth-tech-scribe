@@ -59,11 +59,12 @@ const WorkflowCanvas = ({
       'email-sender': Mail,
       'image-generator': ImagePlay,
       'seo-analyzer': SearchCheck,
-      'translator': Languages,
+      translator: Languages,
       'content-quality-analyzer': Award,
       'ai-seo-optimizer': TrendingUp,
       'engagement-forecaster': HeartPulse,
       'content-performance-analyzer': BarChart3,
+      'article-structure-validator': Award,
     };
     return icons[type] || Clock;
   };
@@ -84,11 +85,12 @@ const WorkflowCanvas = ({
       'email-sender': 'border-orange-200 bg-orange-50',
       'image-generator': 'border-indigo-200 bg-indigo-50',
       'seo-analyzer': 'border-pink-200 bg-pink-50',
-      'translator': 'border-teal-200 bg-teal-50',
+      translator: 'border-teal-200 bg-teal-50',
       'content-quality-analyzer': 'border-cyan-200 bg-cyan-50',
       'ai-seo-optimizer': 'border-lime-200 bg-lime-50',
       'engagement-forecaster': 'border-rose-200 bg-rose-50',
       'content-performance-analyzer': 'border-slate-200 bg-slate-50',
+      'article-structure-validator': 'border-indigo-300 bg-indigo-100',
     };
     return colors[type] || 'border-gray-200 bg-gray-50';
   };

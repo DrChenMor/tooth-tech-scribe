@@ -37,6 +37,7 @@ const WorkflowSidebar = ({ selectedNode, onAddNode, onUpdateNodeConfig }: Workfl
     { type: 'perplexity-research', icon: Search, label: 'Perplexity Research', description: 'AI-powered web research' },
     { type: 'ai-processor', icon: Brain, label: 'AI Processor', description: 'Generate content' },
     { type: 'multi-source-synthesizer', icon: Combine, label: 'Multi-Source Synthesizer', description: 'Combine multiple sources with AI' },
+    { type: 'article-structure-validator', icon: Award, label: 'Article Structure Validator', description: 'Validate article structure and quality' },
     { type: 'filter', icon: Filter, label: 'Filter', description: 'Quality control' },
     { type: 'publisher', icon: Send, label: 'Publisher', description: 'Publish articles' },
     { type: 'social-poster', icon: Share2, label: 'Social Poster', description: 'Post to social media' },
@@ -140,6 +141,7 @@ const NodeConfiguration = ({
       'image-generator': ImagePlay,
       'seo-analyzer': SearchCheck,
       translator: Languages,
+      'article-structure-validator': Award,
       'content-quality-analyzer': Award,
       'ai-seo-optimizer': TrendingUp,
       'engagement-forecaster': HeartPulse,
@@ -650,8 +652,53 @@ const NodeConfiguration = ({
         </div>
       )}
 
+      {/* Article Structure Validator Configuration */}
+      {node.type === 'article-structure-validator' && (
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label>Validation Level</Label>
+            <Select
+              key={`validationLevel-${node.id}`}
+              value={localConfig.validationLevel || 'standard'}
+              onValueChange={(value) => handleConfigChange('validationLevel', value)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="basic">Basic (Title, headings)</SelectItem>
+                <SelectItem value="standard">Standard (Structure, formatting)</SelectItem>
+                <SelectItem value="strict">Strict (All requirements)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Minimum Word Count</Label>
+            <Input
+              key={`minWordCount-${node.id}`}
+              type="number"
+              min="100"
+              max="5000"
+              value={localConfig.minWordCount || 300}
+              onChange={(e) => handleConfigChange('minWordCount', parseInt(e.target.value, 10))}
+            />
+          </div>
+          <div className="flex items-center space-x-2">
+            <Switch
+              key={`requireConclusion-${node.id}`}
+              checked={localConfig.requireConclusion !== false}
+              onCheckedChange={(checked) => handleConfigChange('requireConclusion', checked)}
+            />
+            <Label>Require conclusion section</Label>
+          </div>
+          <div className="text-sm text-muted-foreground bg-blue-50 p-3 rounded">
+            <strong>Article Validation:</strong> This node validates article structure, checks for proper markdown formatting, required sections, and provides quality scores and improvement suggestions.
+          </div>
+        </div>
+      )}
+
       {/* Default message for other node types */}
-      {!['trigger', 'scraper', 'rss-aggregator', 'google-scholar-search', 'news-discovery', 'perplexity-research', 'ai-processor', 'publisher', 'email-sender', 'translator'].includes(node.type) && (
+      {!['trigger', 'scraper', 'rss-aggregator', 'google-scholar-search', 'news-discovery', 'perplexity-research', 'ai-processor', 'publisher', 'email-sender', 'translator', 'article-structure-validator'].includes(node.type) && (
         <div className="space-y-4">
           <p className="text-sm text-muted-foreground">
             Configuration options for {node.label} will be available soon.

@@ -335,9 +335,25 @@ const WorkflowBuilderPage = () => {
           
           addLog(node.id, node.label, 'running', `Processing ${contentToProcess.length} characters of content`);
           
+          // Import the article generation prompt
+          const { ARTICLE_GENERATION_PROMPT } = await import('@/lib/articleStructureTemplate');
+          
+          // Create structured prompt using the template
+          const structuredPrompt = `${ARTICLE_GENERATION_PROMPT}
+
+ADDITIONAL INSTRUCTIONS:
+- Content Type: ${node.config.contentType || 'article'}
+- Writing Style: ${node.config.writingStyle || 'Professional'}
+- Target Audience: ${node.config.targetAudience || 'General readers'}
+- Category: ${node.config.category || 'General'}
+${node.config.prompt ? `- Custom Instructions: ${node.config.prompt}` : ''}
+
+CONTENT TO TRANSFORM:
+${contentToProcess}`;
+          
           const { data: processedData, error: processError } = await supabase.functions.invoke('run-ai-agent-analysis', {
             body: {
-              prompt: `Transform this content into a ${node.config.contentType || 'article'}. Make it engaging, well-structured, and informative:\n\n${contentToProcess}`,
+              prompt: structuredPrompt,
               agentConfig: { ai_model: node.config.aiModel || 'gemini-1.5-flash-latest' }
             }
           });
@@ -346,49 +362,42 @@ const WorkflowBuilderPage = () => {
           result = { 
             processedContent: processedData.analysis,
             contentType: node.config.contentType || 'article',
-            originalContentLength: contentToProcess.length
+            category: node.config.category || 'General',
+            originalContentLength: contentToProcess.length,
+            aiModel: node.config.aiModel || 'gemini-1.5-flash-latest'
           };
-          addLog(node.id, node.label, 'completed', `Processed content with AI (${node.config.aiModel || 'gemini-1.5-flash-latest'})`);
+          addLog(node.id, node.label, 'completed', `Generated structured article content using ${node.config.aiModel || 'gemini-1.5-flash-latest'}`);
           break;
+
         case 'publisher':
-          if (!previousData || (!previousData.processedContent && !previousData.synthesizedContent)) {
-            throw new Error('No content to publish. Connect this node to a content processor.');
+          if (!previousData || !previousData.processedContent) {
+            throw new Error('No processed content to publish. Connect this node to an AI Processor that generates structured content.');
           }
           
-          const contentToPublish = previousData.processedContent || previousData.synthesizedContent;
+          const contentToPublish = previousData.processedContent;
           
-          // Extract title from content or use a default
-          const titleMatch = contentToPublish.match(/^#\s+(.+)$/m);
-          const title = titleMatch ? titleMatch[1] : `Auto-Generated Article - ${new Date().toLocaleDateString()}`;
+          addLog(node.id, node.label, 'running', `Publishing article content...`);
           
-          // Generate slug
-          const slug = title.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').trim() + '-' + Date.now();
-          
-          // Create article in database
-          const { data: articleData, error: articleError } = await supabase
-            .from('articles')
-            .insert({
-              title,
-              slug,
+          // Use the create-article-from-ai edge function for proper article creation
+          const { data: publishResult, error: publishError } = await supabase.functions.invoke('create-article-from-ai', {
+            body: {
               content: contentToPublish,
-              excerpt: contentToPublish.substring(0, 200) + '...',
-              category: node.config.category || 'Auto-Generated',
-              author_name: 'Workflow Bot',
-              status: node.config.status || 'draft',
-              published_date: new Date().toISOString()
-            })
-            .select()
-            .single();
-            
-          if (articleError) throw new Error(articleError.message);
+              category: node.config.category || previousData.category || 'AI Generated',
+              provider: previousData.aiModel || 'AI Processor',
+              status: node.config.status || 'draft'
+            }
+          });
+          
+          if (publishError) throw new Error(publishError.message);
           
           result = { 
-            articleId: articleData.id,
-            title,
-            slug,
-            status: node.config.status || 'draft'
+            articleId: publishResult.article.id,
+            title: publishResult.article.title,
+            slug: publishResult.article.slug,
+            status: publishResult.article.status,
+            url: `/articles/${publishResult.article.slug}`
           };
-          addLog(node.id, node.label, 'completed', `Published article: "${title}" as ${node.config.status || 'draft'}`);
+          addLog(node.id, node.label, 'completed', `Article published successfully: "${publishResult.article.title}" (${publishResult.article.status})`);
           break;
 
         case 'email-sender':

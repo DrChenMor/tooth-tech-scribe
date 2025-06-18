@@ -15,10 +15,69 @@ interface CreateArticleRequest {
 }
 
 function parseAIContent(content: string): { title: string; subtitle?: string; actualContent: string } {
-  // First check if it's clean markdown (starts with # heading)
+  console.log('Raw content received:', content.substring(0, 200) + '...');
+  
+  // First, try to parse as JSON if it looks like JSON
+  if (content.trim().startsWith('{') || content.includes('"Title"') || content.includes('"Content"')) {
+    try {
+      // Handle cases where content might be wrapped in markdown code blocks
+      let cleanContent = content;
+      if (content.includes('```json')) {
+        cleanContent = content.replace(/```json\s*/, '').replace(/```\s*$/, '');
+      }
+      
+      const parsed = JSON.parse(cleanContent);
+      console.log('Parsed JSON structure:', Object.keys(parsed));
+      
+      // Extract title - try various possible fields
+      const title = parsed.Title || parsed.title || parsed.main_title || 'Untitled Article';
+      
+      // Extract subtitle
+      const subtitle = parsed.Subtitle || parsed.subtitle || undefined;
+      
+      // Extract content - try various possible fields and handle nested structures
+      let actualContent = '';
+      
+      if (parsed.Content) {
+        actualContent = parsed.Content;
+      } else if (parsed.content) {
+        actualContent = parsed.content;
+      } else if (parsed.markdown) {
+        actualContent = parsed.markdown;
+      } else {
+        // If no content field found, try to reconstruct from available data
+        const parts = [];
+        if (title && title !== 'Untitled Article') {
+          parts.push(`# ${title}`);
+        }
+        if (subtitle) {
+          parts.push(`## ${subtitle}`);
+        }
+        // Look for any text content in other fields
+        Object.values(parsed).forEach((value: any) => {
+          if (typeof value === 'string' && value.length > 50 && !value.includes('"')) {
+            parts.push(value);
+          }
+        });
+        actualContent = parts.join('\n\n');
+      }
+      
+      console.log('Extracted:', { title, subtitle, contentLength: actualContent.length });
+      
+      return {
+        title: title.trim(),
+        subtitle: subtitle?.trim(),
+        actualContent: actualContent.trim()
+      };
+    } catch (e) {
+      console.log('Failed to parse as JSON, treating as text:', e.message);
+    }
+  }
+  
+  // If not JSON or JSON parsing failed, check if it's clean markdown
   if (content.trim().startsWith('#')) {
     const lines = content.split('\n');
-    let title = '';
+    let title = 'Untitled Article';
     let actualContent = content;
 
     // Extract title from first # heading
@@ -30,37 +89,10 @@ function parseAIContent(content: string): { title: string; subtitle?: string; ac
     }
 
     return {
-      title: title || 'Untitled Article',
+      title,
       subtitle: undefined,
-      actualContent: actualContent
+      actualContent
     };
-  }
-
-  // Try to parse as JSON if it doesn't look like markdown
-  try {
-    const parsed = JSON.parse(content);
-    
-    // Handle various JSON structures
-    if (typeof parsed === 'object' && parsed !== null) {
-      const title = parsed.Title || parsed.title || parsed.main_title || '';
-      const subtitle = parsed.Subtitle || parsed.subtitle || undefined;
-      let actualContent = parsed.Content || parsed.content || '';
-      
-      // If content is still an object, try to extract meaningful text
-      if (typeof actualContent === 'object') {
-        actualContent = JSON.stringify(actualContent, null, 2);
-      }
-      
-      if (title && actualContent) {
-        return {
-          title,
-          subtitle,
-          actualContent
-        };
-      }
-    }
-  } catch (e) {
-    // Not JSON, treat as plain text
   }
 
   // Fallback: treat as plain text and try to extract title
@@ -70,7 +102,7 @@ function parseAIContent(content: string): { title: string; subtitle?: string; ac
   // Try to find a title in the first few lines
   for (let i = 0; i < Math.min(3, lines.length); i++) {
     const line = lines[i].trim();
-    if (line.length > 10 && line.length < 100) {
+    if (line.length > 10 && line.length < 100 && !line.includes('{') && !line.includes('"')) {
       title = line.replace(/^#+\s*/, '').trim();
       break;
     }
@@ -100,10 +132,11 @@ function extractExcerpt(content: string): string {
     .replace(/\*\*/g, '') // Remove bold
     .replace(/\*/g, '') // Remove italic
     .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // Convert links to text
+    .replace(/```[\s\S]*?```/g, '') // Remove code blocks
     .trim();
   
   const paragraphs = cleanContent.split('\n\n').filter(p => p.trim().length > 20);
-  const firstParagraph = paragraphs[0] || cleanContent.split('\n')[0] || '';
+  const firstParagraph = paragraphs[0] || cleanContent.split('\n').find(line => line.trim().length > 20) || '';
   
   return firstParagraph.length > 200 
     ? firstParagraph.substring(0, 200).trim() + '...' 
@@ -120,7 +153,8 @@ serve(async (req) => {
     console.log('Creating article from AI content:', { 
       contentLength: request.content?.length,
       category: request.category,
-      provider: request.provider
+      provider: request.provider,
+      contentPreview: request.content?.substring(0, 100)
     });
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -132,7 +166,12 @@ serve(async (req) => {
     const slug = generateSlug(title);
     const excerpt = extractExcerpt(actualContent);
 
-    console.log('Parsed content:', { title, subtitle, contentLength: actualContent.length });
+    console.log('Final parsed content:', { 
+      title, 
+      subtitle, 
+      contentLength: actualContent.length, 
+      excerptLength: excerpt.length 
+    });
 
     // Check if slug already exists and make it unique if needed
     const { data: existingArticle } = await supabase
@@ -152,7 +191,7 @@ serve(async (req) => {
     const articleData = {
       title,
       slug: finalSlug,
-      content: actualContent, // Use the clean content, not the raw JSON
+      content: actualContent, // Use the clean content
       excerpt,
       category: request.category || 'AI Generated',
       author_name: `AI Content Generator (${request.provider})`,
@@ -161,7 +200,12 @@ serve(async (req) => {
       published_date: published_date,
     };
 
-    console.log('Creating article with data:', articleData);
+    console.log('Creating article with final data:', {
+      title: articleData.title,
+      slug: articleData.slug,
+      contentLength: articleData.content.length,
+      excerptLength: articleData.excerpt.length
+    });
 
     const { data, error } = await supabase
       .from('articles')

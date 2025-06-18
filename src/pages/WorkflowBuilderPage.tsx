@@ -335,22 +335,25 @@ const WorkflowBuilderPage = () => {
           
           addLog(node.id, node.label, 'running', `Processing ${contentToProcess.length} characters of content`);
           
-          // Simplified prompt that ONLY generates clean markdown
-          const articlePrompt = `Transform the following content into a well-structured markdown article. 
+          // Enhanced prompt that generates ONLY clean markdown
+          const articlePrompt = `You are a professional content writer. Transform the following content into a well-structured markdown article.
 
-Write a professional article with:
-- A clear title using # heading
-- 2-3 main sections with ## headings  
-- Professional ${node.config.writingStyle || 'informative'} writing style
+IMPORTANT: Return ONLY clean markdown text. No JSON, no code blocks, no metadata - just the article content.
+
+Requirements:
+- Start with a clear # title (one line only)
+- Use ## for main sections
+- Write in ${node.config.writingStyle || 'professional, informative'} style
 - Target audience: ${node.config.targetAudience || 'general readers'}
-- At least 500 words
-
-Return ONLY the markdown article content, no JSON, no metadata, just clean markdown text.
+- Minimum 500 words
+- Include clear introduction and conclusion
 
 ${node.config.prompt ? `Additional instructions: ${node.config.prompt}\n\n` : ''}
 
 Content to transform:
-${contentToProcess}`;
+${contentToProcess}
+
+Remember: Return ONLY the markdown article, nothing else.`;
           
           const { data: processedData, error: processError } = await supabase.functions.invoke('run-ai-agent-analysis', {
             body: {
@@ -360,14 +363,25 @@ ${contentToProcess}`;
           });
           if (processError) throw new Error(processError.message);
           
+          // Ensure we get clean markdown content
+          let cleanContent = processedData.analysis;
+          
+          // Remove any JSON wrapping if it exists
+          if (cleanContent.includes('```markdown')) {
+            cleanContent = cleanContent.replace(/```markdown\s*/, '').replace(/```\s*$/, '');
+          }
+          if (cleanContent.includes('```json')) {
+            cleanContent = cleanContent.replace(/```json\s*/, '').replace(/```\s*$/, '');
+          }
+          
           result = { 
-            processedContent: processedData.analysis, // This should now be clean markdown
+            processedContent: cleanContent.trim(), // Clean markdown content
             contentType: node.config.contentType || 'article',
             category: node.config.category || 'General',
             originalContentLength: contentToProcess.length,
             aiModel: node.config.aiModel || 'gemini-1.5-flash-latest'
           };
-          addLog(node.id, node.label, 'completed', `Generated clean article content (${processedData.analysis.length} characters)`);
+          addLog(node.id, node.label, 'completed', `Generated clean article content (${cleanContent.length} characters)`);
           break;
 
         case 'publisher':

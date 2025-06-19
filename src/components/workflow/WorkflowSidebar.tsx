@@ -15,10 +15,13 @@ import { WorkflowNode } from '@/pages/WorkflowBuilderPage';
 
 // Mock AI models - replace with actual import if available
 const AVAILABLE_MODELS = [
-  { id: 'gpt-4', name: 'GPT-4', provider: 'OpenAI' },
-  { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo', provider: 'OpenAI' },
-  { id: 'claude-3-sonnet', name: 'Claude 3 Sonnet', provider: 'Anthropic' },
-  { id: 'gemini-1.5-flash-latest', name: 'Gemini 1.5 Flash', provider: 'Google' },
+  { id: 'gemini-1.5-flash-latest', name: 'Gemini 1.5 Flash (Latest)', provider: 'Google' },
+  { id: 'gemini-1.5-pro-latest', name: 'Gemini 1.5 Pro (Latest)', provider: 'Google' },
+  { id: 'gemini-2.0-flash-exp', name: 'Gemini 2.0 Flash (Experimental)', provider: 'Google' },
+  { id: 'gpt-4o', name: 'GPT-4o', provider: 'OpenAI' },
+  { id: 'gpt-4o-mini', name: 'GPT-4o Mini', provider: 'OpenAI' },
+  { id: 'claude-3-5-sonnet-20241022', name: 'Claude 3.5 Sonnet', provider: 'Anthropic' },
+  { id: 'claude-3-5-haiku-20241022', name: 'Claude 3.5 Haiku', provider: 'Anthropic' },
 ];
 
 interface WorkflowSidebarProps {
@@ -183,6 +186,19 @@ const NodeConfiguration = ({
     </div>
   );
 
+  const renderCustomInstructions = (placeholder: string = "Add specific instructions...") => (
+    <div className="space-y-2">
+      <Label>Custom Instructions (Optional)</Label>
+      <Textarea
+        key={`customInstructions-${node.id}`}
+        placeholder={placeholder}
+        rows={3}
+        value={localConfig.customInstructions || ''}
+        onChange={(e) => handleConfigChange('customInstructions', e.target.value)}
+      />
+    </div>
+  );
+  
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-2">
@@ -285,9 +301,10 @@ const NodeConfiguration = ({
         </div>
       )}
 
-      {/* Google Scholar Search Configuration */}
+     {/* Google Scholar Search Configuration */}
       {node.type === 'google-scholar-search' && (
         <div className="space-y-4">
+          {renderAIModelSelector()}
           <div className="space-y-2">
             <Label>Search Query</Label>
             <Input
@@ -336,12 +353,14 @@ const NodeConfiguration = ({
               onCheckedChange={(checked) => handleConfigChange('includeAbstracts', checked)}
             />
           </div>
+          {renderCustomInstructions("Add specific instructions for academic paper filtering...")}
         </div>
       )}
-
+      
       {/* News Discovery Configuration */}
       {node.type === 'news-discovery' && (
         <div className="space-y-4">
+          {renderAIModelSelector()}
           <div className="space-y-2">
             <Label>Search Keywords</Label>
             <Input
@@ -398,9 +417,11 @@ const NodeConfiguration = ({
               onChange={(e) => handleConfigChange('maxResults', parseInt(e.target.value, 10))}
             />
           </div>
+          {renderCustomInstructions("Add specific instructions for news filtering...")}
         </div>
       )}
 
+      
       {/* Perplexity Research Configuration */}
       {node.type === 'perplexity-research' && (
         <div className="space-y-4">
@@ -652,6 +673,177 @@ const NodeConfiguration = ({
         </div>
       )}
 
+      {/* Image Generator Configuration */}
+      {node.type === 'image-generator' && (
+        <div className="space-y-4">
+          {renderAIModelSelector()}
+          <div className="space-y-2">
+            <Label>Image Prompt</Label>
+            <Textarea
+              key={`imagePrompt-${node.id}`}
+              placeholder="A professional illustration of dental AI technology..."
+              rows={3}
+              value={localConfig.imagePrompt || ''}
+              onChange={(e) => handleConfigChange('imagePrompt', e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Image Style</Label>
+            <Select
+              key={`imageStyle-${node.id}`}
+              value={localConfig.imageStyle || 'natural'}
+              onValueChange={(value) => handleConfigChange('imageStyle', value)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="natural">Natural</SelectItem>
+                <SelectItem value="digital_art">Digital Art</SelectItem>
+                <SelectItem value="photographic">Photographic</SelectItem>
+                <SelectItem value="vivid">Vivid</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Image Size</Label>
+            <Select
+              key={`imageSize-${node.id}`}
+              value={localConfig.imageSize || '1024x1024'}
+              onValueChange={(value) => handleConfigChange('imageSize', value)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1024x1024">Square (1024x1024)</SelectItem>
+                <SelectItem value="1792x1024">Landscape (1792x1024)</SelectItem>
+                <SelectItem value="1024x1792">Portrait (1024x1792)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Image Quality</Label>
+            <Select
+              key={`imageQuality-${node.id}`}
+              value={localConfig.imageQuality || 'standard'}
+              onValueChange={(value) => handleConfigChange('imageQuality', value)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="standard">Standard</SelectItem>
+                <SelectItem value="hd">HD</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          {renderCustomInstructions("Add specific instructions for image generation...")}
+        </div>
+      )}
+
+      {/* SEO Analyzer Configuration */}
+      {node.type === 'seo-analyzer' && (
+        <div className="space-y-4">
+          {renderAIModelSelector()}
+          <div className="space-y-2">
+            <Label>Analysis Focus</Label>
+            <Select
+              key={`analysisFocus-${node.id}`}
+              value={localConfig.analysisFocus || 'comprehensive'}
+              onValueChange={(value) => handleConfigChange('analysisFocus', value)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="comprehensive">Comprehensive Analysis</SelectItem>
+                <SelectItem value="keywords">Keywords Focus</SelectItem>
+                <SelectItem value="readability">Readability Focus</SelectItem>
+                <SelectItem value="technical">Technical SEO</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Target Keywords (Optional)</Label>
+            <Input
+              key={`targetKeywords-${node.id}`}
+              placeholder="dental AI, artificial intelligence, dentistry"
+              value={localConfig.targetKeywords || ''}
+              onChange={(e) => handleConfigChange('targetKeywords', e.target.value)}
+            />
+          </div>
+          <div className="flex items-center space-x-2">
+            <Switch
+              key={`includeMetaSuggestions-${node.id}`}
+              checked={localConfig.includeMetaSuggestions !== false}
+              onCheckedChange={(checked) => handleConfigChange('includeMetaSuggestions', checked)}
+            />
+            <Label>Include meta description suggestions</Label>
+          </div>
+          {renderCustomInstructions("Add specific SEO analysis instructions...")}
+        </div>
+      )}
+
+      {/* Multi-Source Synthesizer Configuration */}
+      {node.type === 'multi-source-synthesizer' && (
+        <div className="space-y-4">
+          {renderAIModelSelector()}
+          <div className="space-y-2">
+            <Label>Synthesis Style</Label>
+            <Select
+              key={`style-${node.id}`}
+              value={localConfig.style || 'comprehensive'}
+              onValueChange={(value) => handleConfigChange('style', value)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="summary">Summary</SelectItem>
+                <SelectItem value="comprehensive">Comprehensive</SelectItem>
+                <SelectItem value="comparison">Comparison</SelectItem>
+                <SelectItem value="narrative">Narrative</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Target Length</Label>
+            <Select
+              key={`targetLength-${node.id}`}
+              value={localConfig.targetLength || 'medium'}
+              onValueChange={(value) => handleConfigChange('targetLength', value)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="short">Short (500-800 words)</SelectItem>
+                <SelectItem value="medium">Medium (800-1500 words)</SelectItem>
+                <SelectItem value="long">Long (1500+ words)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Switch
+              key={`maintainAttribution-${node.id}`}
+              checked={localConfig.maintainAttribution !== false}
+              onCheckedChange={(checked) => handleConfigChange('maintainAttribution', checked)}
+            />
+            <Label>Maintain source attribution</Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Switch
+              key={`resolveConflicts-${node.id}`}
+              checked={localConfig.resolveConflicts !== false}
+              onCheckedChange={(checked) => handleConfigChange('resolveConflicts', checked)}
+            />
+            <Label>Resolve conflicting information</Label>
+          </div>
+          {renderCustomInstructions("Add specific instructions for content synthesis...")}
+        </div>
+      )}
+      
       {/* Article Structure Validator Configuration */}
       {node.type === 'article-structure-validator' && (
         <div className="space-y-4">
@@ -698,8 +890,7 @@ const NodeConfiguration = ({
       )}
 
       {/* Default message for other node types */}
-      {!['trigger', 'scraper', 'rss-aggregator', 'google-scholar-search', 'news-discovery', 'perplexity-research', 'ai-processor', 'publisher', 'email-sender', 'translator', 'article-structure-validator'].includes(node.type) && (
-        <div className="space-y-4">
+{!['trigger', 'scraper', 'rss-aggregator', 'google-scholar-search', 'news-discovery', 'perplexity-research', 'ai-processor', 'multi-source-synthesizer', 'publisher', 'email-sender', 'translator', 'article-structure-validator', 'image-generator', 'seo-analyzer'].includes(node.type) && (        <div className="space-y-4">
           <p className="text-sm text-muted-foreground">
             Configuration options for {node.label} will be available soon.
           </p>

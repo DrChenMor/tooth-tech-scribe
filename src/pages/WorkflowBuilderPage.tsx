@@ -394,6 +394,7 @@ const WorkflowBuilderPage = () => {
             }
             
             const enhancedPrompt = `
+const enhancedPrompt = `
 You are an expert content writer. Create a ${contentType} based on the following content.
 
 **Content Type**: ${contentType}
@@ -403,19 +404,33 @@ You are an expert content writer. Create a ${contentType} based on the following
 
 ${customInstructions ? `**Additional Instructions**: ${customInstructions}` : ''}
 
-**IMPORTANT FORMATTING RULES:**
-- Respond ONLY with clean markdown content
-- Start with a clear, engaging title as an H1 heading (# Title)
-- Use proper markdown formatting (headings, lists, emphasis)
-- NO JSON formatting, NO code blocks, NO extra markup
+**CRITICAL FORMATTING RULES:**
+- Start with a clear, engaging title as an H1 heading using # (not ** for bold)
+- Use proper markdown formatting: # for main title, ## for sections, ### for subsections
+- NO bold titles (**title**) - only use # Title format
 - Create engaging, well-structured content suitable for publication
-- Include relevant subheadings to organize the content
+- Include relevant subheadings to organize the content (##, ###)
 - Ensure the content is informative and valuable to the target audience
+- Use lists, emphasis, and proper paragraph structure
+- The title should be descriptive and engaging, not generic
+
+**Example of proper format:**
+# Engaging Article Title Here
+
+Brief introduction paragraph...
+
+## First Section Heading
+
+Content for first section...
+
+## Second Section Heading
+
+Content for second section...
 
 **Source Content to Transform:**
 ${sourceContent}
 
-Generate the ${contentType} now:`;
+Generate the ${contentType} now with proper markdown formatting:`;
 
             const agentConfig = {
               ai_model: node.config.aiModel || 'gemini-2.5-flash-preview-05-20',

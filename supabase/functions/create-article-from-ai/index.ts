@@ -19,6 +19,7 @@ function parseAIContent(content: string): {
   subtitle?: string; 
   actualContent: string;
   slug?: string;
+  image_url?: string; // 🖼️ NEW: Support for image URLs
   isRTL?: boolean;
   targetLanguage?: string;
 } {
@@ -39,20 +40,22 @@ function parseAIContent(content: string): {
       const subtitle = parsed.subtitle || parsed.Subtitle || undefined;
       const actualContent = parsed.content || parsed.Content || '';
       
-      // 🚀 NEW: Extract additional translation info
+      // 🚀 Extract additional info including image URL
       const slug = parsed.slug || undefined;
+      const image_url = parsed.image_url || undefined; // 🖼️ NEW
       const isRTL = parsed.isRTL || false;
       const targetLanguage = parsed.targetLanguage || 'en';
       
-      console.log('Extracted:', { title, subtitle, contentLength: actualContent.length, slug, isRTL, targetLanguage });
+      console.log('Extracted:', { title, subtitle, contentLength: actualContent.length, slug, image_url, isRTL, targetLanguage });
       
       return {
         title: title.trim(),
         subtitle: subtitle?.trim(),
         actualContent: actualContent.trim(),
-        slug: slug, // 🚀 English slug from translator
-        isRTL: isRTL, // 🚀 RTL flag
-        targetLanguage: targetLanguage // 🚀 Language info
+        slug: slug,
+        image_url: image_url, // 🖼️ NEW
+        isRTL: isRTL,
+        targetLanguage: targetLanguage
       };
     } catch (e) {
       console.log('Failed to parse as JSON, treating as text:', e.message);

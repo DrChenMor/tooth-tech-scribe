@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,39 +20,6 @@ interface WorkflowSidebarProps {
   onAddNode: (type: WorkflowNode['type']) => void;
   onUpdateNodeConfig: (nodeId: string, newConfig: Partial<WorkflowNode['config']>) => void;
 }
-
-// Add this function right after the imports in WorkflowSidebar.tsx
-
-const renderImageModelSelector = (localConfig: any, handleConfigChange: any, nodeId: string) => {
-  const imageModels = [
-    { id: 'dall-e-3', name: 'DALL-E 3 (OpenAI)', provider: 'OpenAI' },
-    { id: 'dall-e-2', name: 'DALL-E 2 (OpenAI)', provider: 'OpenAI' },
-    { id: 'gemini-imagen-3', name: 'Imagen 3 (Google)', provider: 'Google' },
-    { id: 'gemini-imagen-2', name: 'Imagen 2 (Google)', provider: 'Google' },
-  ];
-
-  return (
-    <div className="space-y-2">
-      <Label>AI Model for Image Generation</Label>
-      <Select
-        key={`aiModel-${nodeId}`}
-        value={localConfig.aiModel || 'dall-e-3'}
-        onValueChange={(value) => handleConfigChange('aiModel', value)}
-      >
-        <SelectTrigger>
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {imageModels.map((model) => (
-            <SelectItem key={model.id} value={model.id}>
-              {model.name}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </div>
-  );
-};
 
 const WorkflowSidebar = ({ selectedNode, onAddNode, onUpdateNodeConfig }: WorkflowSidebarProps) => {
   const nodeTypes = [
@@ -696,83 +664,74 @@ const NodeConfiguration = ({
         </div>
       )}
 
-{/* Image Generator Configuration */}
-{node.type === 'image-generator' && (
-  <div className="space-y-4">
-    {renderImageModelSelector(localConfig, handleConfigChange, node.id)}
-    <div className="space-y-2">
-      <Label>Image Prompt</Label>
-      <Textarea
-        key={`imagePrompt-${node.id}`}
-        placeholder="A professional illustration of dental AI technology..."
-        rows={3}
-        value={localConfig.imagePrompt || ''}
-        onChange={(e) => handleConfigChange('imagePrompt', e.target.value)}
-      />
-    </div>
-    <div className="space-y-2">
-      <Label>Image Style</Label>
-      <Select
-        key={`imageStyle-${node.id}`}
-        value={localConfig.imageStyle || 'natural'}
-        onValueChange={(value) => handleConfigChange('imageStyle', value)}
-      >
-        <SelectTrigger>
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="natural">Natural</SelectItem>
-          <SelectItem value="digital_art">Digital Art</SelectItem>
-          <SelectItem value="photographic">Photographic</SelectItem>
-          <SelectItem value="vivid">Vivid</SelectItem>
-        </SelectContent>
-      </Select>
-    </div>
-    <div className="space-y-2">
-      <Label>Image Size</Label>
-      <Select
-        key={`imageSize-${node.id}`}
-        value={localConfig.imageSize || '1024x1024'}
-        onValueChange={(value) => handleConfigChange('imageSize', value)}
-      >
-        <SelectTrigger>
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="1024x1024">Square (1024x1024)</SelectItem>
-          <SelectItem value="1792x1024">Landscape (1792x1024)</SelectItem>
-          <SelectItem value="1024x1792">Portrait (1024x1792)</SelectItem>
-        </SelectContent>
-      </Select>
-    </div>
-    <div className="space-y-2">
-      <Label>Image Quality</Label>
-      <Select
-        key={`imageQuality-${node.id}`}
-        value={localConfig.imageQuality || 'standard'}
-        onValueChange={(value) => handleConfigChange('imageQuality', value)}
-      >
-        <SelectTrigger>
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="standard">Standard</SelectItem>
-          <SelectItem value="hd">HD</SelectItem>
-        </SelectContent>
-      </Select>
-    </div>
-    {renderCustomInstructions("Add specific instructions for image generation...")}
-    
-    <div className="text-sm text-muted-foreground bg-blue-50 p-3 rounded">
-      <strong>AI Model Notes:</strong>
-      <ul className="mt-2 space-y-1 text-xs">
-        <li>• <strong>Gemini models:</strong> Use Google Imagen for high-quality images</li>
-        <li>• <strong>DALL-E models:</strong> Use OpenAI for creative, detailed images</li>
-        <li>• <strong>Fallback:</strong> High-quality placeholder if API fails</li>
-      </ul>
-    </div>
-  </div>
-)}
+      {/* Image Generator Configuration */}
+      {node.type === 'image-generator' && (
+        <div className="space-y-4">
+          {renderAIModelSelector()}
+          <div className="space-y-2">
+            <Label>Image Prompt</Label>
+            <Textarea
+              key={`imagePrompt-${node.id}`}
+              placeholder="A professional illustration of dental AI technology..."
+              rows={3}
+              value={localConfig.imagePrompt || ''}
+              onChange={(e) => handleConfigChange('imagePrompt', e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Image Style</Label>
+            <Select
+              key={`imageStyle-${node.id}`}
+              value={localConfig.imageStyle || 'natural'}
+              onValueChange={(value) => handleConfigChange('imageStyle', value)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="natural">Natural</SelectItem>
+                <SelectItem value="digital_art">Digital Art</SelectItem>
+                <SelectItem value="photographic">Photographic</SelectItem>
+                <SelectItem value="vivid">Vivid</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Image Size</Label>
+            <Select
+              key={`imageSize-${node.id}`}
+              value={localConfig.imageSize || '1024x1024'}
+              onValueChange={(value) => handleConfigChange('imageSize', value)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1024x1024">Square (1024x1024)</SelectItem>
+                <SelectItem value="1792x1024">Landscape (1792x1024)</SelectItem>
+                <SelectItem value="1024x1792">Portrait (1024x1792)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Image Quality</Label>
+            <Select
+              key={`imageQuality-${node.id}`}
+              value={localConfig.imageQuality || 'standard'}
+              onValueChange={(value) => handleConfigChange('imageQuality', value)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="standard">Standard</SelectItem>
+                <SelectItem value="hd">HD</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          {renderCustomInstructions("Add specific instructions for image generation...")}
+        </div>
+      )}
 
       {/* SEO Analyzer Configuration */}
       {node.type === 'seo-analyzer' && (

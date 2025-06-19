@@ -28,8 +28,6 @@ export const AVAILABLE_MODELS = [
   { id: 'o4-mini-2025-04-16', name: 'O4 Mini (Fast Reasoning)', provider: AI_PROVIDERS.OPENAI },
   { id: 'gpt-4o-mini', name: 'GPT-4o Mini', provider: AI_PROVIDERS.OPENAI },
   { id: 'gpt-4o', name: 'GPT-4o', provider: AI_PROVIDERS.OPENAI },
-  { id: 'dall-e-3', name: 'DALL-E 3 (Images)', provider: 'OpenAI', type: 'image' },
-  { id: 'dall-e-2', name: 'DALL-E 2 (Images)', provider: 'OpenAI', type: 'image' },
   
   // Anthropic Models
   { id: 'claude-opus-4-20250514', name: 'Claude Opus 4 (Latest)', provider: AI_PROVIDERS.ANTHROPIC },

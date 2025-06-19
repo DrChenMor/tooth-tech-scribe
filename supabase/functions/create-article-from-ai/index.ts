@@ -73,62 +73,22 @@ function parseAIContent(content: string): {
   let title = 'Untitled Article';
   let actualContent = content;
   
-  // Look for various title formats
-  for (let i = 0; i < Math.min(10, lines.length); i++) {
+  // Look for the first heading as title
+  for (let i = 0; i < Math.min(5, lines.length); i++) {
     const line = lines[i].trim();
-    
-    // Check for markdown headings (# Title)
     if (line.startsWith('#')) {
       title = line.replace(/^#+\s*/, '').trim();
       // Remove the title line from content
       actualContent = content.replace(line, '').trim();
       break;
-    }
-    // Check for bold titles (**Title**)
-    else if (line.startsWith('**') && line.endsWith('**') && line.length > 4) {
-      title = line.replace(/^\*\*/, '').replace(/\*\*$/, '').trim();
+    } else if (line.length > 10 && line.length < 100 && !line.includes('{') && !line.includes('"')) {
+      // If no heading found, use first meaningful line as title
+      title = line.trim();
       // Remove the title line from content
       actualContent = content.replace(line, '').trim();
       break;
     }
-    // Check for lines that look like titles (reasonable length, no special chars)
-    else if (line.length > 10 && line.length < 120 && 
-             !line.includes('{') && !line.includes('"') && 
-             !line.includes('http') && !line.includes('www') &&
-             !line.includes('://') && !line.includes('@')) {
-      
-      // Clean up potential title
-      let potentialTitle = line
-        .replace(/^\*\*/, '')  // Remove leading **
-        .replace(/\*\*$/, '')  // Remove trailing **
-        .replace(/^#+\s*/, '') // Remove markdown headers
-        .replace(/^\d+\.\s*/, '') // Remove numbered list format
-        .replace(/^-\s*/, '')  // Remove bullet points
-        .trim();
-      
-      // If it looks like a reasonable title
-      if (potentialTitle.length > 5 && potentialTitle.length < 120) {
-        title = potentialTitle;
-        // Remove the title line from content
-        actualContent = content.replace(line, '').trim();
-        break;
-      }
-    }
   }
-
-  // Clean up the title further
-  title = title
-    .replace(/^\*\*/, '')  // Remove any remaining **
-    .replace(/\*\*$/, '')  // Remove any remaining **
-    .replace(/^#+\s*/, '') // Remove any remaining #
-    .trim();
-
-  // If title is still problematic, create a basic one
-  if (!title || title.length < 3 || title === 'Untitled Article') {
-    title = 'Generated Article';
-  }
-
-  console.log('Final extracted title:', title);
 
   return {
     title,

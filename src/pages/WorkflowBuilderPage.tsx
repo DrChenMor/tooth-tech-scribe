@@ -488,7 +488,10 @@ case 'publisher':
   const contentToPublish = previousData.processedContent || previousData.synthesizedContent;
   const titleToPublish = previousData.title || 'Untitled Article';
   
-  // 🚀 NEW: Use English slug if available (from translator), otherwise create one
+  // 🖼️ NEW: Get image URL from previous nodes (Image Generator)
+  const articleImageUrl = previousData.imageUrl || null;
+  
+  // 🚀 Use English slug if available (from translator), otherwise create one
   let slugToUse = '';
   if (previousData.englishSlug) {
     // Use the English slug from translator
@@ -504,13 +507,14 @@ case 'publisher':
       .trim();
   }
   
-  addLog(node.id, node.label, 'running', `Publishing article: "${titleToPublish}" with slug: ${slugToUse}`);
+  addLog(node.id, node.label, 'running', `Publishing article: "${titleToPublish}" with slug: ${slugToUse}${articleImageUrl ? ' (with featured image)' : ''}`);
   
   // Create a properly formatted content for the publisher
   const formattedContent = {
     title: titleToPublish,
     content: contentToPublish,
     slug: slugToUse, // 🚀 Force English slug
+    image_url: articleImageUrl, // 🖼️ Include featured image
     isRTL: previousData.isRTL || false, // 🚀 Pass RTL info
     targetLanguage: previousData.targetLanguage || 'en'
   };
@@ -532,11 +536,12 @@ case 'publisher':
     title: publishResult.article.title,
     slug: publishResult.article.slug,
     status: publishResult.article.status,
+    imageUrl: articleImageUrl, // 🖼️ Pass through image URL
     url: `/articles/${publishResult.article.slug}`
   };
-  addLog(node.id, node.label, 'completed', `Article published: "${publishResult.article.title}" (${publishResult.article.status})`);
+  addLog(node.id, node.label, 'completed', `Article published: "${publishResult.article.title}" (${publishResult.article.status})${articleImageUrl ? ' with featured image' : ''}`);
   break;
-
+          
         case 'email-sender':
           if (!node.config.recipient || !node.config.subject) {
             throw new Error('Email recipient and subject are required');

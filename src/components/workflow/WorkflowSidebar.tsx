@@ -381,10 +381,10 @@ const NodeConfiguration = ({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Sources</SelectItem>
-                <SelectItem value="google-news">Google News</SelectItem>
-                <SelectItem value="reddit">Reddit</SelectItem>
-                <SelectItem value="hackernews">Hacker News</SelectItem>
+                <SelectItem value="all">All Sources (GNews + Guardian + Hacker News)</SelectItem>
+                <SelectItem value="gnews">GNews (World News)</SelectItem>
+                <SelectItem value="guardian">The Guardian (Quality Journalism)</SelectItem>
+                <SelectItem value="hackernews">Hacker News (Tech News)</SelectItem>
               </SelectContent>
             </Select>
           </div>

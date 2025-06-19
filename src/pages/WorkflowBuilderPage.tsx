@@ -207,44 +207,52 @@ const WorkflowBuilderPage = () => {
           break;
 
          case 'image-generator':
-          if (!previousData || (!previousData.title && !node.config.imagePrompt)) {
-            throw new Error('No content title or custom prompt for image generation. Connect this node to content sources or add a custom prompt.');
-          }
+  if (!previousData || (!previousData.title && !node.config.imagePrompt)) {
+    throw new Error('No content title or custom prompt for image generation. Connect this node to content sources or add a custom prompt.');
+  }
+  
+  // Build image prompt from content or use custom prompt
+  let imagePrompt = node.config.imagePrompt || '';
+  if (!imagePrompt && previousData.title) {
+    imagePrompt = `Professional illustration representing: ${previousData.title}`;
+  }
+  
+  // Add custom instructions if provided
+  if (node.config.customInstructions) {
+    imagePrompt += `. ${node.config.customInstructions}`;
+  }
+  
+  addLog(node.id, node.label, 'running', `Generating image with ${node.config.aiModel || 'default model'}: "${imagePrompt.substring(0, 100)}..."`);
+  
+  const { data: imageData, error: imageError } = await supabase.functions.invoke('image-generator', {
+    body: {
+      prompt: imagePrompt,
+      aiModel: node.config.aiModel || 'dall-e-3', // 🎯 Pass AI model choice!
+      style: node.config.imageStyle || 'natural',
+      size: node.config.imageSize || '1024x1024',
+      quality: node.config.imageQuality || 'standard',
+      customInstructions: node.config.customInstructions
+    }
+  });
+  if (imageError) throw new Error(imageError.message);
+  
+  result = { 
+    ...previousData, // Pass through previous data
+    imageUrl: imageData.imageUrl,
+    imagePrompt: imagePrompt,
+    imageStyle: node.config.imageStyle,
+    imageSize: node.config.imageSize,
+    aiModelUsed: node.config.aiModel,
+    wasImageReused: imageData.wasReused || false
+  };
+  
+  if (imageData.wasReused) {
+    addLog(node.id, node.label, 'completed', `Image reused from previous generation (${imageData.generatedWith})`);
+  } else {
+    addLog(node.id, node.label, 'completed', `New image generated with ${imageData.generatedWith}`);
+  }
+  break;
           
-          // Build image prompt from content or use custom prompt
-          let imagePrompt = node.config.imagePrompt || '';
-          if (!imagePrompt && previousData.title) {
-            imagePrompt = `Professional illustration representing: ${previousData.title}`;
-          }
-          
-          // Add custom instructions if provided
-          if (node.config.customInstructions) {
-            imagePrompt += `. ${node.config.customInstructions}`;
-          }
-          
-          addLog(node.id, node.label, 'running', `Generating image with prompt: "${imagePrompt.substring(0, 100)}..."`);
-          
-          const { data: imageData, error: imageError } = await supabase.functions.invoke('image-generator', {
-            body: {
-              prompt: imagePrompt,
-              style: node.config.imageStyle || 'natural',
-              size: node.config.imageSize || '1024x1024',
-              quality: node.config.imageQuality || 'standard',
-              customInstructions: node.config.customInstructions
-            }
-          });
-          if (imageError) throw new Error(imageError.message);
-          
-          result = { 
-            ...previousData, // Pass through previous data
-            imageUrl: imageData.imageUrl,
-            imagePrompt: imagePrompt,
-            imageStyle: node.config.imageStyle,
-            imageSize: node.config.imageSize
-          };
-          addLog(node.id, node.label, 'completed', `Image generated successfully`);
-          break;
-
  case 'seo-analyzer':
           if (!previousData || (!previousData.processedContent && !previousData.synthesizedContent)) {
             throw new Error('No content to analyze for SEO. Connect this node to content sources.');
@@ -394,6 +402,7 @@ const WorkflowBuilderPage = () => {
             }
             
             const enhancedPrompt = `
+const enhancedPrompt = `
 You are an expert content writer. Create a ${contentType} based on the following content.
 
 **Content Type**: ${contentType}
@@ -403,19 +412,33 @@ You are an expert content writer. Create a ${contentType} based on the following
 
 ${customInstructions ? `**Additional Instructions**: ${customInstructions}` : ''}
 
-**IMPORTANT FORMATTING RULES:**
-- Respond ONLY with clean markdown content
-- Start with a clear, engaging title as an H1 heading (# Title)
-- Use proper markdown formatting (headings, lists, emphasis)
-- NO JSON formatting, NO code blocks, NO extra markup
+**CRITICAL FORMATTING RULES:**
+- Start with a clear, engaging title as an H1 heading using # (not ** for bold)
+- Use proper markdown formatting: # for main title, ## for sections, ### for subsections
+- NO bold titles (**title**) - only use # Title format
 - Create engaging, well-structured content suitable for publication
-- Include relevant subheadings to organize the content
+- Include relevant subheadings to organize the content (##, ###)
 - Ensure the content is informative and valuable to the target audience
+- Use lists, emphasis, and proper paragraph structure
+- The title should be descriptive and engaging, not generic
+
+**Example of proper format:**
+# Engaging Article Title Here
+
+Brief introduction paragraph...
+
+## First Section Heading
+
+Content for first section...
+
+## Second Section Heading
+
+Content for second section...
 
 **Source Content to Transform:**
 ${sourceContent}
 
-Generate the ${contentType} now:`;
+Generate the ${contentType} now with proper markdown formatting:`;
 
             const agentConfig = {
               ai_model: node.config.aiModel || 'gemini-2.5-flash-preview-05-20',

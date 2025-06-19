@@ -1,4 +1,3 @@
-// src/pages/WorkflowBuilderPage.tsx
 import { useState, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,8 +6,45 @@ import WorkflowCanvas from '@/components/workflow/WorkflowCanvas';
 import WorkflowSidebar from '@/components/workflow/WorkflowSidebar';
 import { Play, Save, Download, Upload, Square, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { WorkflowNode, ExecutionLog } from '@/types/WorkflowTypes';
-import { executeArticleValidation } from '@/components/workflow/ArticleStructureValidator';
+
+export type WorkflowNode = {
+  id: string;
+  type: 
+    | 'trigger' 
+    | 'scraper' 
+    | 'rss-aggregator' 
+    | 'google-scholar-search' 
+    | 'news-discovery' 
+    | 'perplexity-research' 
+    | 'ai-processor' 
+    | 'multi-source-synthesizer' 
+    | 'filter' 
+    | 'publisher' 
+    | 'social-poster' 
+    | 'email-sender' 
+    | 'image-generator' 
+    | 'seo-analyzer' 
+    | 'translator' 
+    | 'content-quality-analyzer' 
+    | 'ai-seo-optimizer' 
+    | 'engagement-forecaster' 
+    | 'content-performance-analyzer'
+    | 'article-structure-validator';
+  label: string;
+  position: { x: number; y: number };
+  config: Record<string, any>;
+  connected: string[];
+};
+
+interface ExecutionLog {
+  id: string;
+  nodeId: string;
+  nodeName: string;
+  status: 'running' | 'completed' | 'error';
+  message: string;
+  timestamp: Date;
+  data?: any;
+}
 
 const WorkflowBuilderPage = () => {
   const [nodes, setNodes] = useState<WorkflowNode[]>([]);
@@ -169,54 +205,54 @@ const WorkflowBuilderPage = () => {
           addLog(node.id, node.label, 'completed', `Completed research with ${researchData.sources.length} sources`);
           break;
 
-        case 'image-generator':
-          if (!previousData || (!previousData.title && !node.config.imagePrompt)) {
-            throw new Error('No content title or custom prompt for image generation. Connect this node to content sources or add a custom prompt.');
-          }
+         case 'image-generator':
+  if (!previousData || (!previousData.title && !node.config.imagePrompt)) {
+    throw new Error('No content title or custom prompt for image generation. Connect this node to content sources or add a custom prompt.');
+  }
+  
+  // Build image prompt from content or use custom prompt
+  let imagePrompt = node.config.imagePrompt || '';
+  if (!imagePrompt && previousData.title) {
+    imagePrompt = `Professional illustration representing: ${previousData.title}`;
+  }
+  
+  // Add custom instructions if provided
+  if (node.config.customInstructions) {
+    imagePrompt += `. ${node.config.customInstructions}`;
+  }
+  
+  addLog(node.id, node.label, 'running', `Generating image with ${node.config.aiModel || 'default model'}: "${imagePrompt.substring(0, 100)}..."`);
+  
+  const { data: imageData, error: imageError } = await supabase.functions.invoke('image-generator', {
+    body: {
+      prompt: imagePrompt,
+      aiModel: node.config.aiModel || 'dall-e-3', // 🎯 Pass AI model choice!
+      style: node.config.imageStyle || 'natural',
+      size: node.config.imageSize || '1024x1024',
+      quality: node.config.imageQuality || 'standard',
+      customInstructions: node.config.customInstructions
+    }
+  });
+  if (imageError) throw new Error(imageError.message);
+  
+  result = { 
+    ...previousData, // Pass through previous data
+    imageUrl: imageData.imageUrl,
+    imagePrompt: imagePrompt,
+    imageStyle: node.config.imageStyle,
+    imageSize: node.config.imageSize,
+    aiModelUsed: node.config.aiModel,
+    wasImageReused: imageData.wasReused || false
+  };
+  
+  if (imageData.wasReused) {
+    addLog(node.id, node.label, 'completed', `Image reused from previous generation (${imageData.generatedWith})`);
+  } else {
+    addLog(node.id, node.label, 'completed', `New image generated with ${imageData.generatedWith}`);
+  }
+  break;
           
-          // Build image prompt from content or use custom prompt
-          let imagePrompt = node.config.imagePrompt || '';
-          if (!imagePrompt && previousData.title) {
-            imagePrompt = `Professional illustration representing: ${previousData.title}`;
-          }
-          
-          // Add custom instructions if provided
-          if (node.config.customInstructions) {
-            imagePrompt += `. ${node.config.customInstructions}`;
-          }
-          
-          addLog(node.id, node.label, 'running', `Generating image with ${node.config.aiModel || 'default model'}: "${imagePrompt.substring(0, 100)}..."`);
-          
-          const { data: imageData, error: imageError } = await supabase.functions.invoke('image-generator', {
-            body: {
-              prompt: imagePrompt,
-              aiModel: node.config.aiModel || 'dall-e-3',
-              style: node.config.imageStyle || 'natural',
-              size: node.config.imageSize || '1024x1024',
-              quality: node.config.imageQuality || 'standard',
-              customInstructions: node.config.customInstructions
-            }
-          });
-          if (imageError) throw new Error(imageError.message);
-          
-          result = { 
-            ...previousData, // Pass through previous data
-            imageUrl: imageData.imageUrl,
-            imagePrompt: imagePrompt,
-            imageStyle: node.config.imageStyle,
-            imageSize: node.config.imageSize,
-            aiModelUsed: node.config.aiModel,
-            wasImageReused: imageData.wasReused || false
-          };
-          
-          if (imageData.wasReused) {
-            addLog(node.id, node.label, 'completed', `Image reused from previous generation (${imageData.generatedWith})`);
-          } else {
-            addLog(node.id, node.label, 'completed', `New image generated with ${imageData.generatedWith}`);
-          }
-          break;
-          
-        case 'seo-analyzer':
+ case 'seo-analyzer':
           if (!previousData || (!previousData.processedContent && !previousData.synthesizedContent)) {
             throw new Error('No content to analyze for SEO. Connect this node to content sources.');
           }
@@ -365,6 +401,7 @@ const WorkflowBuilderPage = () => {
             }
             
             const enhancedPrompt = `
+const enhancedPrompt = `
 You are an expert content writer. Create a ${contentType} based on the following content.
 
 **Content Type**: ${contentType}
@@ -474,10 +511,10 @@ Generate the ${contentType} now with proper markdown formatting:`;
           const contentToPublish = previousData.processedContent || previousData.synthesizedContent;
           const titleToPublish = previousData.title || 'Untitled Article';
           
-          // Get image URL from previous nodes (Image Generator)
+          // 🖼️ NEW: Get image URL from previous nodes (Image Generator)
           const articleImageUrl = previousData.imageUrl || null;
           
-          // Use English slug if available (from translator), otherwise create one
+          // 🚀 Use English slug if available (from translator), otherwise create one
           let slugToUse = '';
           if (previousData.englishSlug) {
             // Use the English slug from translator
@@ -499,9 +536,9 @@ Generate the ${contentType} now with proper markdown formatting:`;
           const formattedContent = {
             title: titleToPublish,
             content: contentToPublish,
-            slug: slugToUse, // Force English slug
-            image_url: articleImageUrl, // Include featured image
-            isRTL: previousData.isRTL || false, // Pass RTL info
+            slug: slugToUse, // 🚀 Force English slug
+            image_url: articleImageUrl, // 🖼️ Include featured image
+            isRTL: previousData.isRTL || false, // 🚀 Pass RTL info
             targetLanguage: previousData.targetLanguage || 'en'
           };
           
@@ -522,7 +559,7 @@ Generate the ${contentType} now with proper markdown formatting:`;
             title: publishResult.article.title,
             slug: publishResult.article.slug,
             status: publishResult.article.status,
-            imageUrl: articleImageUrl, // Pass through image URL
+            imageUrl: articleImageUrl, // 🖼️ Pass through image URL
             url: `/articles/${publishResult.article.slug}`
           };
           addLog(node.id, node.label, 'completed', `Article published: "${publishResult.article.title}" (${publishResult.article.status})${articleImageUrl ? ' with featured image' : ''}`);
@@ -603,7 +640,7 @@ Generate the ${contentType} now with proper markdown formatting:`;
             }
           }
           
-          // Create English slug from ORIGINAL title (before translation!)
+          // 🚀 FIXED: Create English slug from ORIGINAL title (before translation!)
           const englishSlugBase = previousData.title || titleToTranslate || 'translated-article';
           let englishSlug = englishSlugBase
             .toLowerCase()
@@ -613,14 +650,14 @@ Generate the ${contentType} now with proper markdown formatting:`;
             .replace(/^-|-$/g, '')
             .trim();
           
-          // If slug is empty (all non-English), create a meaningful fallback
+          // 🚀 FIXED: If slug is empty (all non-English), create a meaningful fallback
           if (!englishSlug || englishSlug.length < 3) {
             const targetLang = node.config.targetLanguage || 'translated';
             const timestamp = Date.now().toString().slice(-6); // Last 6 digits
             englishSlug = `${targetLang}-article-${timestamp}`;
           }
           
-          // Detect if target language is RTL
+          // 🚀 NEW: Detect if target language is RTL
           const rtlLanguages = ['he', 'ar', 'fa', 'ur']; // Hebrew, Arabic, Persian, Urdu
           const isRTL = rtlLanguages.includes(node.config.targetLanguage || 'es');
           
@@ -629,7 +666,7 @@ Generate the ${contentType} now with proper markdown formatting:`;
             processedContent: translatedContent,
             translatedContent: translatedContent,
             translatedTitle: translatedTitle,
-            englishSlug: englishSlug, // Always has a valid English slug!
+            englishSlug: englishSlug, // 🚀 Always has a valid English slug!
             targetLanguage: node.config.targetLanguage,
             isRTL: isRTL,
             originalContent: contentToTranslate,
@@ -640,11 +677,12 @@ Generate the ${contentType} now with proper markdown formatting:`;
           addLog(node.id, node.label, 'completed', `Translated to ${node.config.targetLanguage} with slug: ${englishSlug}`);
           break;
           
-        case 'article-structure-validator':
+             case 'article-structure-validator':
           if (!previousData || (!previousData.processedContent && !previousData.synthesizedContent)) {
             throw new Error('No content to validate. Connect this node to a content processor.');
           }
           
+          const { executeArticleValidation } = await import('@/components/workflow/ArticleStructureValidator');
           const validationResult = await executeArticleValidation(node, previousData);
           
           result = {

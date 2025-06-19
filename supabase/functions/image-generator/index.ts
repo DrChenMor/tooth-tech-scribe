@@ -3,6 +3,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS'
 };
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
@@ -17,8 +18,10 @@ interface ImageGenerationRequest {
 
 async function generateWithOpenAI(prompt: string, size: string, quality: string, style: string): Promise<string> {
   if (!openAIApiKey) {
-    throw new Error('OpenAI API key not configured');
+    throw new Error('OpenAI API key not configured in Supabase secrets');
   }
+
+  console.log(`🎨 Generating image with OpenAI DALL-E: "${prompt.substring(0, 100)}..."`);
 
   const response = await fetch('https://api.openai.com/v1/images/generations', {
     method: 'POST',
@@ -38,32 +41,37 @@ async function generateWithOpenAI(prompt: string, size: string, quality: string,
 
   if (!response.ok) {
     const errorData = await response.json();
+    console.error('OpenAI API Error:', errorData);
     throw new Error(errorData.error?.message || 'OpenAI image generation failed');
   }
 
   const data = await response.json();
+  console.log('✅ OpenAI image generated successfully');
   return data.data[0].url;
 }
 
-// Mock image generation function (returns placeholder images)
+// Mock image generation function (returns high-quality placeholder images)
 function generateMockImage(prompt: string, size: string): string {
-  // Create a placeholder image URL based on the prompt
   const encodedPrompt = encodeURIComponent(prompt.substring(0, 50));
   const [width, height] = size.split('x');
   
-  // Use a placeholder service that generates images
-  return `https://picsum.photos/${width}/${height}?random=${Date.now()}`;
+  // Use a high-quality placeholder service
+  const imageUrl = `https://picsum.photos/${width}/${height}?random=${Date.now()}`;
+  console.log(`🖼️ Generated mock image: ${imageUrl}`);
+  return imageUrl;
 }
 
 serve(async (req) => {
+  // CRITICAL: Handle OPTIONS preflight request FIRST
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response('ok', { headers: corsHeaders });
   }
 
   try {
+    console.log('🚀 Image Generator: Starting image generation...');
+    
     const request: ImageGenerationRequest = await req.json();
-    console.log('Image generation request:', request);
-
+    
     if (!request.prompt) {
       throw new Error('Image prompt is required');
     }
@@ -78,41 +86,52 @@ serve(async (req) => {
     const quality = request.quality || 'standard';
     const style = request.style || 'natural';
 
-    console.log(`Generating image with prompt: "${fullPrompt}"`);
+    console.log(`📝 Image prompt: "${fullPrompt}"`);
+    console.log(`🎛️ Settings: ${size}, ${quality} quality, ${style} style`);
 
     let imageUrl: string;
+    let generatedWith: string;
 
     try {
       // Try to use OpenAI DALL-E if API key is available
       imageUrl = await generateWithOpenAI(fullPrompt, size, quality, style);
-      console.log('Generated image with OpenAI DALL-E');
+      generatedWith = 'OpenAI DALL-E 3';
     } catch (openAIError) {
-      console.log('OpenAI generation failed, using mock image:', openAIError.message);
-      // Fallback to mock image
+      console.log('⚠️ OpenAI generation failed, using high-quality placeholder:', openAIError.message);
+      // Fallback to high-quality placeholder image
       imageUrl = generateMockImage(fullPrompt, size);
+      generatedWith = 'High-Quality Placeholder';
     }
 
-    return new Response(JSON.stringify({ 
+    const result = {
+      success: true,
       imageUrl,
       prompt: fullPrompt,
       size,
       quality,
       style,
-      success: true
-    }), {
+      generatedWith,
+      timestamp: new Date().toISOString()
+    };
+
+    console.log('✅ Image generation completed:', result);
+
+    return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (error) {
-    console.error('Error in image-generator:', error);
+    console.error('❌ Image Generator Error:', error);
+    
     return new Response(
       JSON.stringify({ 
+        success: false,
         error: error.message,
         imageUrl: null,
-        success: false
+        timestamp: new Date().toISOString()
       }),
       {
-        status: 500,
+        status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );

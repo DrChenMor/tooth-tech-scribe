@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -50,19 +51,74 @@ async function generateWithOpenAI(prompt: string, size: string, quality: string,
   return data.data[0].url;
 }
 
-// Mock image generation function (returns high-quality placeholder images)
+// Generate a consistent mock image (same prompt = same image)
 function generateMockImage(prompt: string, size: string): string {
-  const encodedPrompt = encodeURIComponent(prompt.substring(0, 50));
+  // Create a hash-like number from the prompt for consistency
+  let hash = 0;
+  for (let i = 0; i < prompt.length; i++) {
+    const char = prompt.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32-bit integer
+  }
+  
+  const imageId = Math.abs(hash) % 1000; // Use hash for consistent image
   const [width, height] = size.split('x');
   
-  // Use a high-quality placeholder service
-  const imageUrl = `https://picsum.photos/${width}/${height}?random=${Date.now()}`;
-  console.log(`🖼️ Generated mock image: ${imageUrl}`);
+  // Use a consistent placeholder image based on prompt hash
+  const imageUrl = `https://picsum.photos/seed/${imageId}/${width}/${height}`;
+  console.log(`🖼️ Generated consistent mock image: ${imageUrl}`);
   return imageUrl;
 }
 
+async function uploadImageToStorage(imageUrl: string, fileName: string): Promise<string> {
+  try {
+    console.log(`📥 Downloading image from: ${imageUrl}`);
+    
+    // Download the image
+    const imageResponse = await fetch(imageUrl);
+    if (!imageResponse.ok) {
+      throw new Error(`Failed to download image: ${imageResponse.statusText}`);
+    }
+    
+    const imageBlob = await imageResponse.blob();
+    const imageBuffer = await imageBlob.arrayBuffer();
+    
+    // Initialize Supabase client
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    
+    console.log(`📤 Uploading to storage as: ${fileName}`);
+    
+    // Upload to Supabase storage
+    const { data, error } = await supabase.storage
+      .from('article-images')
+      .upload(fileName, imageBuffer, {
+        contentType: 'image/jpeg',
+        upsert: true // Overwrite if exists
+      });
+    
+    if (error) {
+      console.error('Storage upload error:', error);
+      throw new Error(`Failed to upload image: ${error.message}`);
+    }
+    
+    // Get public URL
+    const { data: { publicUrl } } = supabase.storage
+      .from('article-images')
+      .getPublicUrl(fileName);
+    
+    console.log(`✅ Image uploaded successfully: ${publicUrl}`);
+    return publicUrl;
+    
+  } catch (error) {
+    console.error('Error uploading image to storage:', error);
+    throw error;
+  }
+}
+
 serve(async (req) => {
-  // CRITICAL: Handle OPTIONS preflight request FIRST
+  // Handle OPTIONS preflight request
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
@@ -89,32 +145,46 @@ serve(async (req) => {
     console.log(`📝 Image prompt: "${fullPrompt}"`);
     console.log(`🎛️ Settings: ${size}, ${quality} quality, ${style} style`);
 
-    let imageUrl: string;
+    // Create a unique filename based on prompt hash
+    let hash = 0;
+    for (let i = 0; i < fullPrompt.length; i++) {
+      const char = fullPrompt.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash;
+    }
+    const fileName = `generated-${Math.abs(hash)}-${size.replace('x', 'by')}.jpg`;
+
+    let temporaryImageUrl: string;
     let generatedWith: string;
 
     try {
       // Try to use OpenAI DALL-E if API key is available
-      imageUrl = await generateWithOpenAI(fullPrompt, size, quality, style);
+      temporaryImageUrl = await generateWithOpenAI(fullPrompt, size, quality, style);
       generatedWith = 'OpenAI DALL-E 3';
     } catch (openAIError) {
       console.log('⚠️ OpenAI generation failed, using high-quality placeholder:', openAIError.message);
-      // Fallback to high-quality placeholder image
-      imageUrl = generateMockImage(fullPrompt, size);
+      // Fallback to consistent mock image
+      temporaryImageUrl = generateMockImage(fullPrompt, size);
       generatedWith = 'High-Quality Placeholder';
     }
 
+    // Upload image to permanent storage
+    console.log('💾 Saving image to permanent storage...');
+    const permanentImageUrl = await uploadImageToStorage(temporaryImageUrl, fileName);
+
     const result = {
       success: true,
-      imageUrl,
+      imageUrl: permanentImageUrl, // Return the permanent URL
       prompt: fullPrompt,
       size,
       quality,
       style,
       generatedWith,
+      fileName,
       timestamp: new Date().toISOString()
     };
 
-    console.log('✅ Image generation completed:', result);
+    console.log('✅ Image generation and storage completed:', result);
 
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

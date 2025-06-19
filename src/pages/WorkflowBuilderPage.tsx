@@ -205,6 +205,76 @@ const WorkflowBuilderPage = () => {
           addLog(node.id, node.label, 'completed', `Completed research with ${researchData.sources.length} sources`);
           break;
 
+         case 'image-generator':
+          if (!previousData || (!previousData.title && !node.config.imagePrompt)) {
+            throw new Error('No content title or custom prompt for image generation. Connect this node to content sources or add a custom prompt.');
+          }
+          
+          // Build image prompt from content or use custom prompt
+          let imagePrompt = node.config.imagePrompt || '';
+          if (!imagePrompt && previousData.title) {
+            imagePrompt = `Professional illustration representing: ${previousData.title}`;
+          }
+          
+          // Add custom instructions if provided
+          if (node.config.customInstructions) {
+            imagePrompt += `. ${node.config.customInstructions}`;
+          }
+          
+          addLog(node.id, node.label, 'running', `Generating image with prompt: "${imagePrompt.substring(0, 100)}..."`);
+          
+          const { data: imageData, error: imageError } = await supabase.functions.invoke('image-generator', {
+            body: {
+              prompt: imagePrompt,
+              style: node.config.imageStyle || 'natural',
+              size: node.config.imageSize || '1024x1024',
+              quality: node.config.imageQuality || 'standard',
+              customInstructions: node.config.customInstructions
+            }
+          });
+          if (imageError) throw new Error(imageError.message);
+          
+          result = { 
+            ...previousData, // Pass through previous data
+            imageUrl: imageData.imageUrl,
+            imagePrompt: imagePrompt,
+            imageStyle: node.config.imageStyle,
+            imageSize: node.config.imageSize
+          };
+          addLog(node.id, node.label, 'completed', `Image generated successfully`);
+          break;
+
+ case 'seo-analyzer':
+          if (!previousData || (!previousData.processedContent && !previousData.synthesizedContent)) {
+            throw new Error('No content to analyze for SEO. Connect this node to content sources.');
+          }
+          
+          const contentToAnalyze = previousData.processedContent || previousData.synthesizedContent;
+          const titleToAnalyze = previousData.title || 'Untitled';
+          
+          addLog(node.id, node.label, 'running', `Analyzing SEO for content (${contentToAnalyze.length} characters)`);
+          
+          const { data: seoData, error: seoError } = await supabase.functions.invoke('seo-analyzer', {
+            body: {
+              content: contentToAnalyze,
+              title: titleToAnalyze,
+              aiModel: node.config.aiModel || 'gemini-1.5-flash-latest',
+              customInstructions: node.config.customInstructions,
+              targetKeywords: node.config.targetKeywords,
+              analysisFocus: node.config.analysisFocus
+            }
+          });
+          if (seoError) throw new Error(seoError.message);
+          
+          result = { 
+            ...previousData, // Pass through previous data
+            seoAnalysis: seoData.analysis,
+            seoScore: seoData.analysis.seo_score,
+            seoSuggestions: seoData.analysis.improvements
+          };
+          addLog(node.id, node.label, 'completed', `SEO analysis completed. Score: ${seoData.analysis.seo_score}/100`);
+          break;
+          
         case 'multi-source-synthesizer':
           // Enhanced input handling - accept various data formats
           let sources = [];
@@ -275,9 +345,11 @@ const WorkflowBuilderPage = () => {
               targetLength: node.config.targetLength || 'medium',
               maintainAttribution: node.config.maintainAttribution !== false,
               resolveConflicts: node.config.resolveConflicts !== false,
-              aiModel: node.config.aiModel || 'gemini-2.0-flash'
+              aiModel: node.config.aiModel || 'gemini-1.5-flash-latest',
+              customInstructions: node.config.customInstructions
             }
           });
+          
           if (synthError) throw new Error(synthError.message);
           
           result = { 
@@ -580,7 +652,7 @@ case 'translator':
   break;
 
   
-        case 'article-structure-validator':
+             case 'article-structure-validator':
           if (!previousData || (!previousData.processedContent && !previousData.synthesizedContent)) {
             throw new Error('No content to validate. Connect this node to a content processor.');
           }

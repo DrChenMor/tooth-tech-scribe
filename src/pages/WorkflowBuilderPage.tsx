@@ -507,17 +507,22 @@ const extractedTitle = match ? match[1].trim() : 'Untitled Article';
             image_url: articleImageUrl, // Include featured image
             isRTL: previousData.isRTL || false, // Pass RTL info
             targetLanguage: previousData.targetLanguage || 'en'
+            // 💥 Prepend the title to the content so it’s visually correct
+            content: contentToPublish.startsWith('#') 
+              ? contentToPublish 
+              : `# ${titleToPublish}\n\n${contentToPublish}`
           };
           
           // Use the create-article-from-ai edge function for proper article creation
-          const { data: publishResult, error: publishError } = await supabase.functions.invoke('create-article-from-ai', {
-            body: {
-              content: JSON.stringify(formattedContent),
-              category: node.config.category || previousData.category || 'AI Generated',
-              provider: previousData.aiModel || 'AI Processor',
-              status: node.config.status || 'draft'
-            }
-          });
+const { data: publishResult, error: publishError } = await supabase.functions.invoke('create-article-from-ai', {
+  body: {
+    content: JSON.stringify(formattedContent),
+    category: node.config.category || previousData.category || 'AI Generated',
+    provider: previousData.aiModel || 'AI Processor',
+    status: node.config.status || 'draft'
+  }
+});
+
           
           if (publishError) throw new Error(publishError.message);
           

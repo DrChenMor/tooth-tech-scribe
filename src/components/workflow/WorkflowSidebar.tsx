@@ -700,7 +700,7 @@ const NodeConfiguration = ({
 {/* Image Generator Configuration */}
 {node.type === 'image-generator' && (
   <div className="space-y-4">
-    {renderAIModelSelector()}
+    {renderImageModelSelector(localConfig, handleConfigChange, node.id)}
     <div className="space-y-2">
       <Label>Image Prompt</Label>
       <Textarea

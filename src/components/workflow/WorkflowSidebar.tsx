@@ -21,6 +21,39 @@ interface WorkflowSidebarProps {
   onUpdateNodeConfig: (nodeId: string, newConfig: Partial<WorkflowNode['config']>) => void;
 }
 
+// Add this function right after the imports in WorkflowSidebar.tsx
+
+const renderImageModelSelector = (localConfig: any, handleConfigChange: any, nodeId: string) => {
+  const imageModels = [
+    { id: 'dall-e-3', name: 'DALL-E 3 (OpenAI)', provider: 'OpenAI' },
+    { id: 'dall-e-2', name: 'DALL-E 2 (OpenAI)', provider: 'OpenAI' },
+    { id: 'gemini-imagen-3', name: 'Imagen 3 (Google)', provider: 'Google' },
+    { id: 'gemini-imagen-2', name: 'Imagen 2 (Google)', provider: 'Google' },
+  ];
+
+  return (
+    <div className="space-y-2">
+      <Label>AI Model for Image Generation</Label>
+      <Select
+        key={`aiModel-${nodeId}`}
+        value={localConfig.aiModel || 'dall-e-3'}
+        onValueChange={(value) => handleConfigChange('aiModel', value)}
+      >
+        <SelectTrigger>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {imageModels.map((model) => (
+            <SelectItem key={model.id} value={model.id}>
+              {model.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+};
+
 const WorkflowSidebar = ({ selectedNode, onAddNode, onUpdateNodeConfig }: WorkflowSidebarProps) => {
   const nodeTypes = [
     { type: 'trigger', icon: Clock, label: 'Trigger', description: 'Start workflows' },

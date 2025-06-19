@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -258,7 +259,7 @@ const WorkflowBuilderPage = () => {
             body: {
               content: contentToAnalyze,
               title: titleToAnalyze,
-              aiModel: node.config.aiModel || 'gemini-1.5-flash-latest',
+              aiModel: node.config.aiModel || 'gemini-2.5-flash-preview-05-20',
               customInstructions: node.config.customInstructions,
               targetKeywords: node.config.targetKeywords,
               analysisFocus: node.config.analysisFocus
@@ -345,7 +346,7 @@ const WorkflowBuilderPage = () => {
               targetLength: node.config.targetLength || 'medium',
               maintainAttribution: node.config.maintainAttribution !== false,
               resolveConflicts: node.config.resolveConflicts !== false,
-              aiModel: node.config.aiModel || 'gemini-1.5-flash-latest',
+              aiModel: node.config.aiModel || 'gemini-2.5-flash-preview-05-20',
               customInstructions: node.config.customInstructions
             }
           });
@@ -364,12 +365,33 @@ const WorkflowBuilderPage = () => {
           try {
             console.log('AI Processor: Processing content...');
             
+            // Get the content to process from previous data
+            const contentToProcess = previousData || {};
+            
             // Build enhanced prompt for better content generation
             const contentType = node.config.contentType || 'article';
             const writingStyle = node.config.writingStyle || 'Professional';
             const targetAudience = node.config.targetAudience || 'General readers';
             const category = node.config.category || 'General';
             const customInstructions = node.config.customInstructions || '';
+            
+            // Extract content from various possible sources
+            let sourceContent = '';
+            if (contentToProcess.articles && Array.isArray(contentToProcess.articles)) {
+              sourceContent = contentToProcess.articles.map((article: any) => 
+                `Title: ${article.title || 'Untitled'}\nContent: ${article.description || article.content || ''}`
+              ).join('\n\n');
+            } else if (contentToProcess.synthesizedContent) {
+              sourceContent = contentToProcess.synthesizedContent;
+            } else if (contentToProcess.research) {
+              sourceContent = contentToProcess.research;
+            } else if (contentToProcess.scrapedContent && Array.isArray(contentToProcess.scrapedContent)) {
+              sourceContent = contentToProcess.scrapedContent.map((item: any) => item.content || '').join('\n\n');
+            } else if (typeof contentToProcess === 'string') {
+              sourceContent = contentToProcess;
+            } else {
+              sourceContent = JSON.stringify(contentToProcess);
+            }
             
             const enhancedPrompt = `
 You are an expert content writer. Create a ${contentType} based on the following content.
@@ -391,7 +413,7 @@ ${customInstructions ? `**Additional Instructions**: ${customInstructions}` : ''
 - Ensure the content is informative and valuable to the target audience
 
 **Source Content to Transform:**
-${inputData}
+${sourceContent}
 
 Generate the ${contentType} now:`;
 
@@ -441,15 +463,19 @@ Generate the ${contentType} now:`;
 
             console.log('AI Processor: Content generated successfully');
             
-            return {
-              ...inputData,
+            result = {
+              ...contentToProcess,
               content: processedContent,
+              processedContent: processedContent,
               processedBy: `AI Processor (${agentConfig.ai_model})`,
               category: category,
               contentType: contentType,
               writingStyle: writingStyle,
               targetAudience: targetAudience
             };
+            
+            addLog(node.id, node.label, 'completed', `Content processed successfully with ${agentConfig.ai_model}`);
+            break;
           } catch (error) {
             console.error('AI Processor error:', error);
             throw new Error(`AI Processor failed: ${error.message}`);
@@ -539,99 +565,96 @@ Generate the ${contentType} now:`;
           addLog(node.id, node.label, 'completed', `Email sent to ${node.config.recipient}`);
           break;
 
-        // FIXED VERSION - Update your WorkflowBuilderPage.tsx translator case
-
-case 'translator':
-  if (!previousData || (!previousData.processedContent && !previousData.synthesizedContent && !previousData.content)) {
-    throw new Error('No content to translate. Connect this node to a content source.');
-  }
-  
-  // Get content to translate - try multiple sources
-  const contentToTranslate = previousData.processedContent || 
-                            previousData.synthesizedContent || 
-                            previousData.content ||
-                            '';
-  
-  // Get title to translate if it exists
-  const titleToTranslate = previousData.title || '';
-  
-  if (!contentToTranslate && !titleToTranslate) {
-    throw new Error('No content found to translate.');
-  }
-  
-  addLog(node.id, node.label, 'running', `Translating content to ${node.config.targetLanguage || 'es'}`);
-  
-  let translatedContent = contentToTranslate;
-  let translatedTitle = titleToTranslate;
-  
-  // Translate content if it exists
-  if (contentToTranslate) {
-    const { data: contentTranslation, error: contentError } = await supabase.functions.invoke('translator', {
-      body: {
-        content: contentToTranslate,
-        targetLanguage: node.config.targetLanguage || 'es',
-        provider: node.config.provider || 'google'
-      }
-    });
-    if (contentError) throw new Error(`Content translation failed: ${contentError.message}`);
-    translatedContent = contentTranslation.content;
-  }
-  
-  // Translate title if it exists
-  if (titleToTranslate) {
-    const { data: titleTranslation, error: titleError } = await supabase.functions.invoke('translator', {
-      body: {
-        content: titleToTranslate,
-        targetLanguage: node.config.targetLanguage || 'es',
-        provider: node.config.provider || 'google'
-      }
-    });
-    if (titleError) {
-      console.warn('Title translation failed, using original title');
-      translatedTitle = titleToTranslate;
-    } else {
-      translatedTitle = titleTranslation.content;
-    }
-  }
-  
-  // 🚀 FIXED: Create English slug from ORIGINAL title (before translation!)
-  const englishSlugBase = previousData.title || titleToTranslate || 'translated-article';
-  let englishSlug = englishSlugBase
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, '') // Remove non-English characters
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '')
-    .trim();
-  
-  // 🚀 FIXED: If slug is empty (all non-English), create a meaningful fallback
-  if (!englishSlug || englishSlug.length < 3) {
-    const targetLang = node.config.targetLanguage || 'translated';
-    const timestamp = Date.now().toString().slice(-6); // Last 6 digits
-    englishSlug = `${targetLang}-article-${timestamp}`;
-  }
-  
-  // 🚀 NEW: Detect if target language is RTL
-  const rtlLanguages = ['he', 'ar', 'fa', 'ur']; // Hebrew, Arabic, Persian, Urdu
-  const isRTL = rtlLanguages.includes(node.config.targetLanguage || 'es');
-  
-  result = { 
-    title: translatedTitle,
-    processedContent: translatedContent,
-    translatedContent: translatedContent,
-    translatedTitle: translatedTitle,
-    englishSlug: englishSlug, // 🚀 Always has a valid English slug!
-    targetLanguage: node.config.targetLanguage,
-    isRTL: isRTL,
-    originalContent: contentToTranslate,
-    originalTitle: titleToTranslate,
-    category: previousData.category,
-    aiModel: previousData.aiModel
-  };
-  addLog(node.id, node.label, 'completed', `Translated to ${node.config.targetLanguage} with slug: ${englishSlug}`);
-  break;
-
-  
+        case 'translator':
+          if (!previousData || (!previousData.processedContent && !previousData.synthesizedContent && !previousData.content)) {
+            throw new Error('No content to translate. Connect this node to a content source.');
+          }
+          
+          // Get content to translate - try multiple sources
+          const contentToTranslate = previousData.processedContent || 
+                                    previousData.synthesizedContent || 
+                                    previousData.content ||
+                                    '';
+          
+          // Get title to translate if it exists
+          const titleToTranslate = previousData.title || '';
+          
+          if (!contentToTranslate && !titleToTranslate) {
+            throw new Error('No content found to translate.');
+          }
+          
+          addLog(node.id, node.label, 'running', `Translating content to ${node.config.targetLanguage || 'es'}`);
+          
+          let translatedContent = contentToTranslate;
+          let translatedTitle = titleToTranslate;
+          
+          // Translate content if it exists
+          if (contentToTranslate) {
+            const { data: contentTranslation, error: contentError } = await supabase.functions.invoke('translator', {
+              body: {
+                content: contentToTranslate,
+                targetLanguage: node.config.targetLanguage || 'es',
+                provider: node.config.provider || 'google'
+              }
+            });
+            if (contentError) throw new Error(`Content translation failed: ${contentError.message}`);
+            translatedContent = contentTranslation.content;
+          }
+          
+          // Translate title if it exists
+          if (titleToTranslate) {
+            const { data: titleTranslation, error: titleError } = await supabase.functions.invoke('translator', {
+              body: {
+                content: titleToTranslate,
+                targetLanguage: node.config.targetLanguage || 'es',
+                provider: node.config.provider || 'google'
+              }
+            });
+            if (titleError) {
+              console.warn('Title translation failed, using original title');
+              translatedTitle = titleToTranslate;
+            } else {
+              translatedTitle = titleTranslation.content;
+            }
+          }
+          
+          // 🚀 FIXED: Create English slug from ORIGINAL title (before translation!)
+          const englishSlugBase = previousData.title || titleToTranslate || 'translated-article';
+          let englishSlug = englishSlugBase
+            .toLowerCase()
+            .replace(/[^a-z0-9\s-]/g, '') // Remove non-English characters
+            .replace(/\s+/g, '-')
+            .replace(/-+/g, '-')
+            .replace(/^-|-$/g, '')
+            .trim();
+          
+          // 🚀 FIXED: If slug is empty (all non-English), create a meaningful fallback
+          if (!englishSlug || englishSlug.length < 3) {
+            const targetLang = node.config.targetLanguage || 'translated';
+            const timestamp = Date.now().toString().slice(-6); // Last 6 digits
+            englishSlug = `${targetLang}-article-${timestamp}`;
+          }
+          
+          // 🚀 NEW: Detect if target language is RTL
+          const rtlLanguages = ['he', 'ar', 'fa', 'ur']; // Hebrew, Arabic, Persian, Urdu
+          const isRTL = rtlLanguages.includes(node.config.targetLanguage || 'es');
+          
+          result = { 
+            title: translatedTitle,
+            processedContent: translatedContent,
+            translatedContent: translatedContent,
+            translatedTitle: translatedTitle,
+            englishSlug: englishSlug, // 🚀 Always has a valid English slug!
+            targetLanguage: node.config.targetLanguage,
+            isRTL: isRTL,
+            originalContent: contentToTranslate,
+            originalTitle: titleToTranslate,
+            category: previousData.category,
+            aiModel: previousData.aiModel
+          };
+          addLog(node.id, node.label, 'completed', `Translated to ${node.config.targetLanguage} with slug: ${englishSlug}`);
+          break;
+          
              case 'article-structure-validator':
           if (!previousData || (!previousData.processedContent && !previousData.synthesizedContent)) {
             throw new Error('No content to validate. Connect this node to a content processor.');

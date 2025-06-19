@@ -507,6 +507,10 @@ const extractedTitle = match ? match[1].trim() : 'Untitled Article';
             image_url: articleImageUrl, // Include featured image
             isRTL: previousData.isRTL || false, // Pass RTL info
             targetLanguage: previousData.targetLanguage || 'en'
+            // 💥 Prepend the title to the content so it’s visually correct
+            content: contentToPublish.startsWith('#') 
+              ? contentToPublish 
+              : `# ${titleToPublish}\n\n${contentToPublish}`
           };
           
           // Use the create-article-from-ai edge function for proper article creation

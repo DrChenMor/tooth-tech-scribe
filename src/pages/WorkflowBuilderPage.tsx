@@ -445,7 +445,11 @@ Generate the ${contentType} now with proper markdown formatting:`;
               const firstMeaningfulLine = lines.find(line => line.trim().length > 10) || 'Generated Article';
               processedContent = `# ${firstMeaningfulLine}\n\n${processedContent}`;
             }
-
+//
+// 🔥🔥🔥 ADD THIS BLOCK TO EXTRACT THE TITLE 🔥🔥🔥
+const match = processedContent.match(/^#\s+(.+)/m);
+const extractedTitle = match ? match[1].trim() : 'Untitled Article';
+//
             console.log('AI Processor: Content generated successfully');
             
             result = {

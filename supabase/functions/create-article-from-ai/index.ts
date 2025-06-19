@@ -159,8 +159,8 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Parse the AI-generated content properly
-    const { title, subtitle, actualContent, slug: forceSlug, isRTL, targetLanguage } = parseAIContent(request.content);
+// Parse the AI-generated content properly
+    const { title, subtitle, actualContent, slug: forceSlug, image_url, isRTL, targetLanguage } = parseAIContent(request.content);
     
     // 🚀 UPDATED: Use forced English slug or generate English-compatible one
     const slug = generateSlug(title, forceSlug);
@@ -172,6 +172,7 @@ serve(async (req) => {
       contentLength: actualContent.length, 
       excerptLength: excerpt.length,
       slug: slug,
+      image_url: image_url, // 🖼️ Log image URL
       isRTL: isRTL,
       targetLanguage: targetLanguage
     });
@@ -199,12 +200,13 @@ serve(async (req) => {
       }
     }
 
-    // Create the article with properly formatted content
+    // Create the article with properly formatted content INCLUDING IMAGE
     const articleData = {
       title,
       slug: finalSlug, // 🚀 Always English slug!
       content: actualContent,
       excerpt,
+      image_url: image_url || null, // 🖼️ NEW: Include featured image
       category: request.category || 'AI Generated',
       author_name: authorName,
       author_avatar_url: null,
@@ -217,9 +219,10 @@ serve(async (req) => {
       slug: articleData.slug,
       contentLength: articleData.content.length,
       excerptLength: articleData.excerpt.length,
+      image_url: articleData.image_url, // 🖼️ Log image
       authorName: articleData.author_name
     });
-
+    
     const { data, error } = await supabase
       .from('articles')
       .insert([articleData])

@@ -1,3 +1,4 @@
+
 // UPDATED create-article-from-ai/index.ts
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
@@ -19,30 +20,35 @@ function parseAIContent(content: string): {
   subtitle?: string; 
   actualContent: string;
   slug?: string;
-  image_url?: string; // 🖼️ NEW: Support for image URLs
+  image_url?: string;
   isRTL?: boolean;
   targetLanguage?: string;
 } {
   console.log('Raw content received:', content.substring(0, 200) + '...');
   
+  // Clean any JSON formatting that might have slipped through
+  let cleanedContent = content;
+  
+  // Remove markdown code blocks if present
+  if (content.includes('```json') || content.includes('```')) {
+    cleanedContent = content
+      .replace(/```json\s*/g, '')
+      .replace(/```\s*/g, '')
+      .trim();
+  }
+
   // First, try to parse as JSON if it looks like JSON
-  if (content.trim().startsWith('{') || content.includes('"title"') || content.includes('"Content"')) {
+  if (cleanedContent.trim().startsWith('{') || cleanedContent.includes('"title"') || cleanedContent.includes('"Content"')) {
     try {
-      let cleanContent = content;
-      if (content.includes('```json')) {
-        cleanContent = content.replace(/```json\s*/, '').replace(/```\s*$/, '');
-      }
-      
-      const parsed = JSON.parse(cleanContent);
+      const parsed = JSON.parse(cleanedContent);
       console.log('Parsed JSON structure:', Object.keys(parsed));
       
       const title = parsed.title || parsed.Title || 'Untitled Article';
       const subtitle = parsed.subtitle || parsed.Subtitle || undefined;
       const actualContent = parsed.content || parsed.Content || '';
       
-      // 🚀 Extract additional info including image URL
       const slug = parsed.slug || undefined;
-      const image_url = parsed.image_url || undefined; // 🖼️ NEW
+      const image_url = parsed.image_url || undefined;
       const isRTL = parsed.isRTL || false;
       const targetLanguage = parsed.targetLanguage || 'en';
       
@@ -53,38 +59,33 @@ function parseAIContent(content: string): {
         subtitle: subtitle?.trim(),
         actualContent: actualContent.trim(),
         slug: slug,
-        image_url: image_url, // 🖼️ NEW
+        image_url: image_url,
         isRTL: isRTL,
         targetLanguage: targetLanguage
       };
     } catch (e) {
-      console.log('Failed to parse as JSON, treating as text:', e.message);
+      console.log('Failed to parse as JSON, treating as markdown:', e.message);
     }
   }
   
-  // If not JSON or JSON parsing failed, check if it's clean markdown
-  if (content.trim().startsWith('#')) {
-    const titleMatch = content.match(/^#\s+(.+)$/m);
-    const title = titleMatch ? titleMatch[1].trim() : 'Untitled Article';
-    const actualContent = content.replace(/^#\s+.+$/m, '').trim();
-
-    return {
-      title,
-      subtitle: undefined,
-      actualContent,
-      isRTL: false,
-      targetLanguage: 'en'
-    };
-  }
-
-  // Fallback: treat as plain text
-  const lines = content.split('\n');
+  // If not JSON or JSON parsing failed, treat as markdown content
+  const lines = content.split('\n').filter(line => line.trim() !== '');
   let title = 'Untitled Article';
+  let actualContent = content;
   
-  for (let i = 0; i < Math.min(3, lines.length); i++) {
+  // Look for the first heading as title
+  for (let i = 0; i < Math.min(5, lines.length); i++) {
     const line = lines[i].trim();
-    if (line.length > 10 && line.length < 100 && !line.includes('{') && !line.includes('"')) {
+    if (line.startsWith('#')) {
       title = line.replace(/^#+\s*/, '').trim();
+      // Remove the title line from content
+      actualContent = content.replace(line, '').trim();
+      break;
+    } else if (line.length > 10 && line.length < 100 && !line.includes('{') && !line.includes('"')) {
+      // If no heading found, use first meaningful line as title
+      title = line.trim();
+      // Remove the title line from content
+      actualContent = content.replace(line, '').trim();
       break;
     }
   }
@@ -92,13 +93,12 @@ function parseAIContent(content: string): {
   return {
     title,
     subtitle: undefined,
-    actualContent: content,
+    actualContent,
     isRTL: false,
     targetLanguage: 'en'
   };
 }
 
-// 🚀 UPDATED: Always create English-compatible slugs
 function generateSlug(title: string, forceSlug?: string): string {
   // If we have a forced English slug from translator, use it
   if (forceSlug && forceSlug.trim()) {
@@ -114,7 +114,7 @@ function generateSlug(title: string, forceSlug?: string): string {
     .replace(/^-|-$/g, '')
     .trim();
     
-  // 🚀 FIXED: If slug is empty or too short (common with non-English titles)
+  // If slug is empty or too short (common with non-English titles)
   if (!slug || slug.length < 3) {
     const timestamp = Date.now().toString().slice(-6);
     slug = `article-${timestamp}`;
@@ -159,10 +159,10 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-// Parse the AI-generated content properly
+    // Parse the AI-generated content properly
     const { title, subtitle, actualContent, slug: forceSlug, image_url, isRTL, targetLanguage } = parseAIContent(request.content);
     
-    // 🚀 UPDATED: Use forced English slug or generate English-compatible one
+    // Generate English-compatible slug
     const slug = generateSlug(title, forceSlug);
     const excerpt = extractExcerpt(actualContent);
 
@@ -172,7 +172,7 @@ serve(async (req) => {
       contentLength: actualContent.length, 
       excerptLength: excerpt.length,
       slug: slug,
-      image_url: image_url, // 🖼️ Log image URL
+      image_url: image_url,
       isRTL: isRTL,
       targetLanguage: targetLanguage
     });
@@ -191,7 +191,7 @@ serve(async (req) => {
     const status = request.status || 'draft';
     const published_date = status === 'published' ? new Date().toISOString() : new Date(0).toISOString();
 
-    // 🚀 UPDATED: Add RTL and language info to author name for identification
+    // Add RTL and language info to author name for identification
     let authorName = `AI Content Generator (${request.provider})`;
     if (targetLanguage && targetLanguage !== 'en') {
       authorName += ` - ${targetLanguage.toUpperCase()}`;
@@ -203,10 +203,10 @@ serve(async (req) => {
     // Create the article with properly formatted content INCLUDING IMAGE
     const articleData = {
       title,
-      slug: finalSlug, // 🚀 Always English slug!
+      slug: finalSlug,
       content: actualContent,
       excerpt,
-      image_url: image_url || null, // 🖼️ NEW: Include featured image
+      image_url: image_url || null,
       category: request.category || 'AI Generated',
       author_name: authorName,
       author_avatar_url: null,
@@ -219,7 +219,7 @@ serve(async (req) => {
       slug: articleData.slug,
       contentLength: articleData.content.length,
       excerptLength: articleData.excerpt.length,
-      image_url: articleData.image_url, // 🖼️ Log image
+      image_url: articleData.image_url,
       authorName: articleData.author_name
     });
     

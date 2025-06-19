@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,17 +13,7 @@ import {
   HeartPulse, Rss, GraduationCap, Newspaper, Search, Combine, BarChart3 
 } from 'lucide-react';
 import { WorkflowNode } from '@/pages/WorkflowBuilderPage';
-
-// Mock AI models - replace with actual import if available
-const AVAILABLE_MODELS = [
-  { id: 'gemini-1.5-flash-latest', name: 'Gemini 1.5 Flash (Latest)', provider: 'Google' },
-  { id: 'gemini-1.5-pro-latest', name: 'Gemini 1.5 Pro (Latest)', provider: 'Google' },
-  { id: 'gemini-2.0-flash-exp', name: 'Gemini 2.0 Flash (Experimental)', provider: 'Google' },
-  { id: 'gpt-4o', name: 'GPT-4o', provider: 'OpenAI' },
-  { id: 'gpt-4o-mini', name: 'GPT-4o Mini', provider: 'OpenAI' },
-  { id: 'claude-3-5-sonnet-20241022', name: 'Claude 3.5 Sonnet', provider: 'Anthropic' },
-  { id: 'claude-3-5-haiku-20241022', name: 'Claude 3.5 Haiku', provider: 'Anthropic' },
-];
+import { AVAILABLE_MODELS } from '@/services/aiModelService';
 
 interface WorkflowSidebarProps {
   selectedNode: WorkflowNode | null;
@@ -169,7 +160,7 @@ const NodeConfiguration = ({
       <Label>AI Model</Label>
       <Select
         key={`aiModel-${node.id}`}
-        value={localConfig.aiModel || 'gemini-1.5-flash-latest'}
+        value={localConfig.aiModel || 'gemini-2.5-flash-preview-05-20'}
         onValueChange={(value) => handleConfigChange('aiModel', value)}
       >
         <SelectTrigger>
@@ -632,16 +623,16 @@ const NodeConfiguration = ({
             <Label>Translation Provider</Label>
             <Select
               key={`translationProvider-${node.id}`}
-              value={localConfig.provider || 'openai'}
+              value={localConfig.provider || 'gemini'}
               onValueChange={(value) => handleConfigChange('provider', value)}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select a provider" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="gemini">Google Gemini (Fast & High Quality)</SelectItem>
                 <SelectItem value="openai">OpenAI GPT (Cost-effective)</SelectItem>
                 <SelectItem value="claude">Anthropic Claude (High quality)</SelectItem>
-                <SelectItem value="gemini">Google Gemini (Fast)</SelectItem>
                 <SelectItem value="google">Google Translate API (Most accurate)</SelectItem>
               </SelectContent>
             </Select>

@@ -76,7 +76,7 @@ async function translateWithOpenAI(content: string, targetLanguage: string): Pro
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'gpt-4o-mini',
+      model: 'gpt-4.1-2025-04-14',
       messages: [
         {
           role: 'system',
@@ -129,7 +129,7 @@ async function translateWithClaude(content: string, targetLanguage: string): Pro
       'anthropic-version': '2023-06-01',
     },
     body: JSON.stringify({
-      model: 'claude-3-5-haiku-20241022',
+      model: 'claude-opus-4-20250514',
       max_tokens: 4000,
       system: `You are a professional translator. Translate the following text to ${targetLanguageName}. Preserve the original formatting, HTML tags, and structure. Only respond with the translated text, nothing else.`,
       messages: [
@@ -171,7 +171,7 @@ async function translateWithGemini(content: string, targetLanguage: string): Pro
   const targetLanguageName = languageMap[targetLanguage] || targetLanguage;
   const prompt = `Translate the following text to ${targetLanguageName}. Preserve the original formatting, HTML tags, and structure. Only respond with the translated text, nothing else.\n\nText to translate:\n${content}`;
 
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${googleApiKey}`, {
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${googleApiKey}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

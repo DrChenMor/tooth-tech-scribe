@@ -361,186 +361,161 @@ const WorkflowBuilderPage = () => {
           break;
 
         case 'ai-processor':
-  // Enhanced content extraction - handle multiple data sources
-  let contentToProcess = null;
-  
-  if (previousData) {
-    // Try different content sources in order of preference
-    if (previousData.synthesizedContent) {
-      contentToProcess = previousData.synthesizedContent;
-    } else if (previousData.processedContent) {
-      contentToProcess = previousData.processedContent;
-    } else if (previousData.research) {
-      contentToProcess = previousData.research;
-    } else if (previousData.scrapedContent && Array.isArray(previousData.scrapedContent)) {
-      // Combine scraped content
-      contentToProcess = previousData.scrapedContent
-        .map((item: any) => item.content)
-        .join('\n\n');
-    } else if (previousData.articles && Array.isArray(previousData.articles)) {
-      // Combine RSS/news articles
-      contentToProcess = previousData.articles
-        .map((item: any) => `${item.title}: ${item.description || item.content || ''}`)
-        .join('\n\n');
-    } else if (previousData.papers && Array.isArray(previousData.papers)) {
-      // Combine academic papers
-      contentToProcess = previousData.papers
-        .map((item: any) => `${item.title}: ${item.abstract || ''}`)
-        .join('\n\n');
-    } else if (typeof previousData === 'string') {
-      // Direct string content
-      contentToProcess = previousData;
-    } else if (previousData.content) {
-      // Generic content field
-      contentToProcess = previousData.content;
-    }
-  }
-  
-  // Also check if the node has custom prompt content
-  if (!contentToProcess && node.config.prompt) {
-    contentToProcess = node.config.prompt;
-  }
-  
-  if (!contentToProcess) {
-    throw new Error('No content to process. This node needs to be connected to a content source (scraper, RSS aggregator, news discovery, research, etc.) or have custom content configured.');
-  }
-  
-  addLog(node.id, node.label, 'running', `Processing ${contentToProcess.length} characters of content`);
-  
-  // FIXED PROMPT - This tells the AI to create a JSON with title and content separated
-  const articlePrompt = `You are a professional content writer. Transform the following content into a well-structured article.
+          try {
+            console.log('AI Processor: Processing content...');
+            
+            // Build enhanced prompt for better content generation
+            const contentType = node.config.contentType || 'article';
+            const writingStyle = node.config.writingStyle || 'Professional';
+            const targetAudience = node.config.targetAudience || 'General readers';
+            const category = node.config.category || 'General';
+            const customInstructions = node.config.customInstructions || '';
+            
+            const enhancedPrompt = `
+You are an expert content writer. Create a ${contentType} based on the following content.
 
-IMPORTANT: Return your response as a JSON object with this exact structure:
-{
-  "title": "A clear, engaging title for the article",
-  "content": "The main article content in markdown format starting with ## headings (no # title since title is separate)"
-}
+**Content Type**: ${contentType}
+**Writing Style**: ${writingStyle}
+**Target Audience**: ${targetAudience}
+**Category**: ${category}
 
-Requirements for the content:
-- Use ## for main sections (NOT # since title is separate)
-- Write in ${node.config.writingStyle || 'professional, informative'} style
-- Target audience: ${node.config.targetAudience || 'general readers'}
-- Minimum 500 words
-- Include clear introduction and conclusion
-- Use proper markdown formatting
+${customInstructions ? `**Additional Instructions**: ${customInstructions}` : ''}
 
-${node.config.prompt ? `Additional instructions: ${node.config.prompt}\n\n` : ''}
+**IMPORTANT FORMATTING RULES:**
+- Respond ONLY with clean markdown content
+- Start with a clear, engaging title as an H1 heading (# Title)
+- Use proper markdown formatting (headings, lists, emphasis)
+- NO JSON formatting, NO code blocks, NO extra markup
+- Create engaging, well-structured content suitable for publication
+- Include relevant subheadings to organize the content
+- Ensure the content is informative and valuable to the target audience
 
-Content to transform:
-${contentToProcess}
+**Source Content to Transform:**
+${inputData}
 
-Remember: Return ONLY the JSON object with "title" and "content" fields.`;
-  
-  const { data: processedData, error: processError } = await supabase.functions.invoke('run-ai-agent-analysis', {
-    body: {
-      prompt: articlePrompt,
-      agentConfig: { ai_model: node.config.aiModel || 'gemini-1.5-flash-latest' }
-    }
-  });
-  if (processError) throw new Error(processError.message);
-  
-  // Parse the AI response to extract title and content properly
-  let title = 'Untitled Article';
-  let cleanContent = processedData.analysis;
-  
-  try {
-    // Try to parse as JSON first
-    const parsed = JSON.parse(processedData.analysis);
-    if (parsed.title && parsed.content) {
-      title = parsed.title;
-      cleanContent = parsed.content;
-    }
-  } catch (e) {
-    // If not JSON, try to extract title from markdown
-    if (cleanContent.includes('# ')) {
-      const titleMatch = cleanContent.match(/^# (.+)$/m);
-      if (titleMatch) {
-        title = titleMatch[1];
-        cleanContent = cleanContent.replace(/^# .+$/m, '').trim();
-      }
-    }
-  }
-  
-  // Clean up any remaining markdown code blocks
-  if (cleanContent.includes('```markdown')) {
-    cleanContent = cleanContent.replace(/```markdown\s*/, '').replace(/```\s*$/, '');
-  }
-  if (cleanContent.includes('```json')) {
-    cleanContent = cleanContent.replace(/```json\s*/, '').replace(/```\s*$/, '');
-  }
-  
-  result = { 
-    title: title.trim(), // ✅ TITLE IS NOW SEPARATE!
-    processedContent: cleanContent.trim(), // ✅ CONTENT WITHOUT TITLE
-    contentType: node.config.contentType || 'article',
-    category: node.config.category || 'General',
-    originalContentLength: contentToProcess.length,
-    aiModel: node.config.aiModel || 'gemini-1.5-flash-latest'
-  };
-  addLog(node.id, node.label, 'completed', `Generated article: "${title}" (${cleanContent.length} characters)`);
-  break;
+Generate the ${contentType} now:`;
 
-case 'publisher':
-  if (!previousData || (!previousData.processedContent && !previousData.synthesizedContent)) {
-    throw new Error('No processed content to publish. Connect this node to an AI Processor that generates structured content.');
-  }
-  
-  const contentToPublish = previousData.processedContent || previousData.synthesizedContent;
-  const titleToPublish = previousData.title || 'Untitled Article';
-  
-  // 🖼️ NEW: Get image URL from previous nodes (Image Generator)
-  const articleImageUrl = previousData.imageUrl || null;
-  
-  // 🚀 Use English slug if available (from translator), otherwise create one
-  let slugToUse = '';
-  if (previousData.englishSlug) {
-    // Use the English slug from translator
-    slugToUse = previousData.englishSlug;
-  } else {
-    // Create English slug from title
-    slugToUse = titleToPublish
-      .toLowerCase()
-      .replace(/[^a-z0-9\s-]/g, '')
-      .replace(/\s+/g, '-')
-      .replace(/-+/g, '-')
-      .replace(/^-|-$/g, '')
-      .trim();
-  }
-  
-  addLog(node.id, node.label, 'running', `Publishing article: "${titleToPublish}" with slug: ${slugToUse}${articleImageUrl ? ' (with featured image)' : ''}`);
-  
-  // Create a properly formatted content for the publisher
-  const formattedContent = {
-    title: titleToPublish,
-    content: contentToPublish,
-    slug: slugToUse, // 🚀 Force English slug
-    image_url: articleImageUrl, // 🖼️ Include featured image
-    isRTL: previousData.isRTL || false, // 🚀 Pass RTL info
-    targetLanguage: previousData.targetLanguage || 'en'
-  };
-  
-  // Use the create-article-from-ai edge function for proper article creation
-  const { data: publishResult, error: publishError } = await supabase.functions.invoke('create-article-from-ai', {
-    body: {
-      content: JSON.stringify(formattedContent),
-      category: node.config.category || previousData.category || 'AI Generated',
-      provider: previousData.aiModel || 'AI Processor',
-      status: node.config.status || 'draft'
-    }
-  });
-  
-  if (publishError) throw new Error(publishError.message);
-  
-  result = { 
-    articleId: publishResult.article.id,
-    title: publishResult.article.title,
-    slug: publishResult.article.slug,
-    status: publishResult.article.status,
-    imageUrl: articleImageUrl, // 🖼️ Pass through image URL
-    url: `/articles/${publishResult.article.slug}`
-  };
-  addLog(node.id, node.label, 'completed', `Article published: "${publishResult.article.title}" (${publishResult.article.status})${articleImageUrl ? ' with featured image' : ''}`);
-  break;
+            const agentConfig = {
+              ai_model: node.config.aiModel || 'gemini-2.5-flash-preview-05-20',
+              provider: node.config.aiModel?.startsWith('gemini-') ? 'Google' : 
+                     node.config.aiModel?.startsWith('gpt-') ? 'OpenAI' : 
+                     node.config.aiModel?.startsWith('claude-') ? 'Anthropic' : 'Google'
+            };
+
+            const { data: aiResult, error: aiError } = await supabase.functions.invoke('run-ai-agent-analysis', {
+              body: { prompt: enhancedPrompt, agentConfig }
+            });
+
+            if (aiError) {
+              throw new Error(`AI processing failed: ${aiError.message}`);
+            }
+
+            let processedContent = aiResult.analysis;
+            
+            // Clean any potential JSON formatting that might have slipped through
+            if (processedContent.includes('```') || processedContent.trim().startsWith('{')) {
+              // Extract clean content if wrapped in code blocks or JSON
+              processedContent = processedContent
+                .replace(/```(?:json|markdown)?\s*/g, '')
+                .replace(/```\s*$/g, '')
+                .trim();
+                
+              // If it's JSON, try to extract the content field
+              if (processedContent.startsWith('{')) {
+                try {
+                  const parsed = JSON.parse(processedContent);
+                  processedContent = parsed.content || parsed.text || processedContent;
+                } catch (e) {
+                  // If JSON parsing fails, use as-is
+                  console.log('Could not parse as JSON, using raw content');
+                }
+              }
+            }
+
+            // Ensure content starts with a proper title if it doesn't have one
+            if (!processedContent.trim().startsWith('#')) {
+              const lines = processedContent.split('\n');
+              const firstMeaningfulLine = lines.find(line => line.trim().length > 10) || 'Generated Article';
+              processedContent = `# ${firstMeaningfulLine}\n\n${processedContent}`;
+            }
+
+            console.log('AI Processor: Content generated successfully');
+            
+            return {
+              ...inputData,
+              content: processedContent,
+              processedBy: `AI Processor (${agentConfig.ai_model})`,
+              category: category,
+              contentType: contentType,
+              writingStyle: writingStyle,
+              targetAudience: targetAudience
+            };
+          } catch (error) {
+            console.error('AI Processor error:', error);
+            throw new Error(`AI Processor failed: ${error.message}`);
+          }
+
+        case 'publisher':
+          if (!previousData || (!previousData.processedContent && !previousData.synthesizedContent)) {
+            throw new Error('No processed content to publish. Connect this node to an AI Processor that generates structured content.');
+          }
+          
+          const contentToPublish = previousData.processedContent || previousData.synthesizedContent;
+          const titleToPublish = previousData.title || 'Untitled Article';
+          
+          // 🖼️ NEW: Get image URL from previous nodes (Image Generator)
+          const articleImageUrl = previousData.imageUrl || null;
+          
+          // 🚀 Use English slug if available (from translator), otherwise create one
+          let slugToUse = '';
+          if (previousData.englishSlug) {
+            // Use the English slug from translator
+            slugToUse = previousData.englishSlug;
+          } else {
+            // Create English slug from title
+            slugToUse = titleToPublish
+              .toLowerCase()
+              .replace(/[^a-z0-9\s-]/g, '')
+              .replace(/\s+/g, '-')
+              .replace(/-+/g, '-')
+              .replace(/^-|-$/g, '')
+              .trim();
+          }
+          
+          addLog(node.id, node.label, 'running', `Publishing article: "${titleToPublish}" with slug: ${slugToUse}${articleImageUrl ? ' (with featured image)' : ''}`);
+          
+          // Create a properly formatted content for the publisher
+          const formattedContent = {
+            title: titleToPublish,
+            content: contentToPublish,
+            slug: slugToUse, // 🚀 Force English slug
+            image_url: articleImageUrl, // 🖼️ Include featured image
+            isRTL: previousData.isRTL || false, // 🚀 Pass RTL info
+            targetLanguage: previousData.targetLanguage || 'en'
+          };
+          
+          // Use the create-article-from-ai edge function for proper article creation
+          const { data: publishResult, error: publishError } = await supabase.functions.invoke('create-article-from-ai', {
+            body: {
+              content: JSON.stringify(formattedContent),
+              category: node.config.category || previousData.category || 'AI Generated',
+              provider: previousData.aiModel || 'AI Processor',
+              status: node.config.status || 'draft'
+            }
+          });
+          
+          if (publishError) throw new Error(publishError.message);
+          
+          result = { 
+            articleId: publishResult.article.id,
+            title: publishResult.article.title,
+            slug: publishResult.article.slug,
+            status: publishResult.article.status,
+            imageUrl: articleImageUrl, // 🖼️ Pass through image URL
+            url: `/articles/${publishResult.article.slug}`
+          };
+          addLog(node.id, node.label, 'completed', `Article published: "${publishResult.article.title}" (${publishResult.article.status})${articleImageUrl ? ' with featured image' : ''}`);
+          break;
           
         case 'email-sender':
           if (!node.config.recipient || !node.config.subject) {

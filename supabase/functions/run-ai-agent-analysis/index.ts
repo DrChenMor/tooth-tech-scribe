@@ -31,10 +31,11 @@ const handleOpenAIRequest = async (model: string, prompt: string) => {
     body: JSON.stringify({
       model: model,
       messages: [
-        { role: 'system', content: 'You are an expert analysis assistant. Respond with only the requested JSON object.' },
+        { role: 'system', content: 'You are an expert content generation assistant. Always respond with clean, well-formatted markdown content. Never include JSON formatting or code blocks unless specifically requested.' },
         { role: 'user', content: prompt }
       ],
-      response_format: { type: "json_object" },
+      temperature: 0.7,
+      max_tokens: 4000,
     }),
   });
 
@@ -63,11 +64,12 @@ const handleGoogleRequest = async (model: string, prompt: string) => {
       contents: [
         { 
           role: 'user', 
-          parts: [{ text: `You are an expert analysis assistant. Respond with only the requested JSON object. Do not include any markdown formatting like \`\`\`json. Here is the user request: ${prompt}` }]
+          parts: [{ text: `You are an expert content generation assistant. Always respond with clean, well-formatted markdown content. Never include JSON formatting or code blocks unless specifically requested. Here is the user request: ${prompt}` }]
         }
       ],
       generationConfig: {
-        response_mime_type: "application/json",
+        temperature: 0.7,
+        maxOutputTokens: 4000,
       },
     }),
   });
@@ -103,7 +105,7 @@ const handleAnthropicRequest = async (model: string, prompt: string) => {
       model: model,
       max_tokens: 4096,
       messages: [
-        { role: 'user', content: `You are an expert analysis assistant. Respond with only the requested JSON object. Do not include any markdown formatting like \`\`\`json. Here is the user request: ${prompt}` }
+        { role: 'user', content: `You are an expert content generation assistant. Always respond with clean, well-formatted markdown content. Never include JSON formatting or code blocks unless specifically requested. Here is the user request: ${prompt}` }
       ],
     }),
   });
@@ -120,11 +122,7 @@ const handleAnthropicRequest = async (model: string, prompt: string) => {
     throw new Error("Anthropic AI returned no content.");
   }
 
-  let text = data.content[0].text;
-  if (text.startsWith('```json')) {
-    text = text.substring(7, text.length - 3).trim();
-  }
-  return text;
+  return data.content[0].text;
 };
 
 serve(async (req) => {
@@ -135,7 +133,7 @@ serve(async (req) => {
 
   try {
     const { prompt, agentConfig } = await req.json();
-    const model = agentConfig?.ai_model || 'gemini-2.0-flash';
+    const model = agentConfig?.ai_model || 'gemini-2.5-flash-preview-05-20';
     const provider = agentConfig?.provider || getProviderForModel(model);
 
     let analysis;

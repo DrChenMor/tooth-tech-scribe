@@ -48,14 +48,17 @@ const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
 
   // Convert ReactFlow Node back to WorkflowNode format
   const convertToWorkflowNode = (node: Node): WorkflowNode => {
+    // Find the original workflow node to preserve its configuration
+    const originalNode = initialNodes.find(n => n.id === node.id);
+    
     return {
       id: node.id,
       type: (node.type as WorkflowNode['type']) || 'trigger',
       label: (node.data?.label as string) || '',
       position: node.position,
       data: node.data || {},
-      config: node.data || {},
-      connected: []
+      config: originalNode?.config || {}, // Preserve original config
+      connected: originalNode?.connected || []
     };
   };
 

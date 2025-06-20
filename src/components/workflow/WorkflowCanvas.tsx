@@ -1,6 +1,8 @@
+
 import React, { useCallback, useRef } from 'react';
 import { WorkflowNode } from '@/types/WorkflowTypes';
-import ReactFlow, {
+import {
+  ReactFlow,
   addEdge,
   useNodesState,
   useEdgesState,
@@ -9,9 +11,9 @@ import ReactFlow, {
   Edge,
   XYPosition,
   Connection,
-} from 'reactflow';
+} from '@xyflow/react';
 
-import 'reactflow/dist/style.css';
+import '@xyflow/react/dist/style.css';
 
 interface WorkflowCanvasProps {
   nodes: WorkflowNode[];

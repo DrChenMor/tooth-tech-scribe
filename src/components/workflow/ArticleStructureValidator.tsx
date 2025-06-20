@@ -1,4 +1,4 @@
-import { WorkflowNode } from '@/pages/WorkflowBuilderPage';
+import { WorkflowNode } from '@/types/WorkflowTypes';
 
 export interface ArticleValidationResult {
   isValid: boolean;

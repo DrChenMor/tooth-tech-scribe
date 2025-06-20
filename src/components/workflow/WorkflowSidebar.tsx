@@ -1,901 +1,672 @@
-
-import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
+import React, { useState, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
-import { 
-  Clock, Globe, Brain, Filter, Send, Plus, Share2, Mail, 
-  ImagePlay, SearchCheck, Languages, Eye, Award, TrendingUp, 
-  HeartPulse, Rss, GraduationCap, Newspaper, Search, Combine, BarChart3 
-} from 'lucide-react';
-import { WorkflowNode } from '@/pages/WorkflowBuilderPage';
-import { AVAILABLE_MODELS } from '@/services/aiModelService';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { toast } from 'sonner';
+import { Checkbox } from "@/components/ui/checkbox"
+import { WorkflowNode } from '@/types/WorkflowTypes';
 
 interface WorkflowSidebarProps {
   selectedNode: WorkflowNode | null;
-  onAddNode: (type: WorkflowNode['type']) => void;
   onUpdateNodeConfig: (nodeId: string, newConfig: Partial<WorkflowNode['config']>) => void;
+  onAddNode: (type: WorkflowNode['type']) => void;
 }
 
-const WorkflowSidebar = ({ selectedNode, onAddNode, onUpdateNodeConfig }: WorkflowSidebarProps) => {
-  const nodeTypes = [
-    { type: 'trigger', icon: Clock, label: 'Trigger', description: 'Start workflows' },
-    { type: 'scraper', icon: Globe, label: 'Web Scraper', description: 'Extract content' },
-    { type: 'rss-aggregator', icon: Rss, label: 'RSS Aggregator', description: 'Fetch content from RSS feeds' },
-    { type: 'google-scholar-search', icon: GraduationCap, label: 'Google Scholar Search', description: 'Search academic papers' },
-    { type: 'news-discovery', icon: Newspaper, label: 'News Discovery', description: 'Find trending news articles' },
-    { type: 'perplexity-research', icon: Search, label: 'Perplexity Research', description: 'AI-powered web research' },
-    { type: 'ai-processor', icon: Brain, label: 'AI Processor', description: 'Generate content' },
-    { type: 'multi-source-synthesizer', icon: Combine, label: 'Multi-Source Synthesizer', description: 'Combine multiple sources with AI' },
-    { type: 'article-structure-validator', icon: Award, label: 'Article Structure Validator', description: 'Validate article structure and quality' },
-    { type: 'filter', icon: Filter, label: 'Filter', description: 'Quality control' },
-    { type: 'publisher', icon: Send, label: 'Publisher', description: 'Publish articles' },
-    { type: 'social-poster', icon: Share2, label: 'Social Poster', description: 'Post to social media' },
-    { type: 'email-sender', icon: Mail, label: 'Email Sender', description: 'Send email notifications' },
-    { type: 'image-generator', icon: ImagePlay, label: 'Image Generator', description: 'Create article images' },
-    { type: 'seo-analyzer', icon: SearchCheck, label: 'SEO Analyzer', description: 'Analyze content for SEO' },
-    { type: 'translator', icon: Languages, label: 'Translator', description: 'Translate article content' },
-    { type: 'content-quality-analyzer', icon: Award, label: 'Content Quality Analyzer', description: 'Score content quality with AI' },
-    { type: 'ai-seo-optimizer', icon: TrendingUp, label: 'AI SEO Optimizer', description: 'Generate SEO suggestions with AI' },
-    { type: 'engagement-forecaster', icon: HeartPulse, label: 'Engagement Forecaster', description: 'Predict engagement with AI' },
-    { type: 'content-performance-analyzer', icon: BarChart3, label: 'Content Performance Analyzer', description: 'Track and analyze content metrics' },
-  ] as const;
+const WorkflowSidebar: React.FC<WorkflowSidebarProps> = ({ selectedNode, onUpdateNodeConfig, onAddNode }) => {
+  const handleConfigChange = useCallback((field: string, value: any) => {
+    if (selectedNode) {
+      onUpdateNodeConfig(selectedNode.id, { [field]: value });
+    }
+  }, [selectedNode, onUpdateNodeConfig]);
 
-  return (
-    <div className="w-80 border-r bg-muted/20 p-4 overflow-y-auto">
-      {!selectedNode ? (
-        <>
-          <div className="mb-6">
-            <h3 className="font-semibold mb-3">Add Components</h3>
-            <div className="space-y-2">
-              {nodeTypes.map((nodeType) => {
-                const Icon = nodeType.icon;
-                return (
-                  <Button
-                    key={nodeType.type}
-                    variant="outline"
-                    className="w-full justify-start h-auto p-3"
-                    onClick={() => onAddNode(nodeType.type)}
-                  >
-                    <div className="flex items-center gap-3">
-                      <Icon className="h-5 w-5" />
-                      <div className="text-left">
-                        <div className="font-medium">{nodeType.label}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {nodeType.description}
-                        </div>
-                      </div>
-                    </div>
-                  </Button>
-                );
-              })}
-            </div>
-          </div>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm">Quick Start</CardTitle>
-            </CardHeader>
-            <CardContent className="text-sm text-muted-foreground">
-              <ol className="list-decimal list-inside space-y-1">
-                <li>Add a Trigger to start your workflow</li>
-                <li>Add research nodes to collect content</li>
-                <li>Add an AI Processor to transform content</li>
-                <li>Add a Publisher to save articles</li>
-                <li>Connect the components</li>
-                <li>Test your workflow</li>
-              </ol>
-            </CardContent>
-          </Card>
-        </>
-      ) : (
-        <NodeConfiguration 
-          key={selectedNode.id} // Force re-render when node changes
-          node={selectedNode} 
-          onUpdateConfig={onUpdateNodeConfig} 
-        />
-      )}
-    </div>
-  );
-};
-
-const NodeConfiguration = ({ 
-  node, 
-  onUpdateConfig 
-}: { 
-  node: WorkflowNode; 
-  onUpdateConfig: (nodeId: string, newConfig: Partial<WorkflowNode['config']>) => void; 
-}) => {
-  // Local state to ensure immediate updates
-  const [localConfig, setLocalConfig] = useState(node.config);
-
-  // Sync local state with node config when node changes
-  useEffect(() => {
-    setLocalConfig(node.config);
-  }, [node.config, node.id]);
-
-  const getNodeIcon = (type: WorkflowNode['type']) => {
-    const icons = {
-      trigger: Clock,
-      scraper: Globe,
-      'rss-aggregator': Rss,
-      'google-scholar-search': GraduationCap,
-      'news-discovery': Newspaper,
-      'perplexity-research': Search,
-      'ai-processor': Brain,
-      'multi-source-synthesizer': Combine,
-      filter: Filter,
-      publisher: Send,
-      'social-poster': Share2,
-      'email-sender': Mail,
-      'image-generator': ImagePlay,
-      'seo-analyzer': SearchCheck,
-      translator: Languages,
-      'article-structure-validator': Award,
-      'content-quality-analyzer': Award,
-      'ai-seo-optimizer': TrendingUp,
-      'engagement-forecaster': HeartPulse,
-      'content-performance-analyzer': BarChart3,
-    };
-    return icons[type] || Clock;
-  };
-
-  const Icon = getNodeIcon(node.type);
-
-  const handleConfigChange = (key: string, value: any) => {
-    // Update local state immediately for UI responsiveness
-    const newConfig = { ...localConfig, [key]: value };
-    setLocalConfig(newConfig);
-    
-    // Update parent state
-    onUpdateConfig(node.id, { [key]: value });
-  };
-
-  const renderAIModelSelector = () => (
-    <div className="space-y-2">
-      <Label>AI Model</Label>
-      <Select
-        key={`aiModel-${node.id}`}
-        value={localConfig.aiModel || 'gemini-2.5-flash-preview-05-20'}
-        onValueChange={(value) => handleConfigChange('aiModel', value)}
-      >
-        <SelectTrigger>
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {AVAILABLE_MODELS.map((model) => (
-            <SelectItem key={model.id} value={model.id}>
-              {model.name} ({model.provider})
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </div>
-  );
-
-  const renderCustomInstructions = (placeholder: string = "Add specific instructions...") => (
-    <div className="space-y-2">
-      <Label>Custom Instructions (Optional)</Label>
-      <Textarea
-        key={`customInstructions-${node.id}`}
-        placeholder={placeholder}
-        rows={3}
-        value={localConfig.customInstructions || ''}
-        onChange={(e) => handleConfigChange('customInstructions', e.target.value)}
-      />
-    </div>
-  );
-  
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-2">
-        <Icon className="h-5 w-5" />
-        <h3 className="font-semibold">{node.label}</h3>
+  if (!selectedNode) {
+    return (
+      <div className="w-80 p-4 border-r bg-muted/50">
+        <Card>
+          <CardHeader>
+            <CardTitle>Workflow Nodes</CardTitle>
+            <CardDescription>Add nodes to build your workflow.</CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-4">
+            <Button variant="outline" onClick={() => onAddNode('trigger')}>Add Trigger</Button>
+            <Button variant="outline" onClick={() => onAddNode('scraper')}>Add Web Scraper</Button>
+            <Button variant="outline" onClick={() => onAddNode('rss-aggregator')}>Add RSS Aggregator</Button>
+            <Button variant="outline" onClick={() => onAddNode('google-scholar-search')}>Add Google Scholar Search</Button>
+            <Button variant="outline" onClick={() => onAddNode('news-discovery')}>Add News Discovery</Button>
+            <Button variant="outline" onClick={() => onAddNode('perplexity-research')}>Add Perplexity Research</Button>
+            <Button variant="outline" onClick={() => onAddNode('ai-processor')}>Add AI Processor</Button>
+            <Button variant="outline" onClick={() => onAddNode('multi-source-synthesizer')}>Add Multi-Source Synthesizer</Button>
+            <Button variant="outline" onClick={() => onAddNode('filter')}>Add Filter</Button>
+            <Button variant="outline" onClick={() => onAddNode('publisher')}>Add Publisher</Button>
+            <Button variant="outline" onClick={() => onAddNode('social-poster')}>Add Social Poster</Button>
+            <Button variant="outline" onClick={() => onAddNode('email-sender')}>Add Email Sender</Button>
+            <Button variant="outline" onClick={() => onAddNode('image-generator')}>Add Image Generator</Button>
+            <Button variant="outline" onClick={() => onAddNode('seo-analyzer')}>Add SEO Analyzer</Button>
+            <Button variant="outline" onClick={() => onAddNode('translator')}>Add Translator</Button>
+            <Button variant="outline" onClick={() => onAddNode('content-quality-analyzer')}>Add Content Quality Analyzer</Button>
+            <Button variant="outline" onClick={() => onAddNode('ai-seo-optimizer')}>Add AI SEO Optimizer</Button>
+            <Button variant="outline" onClick={() => onAddNode('engagement-forecaster')}>Add Engagement Forecaster</Button>
+            <Button variant="outline" onClick={() => onAddNode('content-performance-analyzer')}>Add Content Performance Analyzer</Button>
+            <Button variant="outline" onClick={() => onAddNode('article-structure-validator')}>Add Article Structure Validator</Button>
+          </CardContent>
+        </Card>
       </div>
+    );
+  }
 
-      {/* Trigger Configuration */}
-      {node.type === 'trigger' && (
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label>Schedule Type</Label>
-            <Select
-              key={`schedule-${node.id}`}
-              value={localConfig.schedule || 'manual'}
-              onValueChange={(value) => handleConfigChange('schedule', value)}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="manual">Manual</SelectItem>
-                <SelectItem value="hourly">Every Hour</SelectItem>
-                <SelectItem value="daily">Daily</SelectItem>
-                <SelectItem value="weekly">Weekly</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          {localConfig.schedule !== 'manual' && (
-            <div className="space-y-2">
-              <Label>Time</Label>
-              <Input
-                key={`time-${node.id}`}
-                type="time"
-                value={localConfig.time || '09:00'}
-                onChange={(e) => handleConfigChange('time', e.target.value)}
+  return (
+    <div className="w-80 p-4 border-r bg-muted/50">
+      <Card>
+        <CardHeader>
+          <CardTitle>{selectedNode.label} Configuration</CardTitle>
+          <CardDescription>Configure the selected node.</CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4">
+          {selectedNode.type === 'trigger' && (
+            <p>This node triggers the workflow.</p>
+          )}
+
+          {selectedNode.type === 'scraper' && (
+            <>
+              <div className="grid gap-2">
+                <Label htmlFor="urls">URLs (one per line)</Label>
+                <Textarea
+                  id="urls"
+                  placeholder="Enter URLs to scrape, one per line"
+                  defaultValue={selectedNode.config.urls?.join('\n') || ''}
+                  onBlur={(e) => handleConfigChange('urls', e.target.value.split('\n'))}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="selector">CSS Selector</Label>
+                <Input
+                  type="text"
+                  id="selector"
+                  placeholder="Enter CSS selector for content"
+                  defaultValue={selectedNode.config.selector || ''}
+                  onBlur={(e) => handleConfigChange('selector', e.target.value)}
+                />
+              </div>
+            </>
+          )}
+
+          {selectedNode.type === 'rss-aggregator' && (
+            <div className="grid gap-2">
+              <Label htmlFor="rssUrls">RSS Feed URLs (one per line)</Label>
+              <Textarea
+                id="rssUrls"
+                placeholder="Enter RSS feed URLs, one per line"
+                defaultValue={selectedNode.config.urls?.join('\n') || ''}
+                onBlur={(e) => handleConfigChange('urls', e.target.value.split('\n'))}
               />
             </div>
           )}
-        </div>
-      )}
 
-      {/* Web Scraper Configuration */}
-      {node.type === 'scraper' && (
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label>URLs to Scrape (one per line)</Label>
-            <Textarea
-              key={`urls-${node.id}`}
-              placeholder="https://example.com/news&#10;https://another-site.com/articles"
-              rows={4}
-              value={Array.isArray(localConfig.urls) ? localConfig.urls.join('\n') : ''}
-              onChange={(e) => handleConfigChange('urls', e.target.value.split('\n').filter(url => url.trim() !== ''))}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Content Selector (CSS)</Label>
-            <Input
-              key={`selector-${node.id}`}
-              placeholder="article, .content, #main"
-              value={localConfig.selector || ''}
-              onChange={(e) => handleConfigChange('selector', e.target.value)}
-            />
-          </div>
-          <div className="flex items-center space-x-2">
-            <Switch
-              key={`followPagination-${node.id}`}
-              checked={localConfig.followPagination || false}
-              onCheckedChange={(checked) => handleConfigChange('followPagination', checked)}
-            />
-            <Label>Follow pagination</Label>
-          </div>
-        </div>
-      )}
+          {selectedNode.type === 'google-scholar-search' && (
+            <>
+              <div className="grid gap-2">
+                <Label htmlFor="scholarQuery">Search Query</Label>
+                <Input
+                  type="text"
+                  id="scholarQuery"
+                  placeholder="Enter search query"
+                  defaultValue={selectedNode.config.query || ''}
+                  onBlur={(e) => handleConfigChange('query', e.target.value)}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="maxResults">Max Results</Label>
+                <Input
+                  type="number"
+                  id="maxResults"
+                  placeholder="Enter max results"
+                  defaultValue={selectedNode.config.maxResults || 20}
+                  onBlur={(e) => handleConfigChange('maxResults', parseInt(e.target.value))}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="yearFrom">Year From</Label>
+                <Input
+                  type="number"
+                  id="yearFrom"
+                  placeholder="Enter year from"
+                  defaultValue={selectedNode.config.yearFrom || ''}
+                  onBlur={(e) => handleConfigChange('yearFrom', e.target.value)}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="yearTo">Year To</Label>
+                <Input
+                  type="number"
+                  id="yearTo"
+                  placeholder="Enter year to"
+                  defaultValue={selectedNode.config.yearTo || ''}
+                  onBlur={(e) => handleConfigChange('yearTo', e.target.value)}
+                />
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="includeAbstracts"
+                  defaultChecked={selectedNode.config.includeAbstracts || false}
+                  onCheckedChange={(checked) => handleConfigChange('includeAbstracts', checked)}
+                />
+                <label
+                  htmlFor="includeAbstracts"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  Include Abstracts
+                </label>
+              </div>
+            </>
+          )}
 
-      {/* RSS Aggregator Configuration */}
-      {node.type === 'rss-aggregator' && (
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label>RSS Feed URLs (one per line)</Label>
-            <Textarea
-              key={`rss-urls-${node.id}`}
-              placeholder="https://example.com/feed.xml&#10;https://another-site.com/rss"
-              rows={4}
-              value={Array.isArray(localConfig.urls) ? localConfig.urls.join('\n') : ''}
-              onChange={(e) => handleConfigChange('urls', e.target.value.split('\n').filter(url => url.trim() !== ''))}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Maximum Items per Feed</Label>
-            <Input
-              key={`maxItems-${node.id}`}
-              type="number"
-              min="1"
-              max="50"
-              value={localConfig.maxItems || 10}
-              onChange={(e) => handleConfigChange('maxItems', parseInt(e.target.value, 10))}
-            />
-          </div>
-        </div>
-      )}
+          {selectedNode.type === 'news-discovery' && (
+            <>
+              <div className="grid gap-2">
+                <Label htmlFor="newsKeywords">Keywords</Label>
+                <Input
+                  type="text"
+                  id="newsKeywords"
+                  placeholder="Enter keywords for news discovery"
+                  defaultValue={selectedNode.config.keywords || ''}
+                  onBlur={(e) => handleConfigChange('keywords', e.target.value)}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="newsSource">Source</Label>
+                <Input
+                  type="text"
+                  id="newsSource"
+                  placeholder="Enter source (e.g., 'google-news', 'bing-news', 'all')"
+                  defaultValue={selectedNode.config.source || 'all'}
+                  onBlur={(e) => handleConfigChange('source', e.target.value)}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="newsTimeRange">Time Range</Label>
+                <Input
+                  type="text"
+                  id="newsTimeRange"
+                  placeholder="Enter time range (e.g., '1d', '7d', '30d')"
+                  defaultValue={selectedNode.config.timeRange || '7d'}
+                  onBlur={(e) => handleConfigChange('timeRange', e.target.value)}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="newsMaxResults">Max Results</Label>
+                <Input
+                  type="number"
+                  id="newsMaxResults"
+                  placeholder="Enter max results"
+                  defaultValue={selectedNode.config.maxResults || 10}
+                  onBlur={(e) => handleConfigChange('maxResults', parseInt(e.target.value))}
+                />
+              </div>
+            </>
+          )}
 
-     {/* Google Scholar Search Configuration */}
-      {node.type === 'google-scholar-search' && (
-        <div className="space-y-4">
-          {renderAIModelSelector()}
-          <div className="space-y-2">
-            <Label>Search Query</Label>
-            <Input
-              key={`query-${node.id}`}
-              placeholder="machine learning natural language processing"
-              value={localConfig.query || ''}
-              onChange={(e) => handleConfigChange('query', e.target.value)}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Number of Results</Label>
-            <Input
-              key={`maxResults-${node.id}`}
-              type="number"
-              min="1"
-              max="100"
-              value={localConfig.maxResults || 20}
-              onChange={(e) => handleConfigChange('maxResults', parseInt(e.target.value, 10))}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Publication Year Range</Label>
-            <div className="flex gap-2">
-              <Input
-                key={`yearFrom-${node.id}`}
-                type="number"
-                placeholder="2020"
-                value={localConfig.yearFrom || ''}
-                onChange={(e) => handleConfigChange('yearFrom', e.target.value)}
-              />
-              <span className="self-center text-sm">to</span>
-              <Input
-                key={`yearTo-${node.id}`}
-                type="number"
-                placeholder="2024"
-                value={localConfig.yearTo || ''}
-                onChange={(e) => handleConfigChange('yearTo', e.target.value)}
-              />
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label>Include abstracts</Label>
-            <Switch
-              key={`includeAbstracts-${node.id}`}
-              checked={localConfig.includeAbstracts || true}
-              onCheckedChange={(checked) => handleConfigChange('includeAbstracts', checked)}
-            />
-          </div>
-          {renderCustomInstructions("Add specific instructions for academic paper filtering...")}
-        </div>
-      )}
-      
-      {/* News Discovery Configuration */}
-      {node.type === 'news-discovery' && (
-        <div className="space-y-4">
-          {renderAIModelSelector()}
-          <div className="space-y-2">
-            <Label>Search Keywords</Label>
-            <Input
-              key={`keywords-${node.id}`}
-              placeholder="artificial intelligence, technology"
-              value={localConfig.keywords || ''}
-              onChange={(e) => handleConfigChange('keywords', e.target.value)}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>News Sources</Label>
-            <Select
-              key={`source-${node.id}`}
-              value={localConfig.source || 'all'}
-              onValueChange={(value) => handleConfigChange('source', value)}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Sources (GNews + Guardian + Hacker News)</SelectItem>
-                <SelectItem value="gnews">GNews (World News)</SelectItem>
-                <SelectItem value="guardian">The Guardian (Quality Journalism)</SelectItem>
-                <SelectItem value="hackernews">Hacker News (Tech News)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label>Time Range</Label>
-            <Select
-              key={`timeRange-${node.id}`}
-              value={localConfig.timeRange || 'day'}
-              onValueChange={(value) => handleConfigChange('timeRange', value)}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="hour">Last Hour</SelectItem>
-                <SelectItem value="day">Last 24 Hours</SelectItem>
-                <SelectItem value="week">Last Week</SelectItem>
-                <SelectItem value="month">Last Month</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label>Maximum Articles</Label>
-            <Input
-              key={`maxArticles-${node.id}`}
-              type="number"
-              min="1"
-              max="50"
-              value={localConfig.maxResults || 10}
-              onChange={(e) => handleConfigChange('maxResults', parseInt(e.target.value, 10))}
-            />
-          </div>
-          {renderCustomInstructions("Add specific instructions for news filtering...")}
-        </div>
-      )}
+          {selectedNode.type === 'perplexity-research' && (
+            <>
+              <div className="grid gap-2">
+                <Label htmlFor="researchQuery">Research Query</Label>
+                <Input
+                  type="text"
+                  id="researchQuery"
+                  placeholder="Enter research query"
+                  defaultValue={selectedNode.config.query || ''}
+                  onBlur={(e) => handleConfigChange('query', e.target.value)}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="researchDepth">Research Depth</Label>
+                <Select defaultValue={selectedNode.config.depth || 'medium'}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Select depth" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="light" onSelect={() => handleConfigChange('depth', 'light')}>Light</SelectItem>
+                    <SelectItem value="medium" onSelect={() => handleConfigChange('depth', 'medium')}>Medium</SelectItem>
+                    <SelectItem value="deep" onSelect={() => handleConfigChange('depth', 'deep')}>Deep</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="includeSources"
+                  defaultChecked={selectedNode.config.includeSources || false}
+                  onCheckedChange={(checked) => handleConfigChange('includeSources', checked)}
+                />
+                <label
+                  htmlFor="includeSources"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  Include Sources
+                </label>
+              </div>
+            </>
+          )}
 
-      
-      {/* Perplexity Research Configuration */}
-      {node.type === 'perplexity-research' && (
-        <div className="space-y-4">
-          {renderAIModelSelector()}
-          <div className="space-y-2">
-            <Label>Research Query</Label>
-            <Textarea
-              key={`research-query-${node.id}`}
-              placeholder="What are the latest developments in AI safety research?"
-              rows={3}
-              value={localConfig.query || ''}
-              onChange={(e) => handleConfigChange('query', e.target.value)}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Research Depth</Label>
-            <Select
-              key={`depth-${node.id}`}
-              value={localConfig.depth || 'medium'}
-              onValueChange={(value) => handleConfigChange('depth', value)}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="quick">Quick Overview</SelectItem>
-                <SelectItem value="medium">Medium Depth</SelectItem>
-                <SelectItem value="deep">Deep Research</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Switch
-              key={`includeSources-${node.id}`}
-              checked={localConfig.includeSources || true}
-              onCheckedChange={(checked) => handleConfigChange('includeSources', checked)}
-            />
-            <Label>Include source citations</Label>
-          </div>
-        </div>
-      )}
+          {selectedNode.type === 'ai-processor' && (
+            <>
+              <div className="grid gap-2">
+                <Label htmlFor="contentType">Content Type</Label>
+                <Input
+                  type="text"
+                  id="contentType"
+                  placeholder="Enter content type (e.g., article, blog post)"
+                  defaultValue={selectedNode.config.contentType || 'article'}
+                  onBlur={(e) => handleConfigChange('contentType', e.target.value)}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="writingStyle">Writing Style</Label>
+                <Input
+                  type="text"
+                  id="writingStyle"
+                  placeholder="Enter writing style (e.g., professional, casual)"
+                  defaultValue={selectedNode.config.writingStyle || 'Professional'}
+                  onBlur={(e) => handleConfigChange('writingStyle', e.target.value)}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="targetAudience">Target Audience</Label>
+                <Input
+                  type="text"
+                  id="targetAudience"
+                  placeholder="Enter target audience (e.g., general readers, experts)"
+                  defaultValue={selectedNode.config.targetAudience || 'General readers'}
+                  onBlur={(e) => handleConfigChange('targetAudience', e.target.value)}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="category">Category</Label>
+                <Input
+                  type="text"
+                  id="category"
+                  placeholder="Enter category (e.g., technology, health)"
+                  defaultValue={selectedNode.config.category || 'General'}
+                  onBlur={(e) => handleConfigChange('category', e.target.value)}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="aiModel">AI Model</Label>
+                <Input
+                  type="text"
+                  id="aiModel"
+                  placeholder="Enter AI model (e.g., gemini-2.5-flash-preview-05-20, gpt-4)"
+                  defaultValue={selectedNode.config.aiModel || 'gemini-2.5-flash-preview-05-20'}
+                  onBlur={(e) => handleConfigChange('aiModel', e.target.value)}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="customInstructions">Custom Instructions</Label>
+                <Textarea
+                  id="customInstructions"
+                  placeholder="Enter custom instructions for AI"
+                  defaultValue={selectedNode.config.customInstructions || ''}
+                  onBlur={(e) => handleConfigChange('customInstructions', e.target.value)}
+                />
+              </div>
+            </>
+          )}
 
-      {/* Enhanced AI Processor Configuration */}
-      {node.type === 'ai-processor' && (
-        <div className="space-y-4">
-          {renderAIModelSelector()}
-          <div className="space-y-2">
-            <Label>Content Type</Label>
-            <Select
-              key={`contentType-${node.id}`}
-              value={localConfig.contentType || 'article'}
-              onValueChange={(value) => handleConfigChange('contentType', value)}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="article">Full Article</SelectItem>
-                <SelectItem value="summary">Summary</SelectItem>
-                <SelectItem value="analysis">Analysis</SelectItem>
-                <SelectItem value="news-report">News Report</SelectItem>
-                <SelectItem value="tutorial">Tutorial</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label>Writing Style</Label>
-            <Select
-              key={`writingStyle-${node.id}`}
-              value={localConfig.writingStyle || 'Professional'}
-              onValueChange={(value) => handleConfigChange('writingStyle', value)}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Professional">Professional</SelectItem>
-                <SelectItem value="Casual">Casual</SelectItem>
-                <SelectItem value="Academic">Academic</SelectItem>
-                <SelectItem value="Technical">Technical</SelectItem>
-                <SelectItem value="Conversational">Conversational</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label>Target Audience</Label>
-            <Select
-              key={`targetAudience-${node.id}`}
-              value={localConfig.targetAudience || 'General readers'}
-              onValueChange={(value) => handleConfigChange('targetAudience', value)}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="General readers">General Readers</SelectItem>
-                <SelectItem value="Experts">Industry Experts</SelectItem>
-                <SelectItem value="Students">Students</SelectItem>
-                <SelectItem value="Beginners">Beginners</SelectItem>
-                <SelectItem value="Professionals">Professionals</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label>Article Category</Label>
-            <Input
-              key={`category-${node.id}`}
-              placeholder="Technology, Business, Science..."
-              value={localConfig.category || ''}
-              onChange={(e) => handleConfigChange('category', e.target.value)}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Custom Instructions (Optional)</Label>
-            <Textarea
-              key={`prompt-${node.id}`}
-              placeholder="Add specific instructions for content transformation..."
-              rows={3}
-              value={localConfig.prompt || ''}
-              onChange={(e) => handleConfigChange('prompt', e.target.value)}
-            />
-          </div>
-        </div>
-      )}
+          {selectedNode.type === 'multi-source-synthesizer' && (
+            <>
+              <div className="grid gap-2">
+                <Label htmlFor="style">Style</Label>
+                <Input
+                  type="text"
+                  id="style"
+                  placeholder="Enter synthesis style (e.g., comprehensive, concise)"
+                  defaultValue={selectedNode.config.style || 'comprehensive'}
+                  onBlur={(e) => handleConfigChange('style', e.target.value)}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="targetLength">Target Length</Label>
+                <Input
+                  type="text"
+                  id="targetLength"
+                  placeholder="Enter target length (e.g., short, medium, long)"
+                  defaultValue={selectedNode.config.targetLength || 'medium'}
+                  onBlur={(e) => handleConfigChange('targetLength', e.target.value)}
+                />
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="maintainAttribution"
+                  defaultChecked={selectedNode.config.maintainAttribution !== false}
+                  onCheckedChange={(checked) => handleConfigChange('maintainAttribution', checked)}
+                />
+                <label
+                  htmlFor="maintainAttribution"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  Maintain Attribution
+                </label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="resolveConflicts"
+                  defaultChecked={selectedNode.config.resolveConflicts !== false}
+                  onCheckedChange={(checked) => handleConfigChange('resolveConflicts', checked)}
+                />
+                <label
+                  htmlFor="resolveConflicts"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  Resolve Conflicts
+                </label>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="aiModelSynth">AI Model</Label>
+                <Input
+                  type="text"
+                  id="aiModelSynth"
+                  placeholder="Enter AI model (e.g., gemini-2.5-flash-preview-05-20, gpt-4)"
+                  defaultValue={selectedNode.config.aiModel || 'gemini-2.5-flash-preview-05-20'}
+                  onBlur={(e) => handleConfigChange('aiModel', e.target.value)}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="customInstructionsSynth">Custom Instructions</Label>
+                <Textarea
+                  id="customInstructionsSynth"
+                  placeholder="Enter custom instructions for AI"
+                  defaultValue={selectedNode.config.customInstructions || ''}
+                  onBlur={(e) => handleConfigChange('customInstructions', e.target.value)}
+                />
+              </div>
+            </>
+          )}
 
-      {/* Enhanced Publisher Configuration */}
-      {node.type === 'publisher' && (
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label>Publish Status</Label>
-            <Select
-              key={`status-${node.id}`}
-              value={localConfig.status || 'draft'}
-              onValueChange={(value) => handleConfigChange('status', value)}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="draft">Save as Draft</SelectItem>
-                <SelectItem value="published">Publish Immediately</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label>Category Override</Label>
-            <Input
-              key={`category-${node.id}`}
-              placeholder="Leave empty to use AI Processor category"
-              value={localConfig.category || ''}
-              onChange={(e) => handleConfigChange('category', e.target.value)}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Author Name Override</Label>
-            <Input
-              key={`authorName-${node.id}`}
-              placeholder="Leave empty for default AI author"
-              value={localConfig.authorName || ''}
-              onChange={(e) => handleConfigChange('authorName', e.target.value)}
-            />
-          </div>
-          <div className="text-sm text-muted-foreground bg-blue-50 p-3 rounded">
-            <strong>Article Structure:</strong> The publisher automatically extracts titles, creates proper excerpts, and ensures articles follow your site's structure. Content will be validated for proper markdown formatting.
-          </div>
-        </div>
-      )}
+          {selectedNode.type === 'filter' && (
+            <p>This node filters content based on criteria.</p>
+          )}
 
-      {/* Email Sender Configuration */}
-      {node.type === 'email-sender' && (
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label>Recipient Email</Label>
-            <Input
-              key={`recipient-${node.id}`}
-              type="email"
-              placeholder="recipient@example.com"
-              value={localConfig.recipient || ''}
-              onChange={(e) => handleConfigChange('recipient', e.target.value)}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Email Subject</Label>
-            <Input
-              key={`subject-${node.id}`}
-              placeholder="New Article: {{article.title}}"
-              value={localConfig.subject || ''}
-              onChange={(e) => handleConfigChange('subject', e.target.value)}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Email Body</Label>
-            <Textarea
-              key={`body-${node.id}`}
-              rows={4}
-              placeholder="A new article has been published. Read it here: {{article.url}}"
-              value={localConfig.body || ''}
-              onChange={(e) => handleConfigChange('body', e.target.value)}
-            />
-          </div>
-        </div>
-      )}
+          {selectedNode.type === 'publisher' && (
+            <>
+              <div className="grid gap-2">
+                <Label htmlFor="category">Category</Label>
+                <Input
+                  type="text"
+                  id="category"
+                  placeholder="Enter category for publishing"
+                  defaultValue={selectedNode.config.category || 'AI Generated'}
+                  onBlur={(e) => handleConfigChange('category', e.target.value)}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="status">Status</Label>
+                <Select defaultValue={selectedNode.config.status || 'draft'}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="draft" onSelect={() => handleConfigChange('status', 'draft')}>Draft</SelectItem>
+                    <SelectItem value="pending" onSelect={() => handleConfigChange('status', 'pending')}>Pending</SelectItem>
+                    <SelectItem value="published" onSelect={() => handleConfigChange('status', 'published')}>Published</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </>
+          )}
 
-      {/* Translator Configuration */}
-      {node.type === 'translator' && (
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label>Translation Provider</Label>
-            <Select
-              key={`translationProvider-${node.id}`}
-              value={localConfig.provider || 'gemini'}
-              onValueChange={(value) => handleConfigChange('provider', value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select a provider" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="gemini">Google Gemini (Fast & High Quality)</SelectItem>
-                <SelectItem value="openai">OpenAI GPT (Cost-effective)</SelectItem>
-                <SelectItem value="claude">Anthropic Claude (High quality)</SelectItem>
-                <SelectItem value="google">Google Translate API (Most accurate)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label>Target Language</Label>
-            <Select
-              key={`targetLanguage-${node.id}`}
-              value={localConfig.targetLanguage || 'es'}
-              onValueChange={(value) => handleConfigChange('targetLanguage', value)}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="es">Spanish</SelectItem>
-                <SelectItem value="fr">French</SelectItem>
-                <SelectItem value="de">German</SelectItem>
-                <SelectItem value="ja">Japanese</SelectItem>
-                <SelectItem value="pt">Portuguese</SelectItem>
-                <SelectItem value="he">Hebrew</SelectItem>
-                <SelectItem value="zh">Chinese</SelectItem>
-                <SelectItem value="ru">Russian</SelectItem>
-                <SelectItem value="it">Italian</SelectItem>
-                <SelectItem value="ko">Korean</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-      )}
+          {selectedNode.type === 'social-poster' && (
+            <p>This node posts content to social media.</p>
+          )}
 
-{/* Image Generator Configuration */}
-{node.type === 'image-generator' && (
-  <div className="space-y-4">
-    {renderAIModelSelector(localConfig, handleConfigChange, node.id)}
-    <div className="space-y-2">
-      <Label>Image Prompt</Label>
-      <Textarea
-        key={`imagePrompt-${node.id}`}
-        placeholder="A professional illustration of dental AI technology..."
-        rows={3}
-        value={localConfig.imagePrompt || ''}
-        onChange={(e) => handleConfigChange('imagePrompt', e.target.value)}
-      />
-    </div>
-    <div className="space-y-2">
-      <Label>Image Style</Label>
-      <Select
-        key={`imageStyle-${node.id}`}
-        value={localConfig.imageStyle || 'natural'}
-        onValueChange={(value) => handleConfigChange('imageStyle', value)}
-      >
-        <SelectTrigger>
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="natural">Natural</SelectItem>
-          <SelectItem value="digital_art">Digital Art</SelectItem>
-          <SelectItem value="photographic">Photographic</SelectItem>
-          <SelectItem value="vivid">Vivid</SelectItem>
-        </SelectContent>
-      </Select>
-    </div>
-    <div className="space-y-2">
-      <Label>Image Size</Label>
-      <Select
-        key={`imageSize-${node.id}`}
-        value={localConfig.imageSize || '1024x1024'}
-        onValueChange={(value) => handleConfigChange('imageSize', value)}
-      >
-        <SelectTrigger>
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="1024x1024">Square (1024x1024)</SelectItem>
-          <SelectItem value="1792x1024">Landscape (1792x1024)</SelectItem>
-          <SelectItem value="1024x1792">Portrait (1024x1792)</SelectItem>
-        </SelectContent>
-      </Select>
-    </div>
-    <div className="space-y-2">
-      <Label>Image Quality</Label>
-      <Select
-        key={`imageQuality-${node.id}`}
-        value={localConfig.imageQuality || 'standard'}
-        onValueChange={(value) => handleConfigChange('imageQuality', value)}
-      >
-        <SelectTrigger>
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="standard">Standard</SelectItem>
-          <SelectItem value="hd">HD</SelectItem>
-        </SelectContent>
-      </Select>
-    </div>
-    {renderCustomInstructions("Add specific instructions for image generation...")}
-    
-    <div className="text-sm text-muted-foreground bg-blue-50 p-3 rounded">
-      <strong>AI Model Notes:</strong>
-      <ul className="mt-2 space-y-1 text-xs">
-        <li>• <strong>Gemini models:</strong> Use Google Imagen for high-quality images</li>
-        <li>• <strong>DALL-E models:</strong> Use OpenAI for creative, detailed images</li>
-        <li>• <strong>Fallback:</strong> High-quality placeholder if API fails</li>
-      </ul>
-    </div>
-  </div>
-)}
+          {selectedNode.type === 'email-sender' && (
+            <>
+              <div className="grid gap-2">
+                <Label htmlFor="recipient">Recipient Email</Label>
+                <Input
+                  type="email"
+                  id="recipient"
+                  placeholder="Enter recipient email address"
+                  defaultValue={selectedNode.config.recipient || ''}
+                  onBlur={(e) => handleConfigChange('recipient', e.target.value)}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="subject">Email Subject</Label>
+                <Input
+                  type="text"
+                  id="subject"
+                  placeholder="Enter email subject"
+                  defaultValue={selectedNode.config.subject || ''}
+                  onBlur={(e) => handleConfigChange('subject', e.target.value)}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="body">Email Body</Label>
+                <Textarea
+                  id="body"
+                  placeholder="Enter email body"
+                  defaultValue={selectedNode.config.body || ''}
+                  onBlur={(e) => handleConfigChange('body', e.target.value)}
+                />
+              </div>
+            </>
+          )}
 
-      {/* SEO Analyzer Configuration */}
-      {node.type === 'seo-analyzer' && (
-        <div className="space-y-4">
-          {renderAIModelSelector()}
-          <div className="space-y-2">
-            <Label>Analysis Focus</Label>
-            <Select
-              key={`analysisFocus-${node.id}`}
-              value={localConfig.analysisFocus || 'comprehensive'}
-              onValueChange={(value) => handleConfigChange('analysisFocus', value)}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="comprehensive">Comprehensive Analysis</SelectItem>
-                <SelectItem value="keywords">Keywords Focus</SelectItem>
-                <SelectItem value="readability">Readability Focus</SelectItem>
-                <SelectItem value="technical">Technical SEO</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label>Target Keywords (Optional)</Label>
-            <Input
-              key={`targetKeywords-${node.id}`}
-              placeholder="dental AI, artificial intelligence, dentistry"
-              value={localConfig.targetKeywords || ''}
-              onChange={(e) => handleConfigChange('targetKeywords', e.target.value)}
-            />
-          </div>
-          <div className="flex items-center space-x-2">
-            <Switch
-              key={`includeMetaSuggestions-${node.id}`}
-              checked={localConfig.includeMetaSuggestions !== false}
-              onCheckedChange={(checked) => handleConfigChange('includeMetaSuggestions', checked)}
-            />
-            <Label>Include meta description suggestions</Label>
-          </div>
-          {renderCustomInstructions("Add specific SEO analysis instructions...")}
-        </div>
-      )}
+          {selectedNode.type === 'image-generator' && (
+            <>
+              <div className="grid gap-2">
+                <Label htmlFor="imagePrompt">Image Prompt</Label>
+                <Input
+                  type="text"
+                  id="imagePrompt"
+                  placeholder="Enter image prompt"
+                  defaultValue={selectedNode.config.imagePrompt || ''}
+                  onBlur={(e) => handleConfigChange('imagePrompt', e.target.value)}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="customInstructions">Custom Instructions</Label>
+                <Textarea
+                  id="customInstructions"
+                  placeholder="Enter custom instructions for image generation"
+                  defaultValue={selectedNode.config.customInstructions || ''}
+                  onBlur={(e) => handleConfigChange('customInstructions', e.target.value)}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="aiModel">AI Model</Label>
+                <Select defaultValue={selectedNode.config.aiModel || 'dall-e-3'}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Select AI Model" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="dall-e-3" onSelect={() => handleConfigChange('aiModel', 'dall-e-3')}>DALL-E 3</SelectItem>
+                    <SelectItem value="gemini-pro-vision" onSelect={() => handleConfigChange('aiModel', 'gemini-pro-vision')}>Gemini Pro Vision</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="imageStyle">Image Style</Label>
+                <Select defaultValue={selectedNode.config.imageStyle || 'natural'}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Select Image Style" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="natural" onSelect={() => handleConfigChange('imageStyle', 'natural')}>Natural</SelectItem>
+                    <SelectItem value="vivid" onSelect={() => handleConfigChange('imageStyle', 'vivid')}>Vivid</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="imageSize">Image Size</Label>
+                <Select defaultValue={selectedNode.config.imageSize || '1024x1024'}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Select Image Size" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1024x1024" onSelect={() => handleConfigChange('imageSize', '1024x1024')}>1024x1024</SelectItem>
+                    <SelectItem value="1792x1024" onSelect={() => handleConfigChange('imageSize', '1792x1024')}>1792x1024</SelectItem>
+                    <SelectItem value="1024x1792" onSelect={() => handleConfigChange('imageSize', '1024x1792')}>1024x1792</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="imageQuality">Image Quality</Label>
+                <Select defaultValue={selectedNode.config.imageQuality || 'standard'}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Select Image Quality" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="standard" onSelect={() => handleConfigChange('imageQuality', 'standard')}>Standard</SelectItem>
+                    <SelectItem value="hd" onSelect={() => handleConfigChange('imageQuality', 'hd')}>HD</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </>
+          )}
 
-      {/* Multi-Source Synthesizer Configuration */}
-      {node.type === 'multi-source-synthesizer' && (
-        <div className="space-y-4">
-          {renderAIModelSelector()}
-          <div className="space-y-2">
-            <Label>Synthesis Style</Label>
-            <Select
-              key={`style-${node.id}`}
-              value={localConfig.style || 'comprehensive'}
-              onValueChange={(value) => handleConfigChange('style', value)}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="summary">Summary</SelectItem>
-                <SelectItem value="comprehensive">Comprehensive</SelectItem>
-                <SelectItem value="comparison">Comparison</SelectItem>
-                <SelectItem value="narrative">Narrative</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label>Target Length</Label>
-            <Select
-              key={`targetLength-${node.id}`}
-              value={localConfig.targetLength || 'medium'}
-              onValueChange={(value) => handleConfigChange('targetLength', value)}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="short">Short (500-800 words)</SelectItem>
-                <SelectItem value="medium">Medium (800-1500 words)</SelectItem>
-                <SelectItem value="long">Long (1500+ words)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Switch
-              key={`maintainAttribution-${node.id}`}
-              checked={localConfig.maintainAttribution !== false}
-              onCheckedChange={(checked) => handleConfigChange('maintainAttribution', checked)}
-            />
-            <Label>Maintain source attribution</Label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Switch
-              key={`resolveConflicts-${node.id}`}
-              checked={localConfig.resolveConflicts !== false}
-              onCheckedChange={(checked) => handleConfigChange('resolveConflicts', checked)}
-            />
-            <Label>Resolve conflicting information</Label>
-          </div>
-          {renderCustomInstructions("Add specific instructions for content synthesis...")}
-        </div>
-      )}
-      
-      {/* Article Structure Validator Configuration */}
-      {node.type === 'article-structure-validator' && (
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label>Validation Level</Label>
-            <Select
-              key={`validationLevel-${node.id}`}
-              value={localConfig.validationLevel || 'standard'}
-              onValueChange={(value) => handleConfigChange('validationLevel', value)}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="basic">Basic (Title, headings)</SelectItem>
-                <SelectItem value="standard">Standard (Structure, formatting)</SelectItem>
-                <SelectItem value="strict">Strict (All requirements)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label>Minimum Word Count</Label>
-            <Input
-              key={`minWordCount-${node.id}`}
-              type="number"
-              min="100"
-              max="5000"
-              value={localConfig.minWordCount || 300}
-              onChange={(e) => handleConfigChange('minWordCount', parseInt(e.target.value, 10))}
-            />
-          </div>
-          <div className="flex items-center space-x-2">
-            <Switch
-              key={`requireConclusion-${node.id}`}
-              checked={localConfig.requireConclusion !== false}
-              onCheckedChange={(checked) => handleConfigChange('requireConclusion', checked)}
-            />
-            <Label>Require conclusion section</Label>
-          </div>
-          <div className="text-sm text-muted-foreground bg-blue-50 p-3 rounded">
-            <strong>Article Validation:</strong> This node validates article structure, checks for proper markdown formatting, required sections, and provides quality scores and improvement suggestions.
-          </div>
-        </div>
-      )}
+          {selectedNode.type === 'seo-analyzer' && (
+            <>
+              <div className="grid gap-2">
+                <Label htmlFor="targetKeywords">Target Keywords</Label>
+                <Input
+                  type="text"
+                  id="targetKeywords"
+                  placeholder="Enter target keywords for SEO analysis"
+                  defaultValue={selectedNode.config.targetKeywords || ''}
+                  onBlur={(e) => handleConfigChange('targetKeywords', e.target.value)}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="analysisFocus">Analysis Focus</Label>
+                <Input
+                  type="text"
+                  id="analysisFocus"
+                  placeholder="Enter focus areas for SEO analysis"
+                  defaultValue={selectedNode.config.analysisFocus || ''}
+                  onBlur={(e) => handleConfigChange('analysisFocus', e.target.value)}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="aiModelSEO">AI Model</Label>
+                <Input
+                  type="text"
+                  id="aiModelSEO"
+                  placeholder="Enter AI model (e.g., gemini-2.5-flash-preview-05-20, gpt-4)"
+                  defaultValue={selectedNode.config.aiModel || 'gemini-2.5-flash-preview-05-20'}
+                  onBlur={(e) => handleConfigChange('aiModel', e.target.value)}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="customInstructionsSEO">Custom Instructions</Label>
+                <Textarea
+                  id="customInstructionsSEO"
+                  placeholder="Enter custom instructions for AI"
+                  defaultValue={selectedNode.config.customInstructions || ''}
+                  onBlur={(e) => handleConfigChange('customInstructions', e.target.value)}
+                />
+              </div>
+            </>
+          )}
 
-      {/* Default message for other node types */}
-{!['trigger', 'scraper', 'rss-aggregator', 'google-scholar-search', 'news-discovery', 'perplexity-research', 'ai-processor', 'multi-source-synthesizer', 'publisher', 'email-sender', 'translator', 'article-structure-validator', 'image-generator', 'seo-analyzer'].includes(node.type) && (        <div className="space-y-4">
-          <p className="text-sm text-muted-foreground">
-            Configuration options for {node.label} will be available soon.
-          </p>
-        </div>
-      )}
+          {selectedNode.type === 'translator' && (
+            <>
+              <div className="grid gap-2">
+                <Label htmlFor="targetLanguage">Target Language</Label>
+                <Input
+                  type="text"
+                  id="targetLanguage"
+                  placeholder="Enter target language code (e.g., es, fr)"
+                  defaultValue={selectedNode.config.targetLanguage || 'es'}
+                  onBlur={(e) => handleConfigChange('targetLanguage', e.target.value)}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="provider">Translation Provider</Label>
+                <Input
+                  type="text"
+                  id="provider"
+                  placeholder="Enter translation provider (e.g., google, deepl)"
+                  defaultValue={selectedNode.config.provider || 'google'}
+                  onBlur={(e) => handleConfigChange('provider', e.target.value)}
+                />
+              </div>
+            </>
+          )}
+
+          {selectedNode.type === 'content-quality-analyzer' && (
+            <p>This node analyzes the quality of the content.</p>
+          )}
+
+          {selectedNode.type === 'ai-seo-optimizer' && (
+            <p>This node optimizes content for SEO using AI.</p>
+          )}
+
+          {selectedNode.type === 'engagement-forecaster' && (
+            <p>This node forecasts content engagement.</p>
+          )}
+
+          {selectedNode.type === 'content-performance-analyzer' && (
+            <p>This node analyzes content performance.</p>
+          )}
+
+          {selectedNode.type === 'article-structure-validator' && (
+            <>
+              <div className="grid gap-2">
+                <Label htmlFor="minSections">Minimum Sections</Label>
+                <Input
+                  type="number"
+                  id="minSections"
+                  placeholder="Enter minimum number of sections"
+                  defaultValue={selectedNode.config.minSections || 3}
+                  onBlur={(e) => handleConfigChange('minSections', parseInt(e.target.value))}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="minParagraphsPerSection">Minimum Paragraphs per Section</Label>
+                <Input
+                  type="number"
+                  id="minParagraphsPerSection"
+                  placeholder="Enter minimum paragraphs per section"
+                  defaultValue={selectedNode.config.minParagraphsPerSection || 2}
+                  onBlur={(e) => handleConfigChange('minParagraphsPerSection', parseInt(e.target.value))}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="minWordsPerParagraph">Minimum Words per Paragraph</Label>
+                <Input
+                  type="number"
+                  id="minWordsPerParagraph"
+                  placeholder="Enter minimum words per paragraph"
+                  defaultValue={selectedNode.config.minWordsPerParagraph || 50}
+                  onBlur={(e) => handleConfigChange('minWordsPerParagraph', parseInt(e.target.value))}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="keywordDensityThreshold">Keyword Density Threshold</Label>
+                <Input
+                  type="number"
+                  id="keywordDensityThreshold"
+                  placeholder="Enter keyword density threshold (e.g., 0.02 for 2%)"
+                  defaultValue={selectedNode.config.keywordDensityThreshold || 0.02}
+                  onBlur={(e) => handleConfigChange('keywordDensityThreshold', parseFloat(e.target.value))}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="targetKeywords">Target Keywords (comma-separated)</Label>
+                <Input
+                  type="text"
+                  id="targetKeywords"
+                  placeholder="Enter target keywords (comma-separated)"
+                  defaultValue={selectedNode.config.targetKeywords || ''}
+                  onBlur={(e) => handleConfigChange('targetKeywords', e.target.value)}
+                />
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };

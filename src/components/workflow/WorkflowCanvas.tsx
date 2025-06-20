@@ -50,8 +50,8 @@ const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
   const convertToWorkflowNode = (node: Node): WorkflowNode => {
     return {
       id: node.id,
-      type: node.type as WorkflowNode['type'],
-      label: node.data?.label || '',
+      type: (node.type as WorkflowNode['type']) || 'trigger',
+      label: (node.data?.label as string) || '',
       position: node.position,
       data: node.data || {},
       config: node.data || {},
@@ -97,10 +97,6 @@ const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
     [onConnectStart]
   );
 
-  const onConnectStopHandler = useCallback(() => {
-    connectingNodeIdRef.current = null;
-  }, []);
-
   const onPaneClick = useCallback(() => {
     onSelectNode(null);
   }, [onSelectNode]);
@@ -130,7 +126,6 @@ const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
         onNodeDoubleClick={onNodeDoubleClick}
         onConnect={onConnect}
         onConnectStart={onConnectStartHandler}
-        onConnectStop={onConnectStopHandler}
         onPaneClick={onPaneClick}
         onNodeDragStop={onNodeDragStop}
         fitView

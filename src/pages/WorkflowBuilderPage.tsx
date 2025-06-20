@@ -773,6 +773,7 @@ Generate the ${contentType} now with proper markdown formatting:`;
       type,
       label: generateNodeLabel(type),
       position: { x: Math.random() * 400 + 50, y: Math.random() * 400 + 50 },
+      data: {}, // Add required data property
       config: {},
       connected: [],
     };

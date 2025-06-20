@@ -1,3 +1,4 @@
+
 // src/pages/WorkflowBuilderPage.tsx
 import { useState, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -170,18 +171,32 @@ const WorkflowBuilderPage = () => {
           break;
 
         case 'image-generator':
-          if (!previousData || (!previousData.title && !node.config.imagePrompt)) {
-            throw new Error('No content title or custom prompt for image generation. Connect this node to content sources or add a custom prompt.');
-          }
+          // Priority: Custom imagePrompt → Custom instructions → Title-based generation
+          let imagePrompt = '';
           
-          // Build image prompt from content or use custom prompt
-          let imagePrompt = node.config.imagePrompt || '';
-          if (!imagePrompt && previousData.title) {
+          // First priority: Custom image prompt
+          if (node.config.imagePrompt && node.config.imagePrompt.trim()) {
+            imagePrompt = node.config.imagePrompt.trim();
+            addLog(node.id, node.label, 'running', 'Using custom image prompt');
+          }
+          // Second priority: Custom instructions as prompt
+          else if (node.config.customInstructions && node.config.customInstructions.trim()) {
+            imagePrompt = node.config.customInstructions.trim();
+            addLog(node.id, node.label, 'running', 'Using custom instructions as image prompt');
+          }
+          // Third priority: Generate from title
+          else if (previousData && previousData.title) {
             imagePrompt = `Professional illustration representing: ${previousData.title}`;
+            addLog(node.id, node.label, 'running', 'Generating image based on article title');
+          }
+          // Fallback: Generic prompt
+          else {
+            imagePrompt = 'Professional illustration for a news or informational article';
+            addLog(node.id, node.label, 'running', 'Using fallback image prompt');
           }
           
-          // Add custom instructions if provided
-          if (node.config.customInstructions) {
+          // Add custom instructions to enhance the prompt (if not already used as main prompt)
+          if (node.config.customInstructions && node.config.customInstructions !== imagePrompt) {
             imagePrompt += `. ${node.config.customInstructions}`;
           }
           
@@ -200,7 +215,7 @@ const WorkflowBuilderPage = () => {
           if (imageError) throw new Error(imageError.message);
           
           result = { 
-            ...previousData, // Pass through previous data
+            ...previousData, // Pass through previous data including title
             imageUrl: imageData.imageUrl,
             imagePrompt: imagePrompt,
             imageStyle: node.config.imageStyle,
@@ -445,15 +460,16 @@ Generate the ${contentType} now with proper markdown formatting:`;
               const firstMeaningfulLine = lines.find(line => line.trim().length > 10) || 'Generated Article';
               processedContent = `# ${firstMeaningfulLine}\n\n${processedContent}`;
             }
-//
-// 🔥🔥🔥 ADD THIS BLOCK TO EXTRACT THE TITLE 🔥🔥🔥
-const match = processedContent.match(/^#\s+(.+)/m);
-const extractedTitle = match ? match[1].trim() : 'Untitled Article';
-//
-            console.log('AI Processor: Content generated successfully');
+
+            // Extract the title from the markdown
+            const match = processedContent.match(/^#\s+(.+)/m);
+            const extractedTitle = match ? match[1].trim() : 'Untitled Article';
+            
+            console.log('AI Processor: Content generated successfully, title:', extractedTitle);
             
             result = {
               ...contentToProcess,
+              title: extractedTitle, // ✅ FIXED: Properly extract and pass title
               content: processedContent,
               processedContent: processedContent,
               processedBy: `AI Processor (${agentConfig.ai_model})`,
@@ -463,7 +479,7 @@ const extractedTitle = match ? match[1].trim() : 'Untitled Article';
               targetAudience: targetAudience
             };
             
-            addLog(node.id, node.label, 'completed', `Content processed successfully with ${agentConfig.ai_model}`);
+            addLog(node.id, node.label, 'completed', `Content processed successfully with title: "${extractedTitle}"`);
             break;
           } catch (error) {
             console.error('AI Processor error:', error);
@@ -476,6 +492,7 @@ const extractedTitle = match ? match[1].trim() : 'Untitled Article';
           }
           
           const contentToPublish = previousData.processedContent || previousData.synthesizedContent;
+          // ✅ FIXED: Use the title from previous data (AI Processor now provides it)
           const titleToPublish = previousData.title || 'Untitled Article';
           
           // Get image URL from previous nodes (Image Generator)
@@ -487,7 +504,7 @@ const extractedTitle = match ? match[1].trim() : 'Untitled Article';
             // Use the English slug from translator
             slugToUse = previousData.englishSlug;
           } else {
-            // Create English slug from title
+            // ✅ FIXED: Create English slug from the properly extracted title
             slugToUse = titleToPublish
               .toLowerCase()
               .replace(/[^a-z0-9\s-]/g, '')
@@ -510,16 +527,15 @@ const extractedTitle = match ? match[1].trim() : 'Untitled Article';
           };
           
           // Use the create-article-from-ai edge function for proper article creation
-const { data: publishResult, error: publishError } = await supabase.functions.invoke('create-article-from-ai', {
-  body: {
-    content: JSON.stringify(formattedContent),
-    category: node.config.category || previousData.category || 'AI Generated',
-    provider: previousData.aiModel || 'AI Processor',
-    status: node.config.status || 'draft'
-  }
-});
+          const { data: publishResult, error: publishError } = await supabase.functions.invoke('create-article-from-ai', {
+            body: {
+              content: JSON.stringify(formattedContent),
+              category: node.config.category || previousData.category || 'AI Generated',
+              provider: previousData.aiModel || 'AI Processor',
+              status: node.config.status || 'draft'
+            }
+          });
 
-          
           if (publishError) throw new Error(publishError.message);
           
           result = { 

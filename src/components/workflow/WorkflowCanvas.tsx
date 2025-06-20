@@ -1,8 +1,6 @@
-
 import React, { useCallback, useRef } from 'react';
 import { WorkflowNode } from '@/types/WorkflowTypes';
-import {
-  ReactFlow,
+import ReactFlow, {
   addEdge,
   useNodesState,
   useEdgesState,
@@ -11,9 +9,9 @@ import {
   Edge,
   XYPosition,
   Connection,
-} from '@xyflow/react';
+} from 'reactflow';
 
-import '@xyflow/react/dist/style.css';
+import 'reactflow/dist/style.css';
 
 interface WorkflowCanvasProps {
   nodes: WorkflowNode[];
@@ -38,43 +36,18 @@ const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
   onConnectEnd,
   onDisconnectNode,
 }) => {
-  // Convert WorkflowNode to ReactFlow Node format
-  const convertToReactFlowNodes = (workflowNodes: WorkflowNode[]): Node[] => {
-    return workflowNodes.map(node => ({
-      ...node,
-      data: { label: node.label, ...node.config }
-    }));
-  };
-
-  // Convert ReactFlow Node back to WorkflowNode format
-  const convertToWorkflowNode = (node: Node): WorkflowNode => {
-    // Find the original workflow node to preserve its configuration
-    const originalNode = initialNodes.find(n => n.id === node.id);
-    
-    return {
-      id: node.id,
-      type: (node.type as WorkflowNode['type']) || 'trigger',
-      label: (node.data?.label as string) || '',
-      position: node.position,
-      data: node.data || {},
-      config: originalNode?.config || {}, // Preserve original config
-      connected: originalNode?.connected || []
-    };
-  };
-
-  const [nodes, setNodes, onNodesChange] = useNodesState(convertToReactFlowNodes(initialNodes));
-  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
+  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge[]>([]);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const connectingNodeIdRef = useRef<string | null>(null);
 
   // Update local state when props change
   React.useEffect(() => {
-    setNodes(convertToReactFlowNodes(initialNodes));
+    setNodes(initialNodes);
   }, [initialNodes, setNodes]);
 
   const onNodeClick = useCallback((event: any, node: Node) => {
-    const workflowNode = convertToWorkflowNode(node);
-    onSelectNode(workflowNode);
+    onSelectNode(node as WorkflowNode);
   }, [onSelectNode]);
 
   const onNodeDoubleClick = useCallback((event: any, node: Node) => {
@@ -99,6 +72,10 @@ const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
     },
     [onConnectStart]
   );
+
+  const onConnectStopHandler = useCallback(() => {
+    connectingNodeIdRef.current = null;
+  }, []);
 
   const onPaneClick = useCallback(() => {
     onSelectNode(null);
@@ -129,6 +106,7 @@ const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
         onNodeDoubleClick={onNodeDoubleClick}
         onConnect={onConnect}
         onConnectStart={onConnectStartHandler}
+        onConnectStop={onConnectStopHandler}
         onPaneClick={onPaneClick}
         onNodeDragStop={onNodeDragStop}
         fitView

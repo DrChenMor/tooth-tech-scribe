@@ -38,18 +38,40 @@ const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
   onConnectEnd,
   onDisconnectNode,
 }) => {
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge[]>([]);
+  // Convert WorkflowNode to ReactFlow Node format
+  const convertToReactFlowNodes = (workflowNodes: WorkflowNode[]): Node[] => {
+    return workflowNodes.map(node => ({
+      ...node,
+      data: { label: node.label, ...node.config }
+    }));
+  };
+
+  // Convert ReactFlow Node back to WorkflowNode format
+  const convertToWorkflowNode = (node: Node): WorkflowNode => {
+    return {
+      id: node.id,
+      type: node.type as WorkflowNode['type'],
+      label: node.data?.label || '',
+      position: node.position,
+      data: node.data || {},
+      config: node.data || {},
+      connected: []
+    };
+  };
+
+  const [nodes, setNodes, onNodesChange] = useNodesState(convertToReactFlowNodes(initialNodes));
+  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const connectingNodeIdRef = useRef<string | null>(null);
 
   // Update local state when props change
   React.useEffect(() => {
-    setNodes(initialNodes);
+    setNodes(convertToReactFlowNodes(initialNodes));
   }, [initialNodes, setNodes]);
 
   const onNodeClick = useCallback((event: any, node: Node) => {
-    onSelectNode(node as WorkflowNode);
+    const workflowNode = convertToWorkflowNode(node);
+    onSelectNode(workflowNode);
   }, [onSelectNode]);
 
   const onNodeDoubleClick = useCallback((event: any, node: Node) => {

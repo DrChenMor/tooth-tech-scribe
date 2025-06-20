@@ -1,3 +1,4 @@
+
 // src/pages/WorkflowBuilderPage.tsx
 import { useState, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -194,17 +195,16 @@ const WorkflowBuilderPage = () => {
             addLog(node.id, node.label, 'running', 'Using fallback image prompt');
           }
           
-          // ✅ CRITICAL FIX: Don't add custom instructions if already used as main prompt
-          let finalImagePrompt = imagePrompt;
+          // Add custom instructions to enhance the prompt (if not already used as main prompt)
           if (node.config.customInstructions && node.config.customInstructions !== imagePrompt) {
-            finalImagePrompt += `. ${node.config.customInstructions}`;
+            imagePrompt += `. ${node.config.customInstructions}`;
           }
           
-          addLog(node.id, node.label, 'running', `Generating image with ${node.config.aiModel || 'default model'}: "${finalImagePrompt.substring(0, 100)}..."`);
+          addLog(node.id, node.label, 'running', `Generating image with ${node.config.aiModel || 'default model'}: "${imagePrompt.substring(0, 100)}..."`);
           
           const { data: imageData, error: imageError } = await supabase.functions.invoke('image-generator', {
             body: {
-              prompt: finalImagePrompt, // ✅ Use the final constructed prompt
+              prompt: imagePrompt,
               aiModel: node.config.aiModel || 'dall-e-3',
               style: node.config.imageStyle || 'natural',
               size: node.config.imageSize || '1024x1024',
@@ -217,7 +217,7 @@ const WorkflowBuilderPage = () => {
           result = { 
             ...previousData, // Pass through previous data including title
             imageUrl: imageData.imageUrl,
-            imagePrompt: finalImagePrompt, // ✅ Store the actual prompt used
+            imagePrompt: imagePrompt,
             imageStyle: node.config.imageStyle,
             imageSize: node.config.imageSize,
             aiModelUsed: node.config.aiModel,
@@ -230,7 +230,7 @@ const WorkflowBuilderPage = () => {
             addLog(node.id, node.label, 'completed', `New image generated with ${imageData.generatedWith}`);
           }
           break;
-
+          
         case 'seo-analyzer':
           if (!previousData || (!previousData.processedContent && !previousData.synthesizedContent)) {
             throw new Error('No content to analyze for SEO. Connect this node to content sources.');
@@ -454,29 +454,24 @@ Generate the ${contentType} now with proper markdown formatting:`;
               }
             }
 
-            // ✅ CRITICAL FIX: Extract title and remove it from content
-            const titleMatch = processedContent.match(/^#\s+(.+)/m);
-            const extractedTitle = titleMatch ? titleMatch[1].trim() : 'Untitled Article';
-            
-            // ✅ Remove the title line from the content to prevent duplication
-            let contentWithoutTitle = processedContent;
-            if (titleMatch) {
-              contentWithoutTitle = processedContent.replace(/^#\s+.+\n?/m, '').trim();
-              
-              // Ensure content still starts with proper formatting if needed
-              if (!contentWithoutTitle.startsWith('##') && !contentWithoutTitle.startsWith('*')) {
-                contentWithoutTitle = '\n\n' + contentWithoutTitle;
-              }
+            // Ensure content starts with a proper title if it doesn't have one
+            if (!processedContent.trim().startsWith('#')) {
+              const lines = processedContent.split('\n');
+              const firstMeaningfulLine = lines.find(line => line.trim().length > 10) || 'Generated Article';
+              processedContent = `# ${firstMeaningfulLine}\n\n${processedContent}`;
             }
+
+            // Extract the title from the markdown
+            const match = processedContent.match(/^#\s+(.+)/m);
+            const extractedTitle = match ? match[1].trim() : 'Untitled Article';
             
             console.log('AI Processor: Content generated successfully, title:', extractedTitle);
-            console.log('AI Processor: Content length after title removal:', contentWithoutTitle.length);
             
             result = {
               ...contentToProcess,
               title: extractedTitle, // ✅ FIXED: Properly extract and pass title
-              content: contentWithoutTitle, // ✅ FIXED: Content without title
-              processedContent: contentWithoutTitle, // ✅ FIXED: Content without title
+              content: processedContent,
+              processedContent: processedContent,
               processedBy: `AI Processor (${agentConfig.ai_model})`,
               category: category,
               contentType: contentType,

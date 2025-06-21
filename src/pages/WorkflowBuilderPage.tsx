@@ -170,64 +170,104 @@ const WorkflowBuilderPage = () => {
           break;
 
         case 'image-generator':
+          console.log('🎨 IMAGE GENERATOR: Starting execution');
+          console.log('🎨 IMAGE GENERATOR: Node config:', JSON.stringify(node.config, null, 2));
+          console.log('🎨 IMAGE GENERATOR: Previous data:', JSON.stringify(previousData, null, 2));
+          
           // Priority: Custom imagePrompt → Custom instructions → Title-based generation
           let imagePrompt = '';
           
           // First priority: Custom image prompt
           if (node.config.imagePrompt && node.config.imagePrompt.trim()) {
             imagePrompt = node.config.imagePrompt.trim();
+            console.log('🎨 IMAGE GENERATOR: Using custom image prompt:', imagePrompt);
             addLog(node.id, node.label, 'running', 'Using custom image prompt');
           }
           // Second priority: Custom instructions as prompt
           else if (node.config.customInstructions && node.config.customInstructions.trim()) {
             imagePrompt = node.config.customInstructions.trim();
+            console.log('🎨 IMAGE GENERATOR: Using custom instructions as image prompt:', imagePrompt);
             addLog(node.id, node.label, 'running', 'Using custom instructions as image prompt');
           }
           // Third priority: Generate from title
           else if (previousData && previousData.title) {
             imagePrompt = `Professional illustration representing: ${previousData.title}`;
+            console.log('🎨 IMAGE GENERATOR: Generating image based on article title:', previousData.title);
             addLog(node.id, node.label, 'running', 'Generating image based on article title');
           }
           // Fallback: Generic prompt
           else {
             imagePrompt = 'Professional illustration for a news or informational article';
+            console.log('🎨 IMAGE GENERATOR: Using fallback image prompt');
             addLog(node.id, node.label, 'running', 'Using fallback image prompt');
           }
           
-          // ✅ CRITICAL FIX: Don't add custom instructions if already used as main prompt
-          let finalImagePrompt = imagePrompt;
-          if (node.config.customInstructions && node.config.customInstructions !== imagePrompt) {
-            finalImagePrompt += `. ${node.config.customInstructions}`;
-          }
+          console.log('🎨 IMAGE GENERATOR: Final image prompt:', imagePrompt);
           
-          addLog(node.id, node.label, 'running', `Generating image with ${node.config.aiModel || 'default model'}: "${finalImagePrompt.substring(0, 100)}..."`);
-          
-          const { data: imageData, error: imageError } = await supabase.functions.invoke('image-generator', {
-            body: {
-              prompt: finalImagePrompt, // ✅ Use the final constructed prompt
-              aiModel: node.config.aiModel || 'dall-e-3',
-              style: node.config.imageStyle || 'natural',
-              size: node.config.imageSize || '1024x1024',
-              quality: node.config.imageQuality || 'standard',
-              customInstructions: node.config.customInstructions
-            }
-          });
-          if (imageError) throw new Error(imageError.message);
-          
-          result = { 
-            ...previousData, // Pass through previous data including title
-            imageUrl: imageData.imageUrl,
-            imagePrompt: finalImagePrompt, // ✅ Store the actual prompt used
-            imageStyle: node.config.imageStyle,
-            imageSize: node.config.imageSize,
-            aiModelUsed: node.config.aiModel,
-            wasImageReused: imageData.wasReused || false
+          // Build request payload
+          const imageRequestPayload = {
+            prompt: imagePrompt,
+            aiModel: node.config.aiModel || 'dall-e-3',
+            style: node.config.imageStyle || 'natural',
+            size: node.config.imageSize || '1024x1024',
+            quality: node.config.imageQuality || 'standard',
+            customInstructions: node.config.customInstructions
           };
           
-          if (imageData.wasReused) {
-            addLog(node.id, node.label, 'completed', `Image reused from previous generation (${imageData.generatedWith})`);
-          } else {
-            addLog(node.id, node.label, 'completed', `New image generated with ${imageData.generatedWith}`);
+          console.log('🎨 IMAGE GENERATOR: Request payload:', JSON.stringify(imageRequestPayload, null, 2));
+          addLog(node.id, node.label, 'running', `Generating image with ${imageRequestPayload.aiModel}: "${imagePrompt.substring(0, 100)}..."`);
+          
+          try {
+            console.log('🎨 IMAGE GENERATOR: Calling supabase function...');
+            const { data: imageData, error: imageError } = await supabase.functions.invoke('image-generator', {
+              body: imageRequestPayload
+            });
+            
+            console.log('🎨 IMAGE GENERATOR: Supabase response received');
+            console.log('🎨 IMAGE GENERATOR: Error:', imageError);
+            console.log('🎨 IMAGE GENERATOR: Data:', JSON.stringify(imageData, null, 2));
+            
+            if (imageError) {
+              console.error('🎨 IMAGE GENERATOR: Error from supabase function:', imageError);
+              throw new Error(imageError.message);
+            }
+            
+            if (!imageData || !imageData.imageUrl) {
+              console.error('🎨 IMAGE GENERATOR: No image URL in response');
+              throw new Error('No image URL returned from image generator');
+            }
+            
+            console.log('🎨 IMAGE GENERATOR: Image generated successfully:', imageData.imageUrl);
+            
+            result = { 
+              ...previousData, // Pass through previous data including title
+              imageUrl: imageData.imageUrl,
+              imagePrompt: imagePrompt,
+              imageStyle: node.config.imageStyle,
+              imageSize: node.config.imageSize,
+              aiModelUsed: node.config.aiModel,
+              wasImageReused: imageData.wasReused || false,
+              generatedWith: imageData.generatedWith || 'Unknown'
+            };
+            
+            if (imageData.wasReused) {
+              addLog(node.id, node.label, 'completed', `Image reused from previous generation (${imageData.generatedWith})`);
+            } else {
+              addLog(node.id, node.label, 'completed', `New image generated with ${imageData.generatedWith}`);
+            }
+            
+            console.log('🎨 IMAGE GENERATOR: Execution completed successfully');
+          } catch (imageGenerationError) {
+            console.error('🎨 IMAGE GENERATOR: Error during generation:', imageGenerationError);
+            addLog(node.id, node.label, 'error', `Image generation failed: ${imageGenerationError.message}`);
+            
+            // Continue without image
+            result = { 
+              ...previousData,
+              imageUrl: null,
+              imagePrompt: imagePrompt,
+              imageGenerationError: imageGenerationError.message
+            };
           }
           break;
 
@@ -349,7 +389,7 @@ const WorkflowBuilderPage = () => {
 
         case 'ai-processor':
           try {
-            console.log('AI Processor: Processing content...');
+            console.log('🤖 AI PROCESSOR: Starting content processing...');
             
             // Get the content to process from previous data
             const contentToProcess = previousData || {};
@@ -424,6 +464,8 @@ Generate the ${contentType} now with proper markdown formatting:`;
                      node.config.aiModel?.startsWith('claude-') ? 'Anthropic' : 'Google'
             };
 
+            console.log('🤖 AI PROCESSOR: Calling AI agent with config:', agentConfig);
+
             const { data: aiResult, error: aiError } = await supabase.functions.invoke('run-ai-agent-analysis', {
               body: { prompt: enhancedPrompt, agentConfig }
             });
@@ -434,9 +476,12 @@ Generate the ${contentType} now with proper markdown formatting:`;
 
             let processedContent = aiResult.analysis;
             
+            console.log('🤖 AI PROCESSOR: Raw AI response length:', processedContent.length);
+            console.log('🤖 AI PROCESSOR: Raw AI response preview:', processedContent.substring(0, 200) + '...');
+            
             // Clean any potential JSON formatting that might have slipped through
             if (processedContent.includes('```') || processedContent.trim().startsWith('{')) {
-              // Extract clean content if wrapped in code blocks or JSON
+              console.log('🤖 AI PROCESSOR: Cleaning JSON/code block formatting');
               processedContent = processedContent
                 .replace(/```(?:json|markdown)?\s*/g, '')
                 .replace(/```\s*$/g, '')
@@ -447,36 +492,52 @@ Generate the ${contentType} now with proper markdown formatting:`;
                 try {
                   const parsed = JSON.parse(processedContent);
                   processedContent = parsed.content || parsed.text || processedContent;
+                  console.log('🤖 AI PROCESSOR: Extracted content from JSON');
                 } catch (e) {
-                  // If JSON parsing fails, use as-is
-                  console.log('Could not parse as JSON, using raw content');
+                  console.log('🤖 AI PROCESSOR: Could not parse as JSON, using raw content');
                 }
               }
             }
 
-            // ✅ CRITICAL FIX: Extract title and remove it from content
+            // ✅ ENHANCED TITLE EXTRACTION AND REMOVAL
+            console.log('🤖 AI PROCESSOR: Starting title extraction...');
             const titleMatch = processedContent.match(/^#\s+(.+)/m);
             const extractedTitle = titleMatch ? titleMatch[1].trim() : 'Untitled Article';
             
-            // ✅ Remove the title line from the content to prevent duplication
+            console.log('🤖 AI PROCESSOR: Extracted title:', extractedTitle);
+            console.log('🤖 AI PROCESSOR: Title match found:', !!titleMatch);
+            
+            // ✅ CRITICAL FIX: Remove the ENTIRE title line including newlines
             let contentWithoutTitle = processedContent;
             if (titleMatch) {
-              contentWithoutTitle = processedContent.replace(/^#\s+.+\n?/m, '').trim();
+              console.log('🤖 AI PROCESSOR: Removing title from content...');
+              console.log('🤖 AI PROCESSOR: Content before title removal:', processedContent.substring(0, 100) + '...');
               
-              // Ensure content still starts with proper formatting if needed
-              if (!contentWithoutTitle.startsWith('##') && !contentWithoutTitle.startsWith('*')) {
-                contentWithoutTitle = '\n\n' + contentWithoutTitle;
+              // Remove the title line and any immediately following empty lines
+              contentWithoutTitle = processedContent
+                .replace(/^#\s+.+\n*/m, '') // Remove title line with optional newlines
+                .replace(/^\n+/, '') // Remove any leading newlines
+                .trim();
+              
+              console.log('🤖 AI PROCESSOR: Content after title removal:', contentWithoutTitle.substring(0, 100) + '...');
+              console.log('🤖 AI PROCESSOR: Content length after title removal:', contentWithoutTitle.length);
+              
+              // Ensure content doesn't start with the title again
+              if (contentWithoutTitle.startsWith(extractedTitle)) {
+                console.log('🤖 AI PROCESSOR: Title still present at start, removing again...');
+                contentWithoutTitle = contentWithoutTitle.substring(extractedTitle.length).trim();
               }
             }
             
-            console.log('AI Processor: Content generated successfully, title:', extractedTitle);
-            console.log('AI Processor: Content length after title removal:', contentWithoutTitle.length);
+            console.log('🤖 AI PROCESSOR: Final title:', extractedTitle);
+            console.log('🤖 AI PROCESSOR: Final content length:', contentWithoutTitle.length);
+            console.log('🤖 AI PROCESSOR: Final content preview:', contentWithoutTitle.substring(0, 200) + '...');
             
             result = {
               ...contentToProcess,
-              title: extractedTitle, // ✅ FIXED: Properly extract and pass title
-              content: contentWithoutTitle, // ✅ FIXED: Content without title
-              processedContent: contentWithoutTitle, // ✅ FIXED: Content without title
+              title: extractedTitle,
+              content: contentWithoutTitle,
+              processedContent: contentWithoutTitle,
               processedBy: `AI Processor (${agentConfig.ai_model})`,
               category: category,
               contentType: contentType,
@@ -485,9 +546,10 @@ Generate the ${contentType} now with proper markdown formatting:`;
             };
             
             addLog(node.id, node.label, 'completed', `Content processed successfully with title: "${extractedTitle}"`);
+            console.log('🤖 AI PROCESSOR: Processing completed successfully');
             break;
           } catch (error) {
-            console.error('AI Processor error:', error);
+            console.error('🤖 AI PROCESSOR: Error:', error);
             throw new Error(`AI Processor failed: ${error.message}`);
           }
 
@@ -497,7 +559,6 @@ Generate the ${contentType} now with proper markdown formatting:`;
           }
           
           const contentToPublish = previousData.processedContent || previousData.synthesizedContent;
-          // ✅ FIXED: Use the title from previous data (AI Processor now provides it)
           const titleToPublish = previousData.title || 'Untitled Article';
           
           // Get image URL from previous nodes (Image Generator)
@@ -509,7 +570,7 @@ Generate the ${contentType} now with proper markdown formatting:`;
             // Use the English slug from translator
             slugToUse = previousData.englishSlug;
           } else {
-            // ✅ FIXED: Create English slug from the properly extracted title
+            // Create English slug from the properly extracted title
             slugToUse = titleToPublish
               .toLowerCase()
               .replace(/[^a-z0-9\s-]/g, '')

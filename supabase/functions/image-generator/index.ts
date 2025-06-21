@@ -19,7 +19,7 @@ interface ImageGenerationRequest {
   customInstructions?: string;
   title?: string;
   content?: string;
-  forceGenerate?: boolean; // NEW: Allow forcing new generation
+  forceGenerate?: boolean;
 }
 
 // IMPROVED: Better hash function that includes ALL prompt elements
@@ -81,15 +81,16 @@ async function checkIfImageExists(fileName: string): Promise<string | null> {
   }
 }
 
-// 🎨 GOOGLE GEMINI IMAGE GENERATION (using Imagen)
+// 🎨 FIXED GOOGLE IMAGEN 3 GENERATION (using new Gemini API)
 async function generateWithGemini(prompt: string, size: string): Promise<string> {
   if (!googleApiKey) {
     throw new Error('Google API key not configured');
   }
 
-  console.log(`🎨 Generating image with Google Imagen: "${prompt.substring(0, 100)}..."`);
+  console.log(`🎨 Generating image with Google Imagen 3: "${prompt.substring(0, 100)}..."`);
 
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-001:generateImage?key=${googleApiKey}`, {
+  // NEW: Use the correct Gemini API endpoint for Imagen 3
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:generateImage?key=${googleApiKey}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -97,28 +98,61 @@ async function generateWithGemini(prompt: string, size: string): Promise<string>
     body: JSON.stringify({
       prompt: prompt,
       generationConfig: {
-        sampleCount: 1,
-        includeRaiInfo: false,
+        number_of_images: 1,
+        include_rai_info: false,
       }
     }),
   });
 
   if (!response.ok) {
-    const errorData = await response.json();
-    console.error('Google Imagen API Error:', errorData);
-    throw new Error(errorData.error?.message || 'Google Imagen generation failed');
+    const errorText = await response.text();
+    console.error('Google Imagen API Error Response:', errorText);
+    
+    // Try to parse error details
+    try {
+      const errorData = JSON.parse(errorText);
+      console.error('Parsed Google Imagen API Error:', errorData);
+      
+      // Check for common error messages
+      if (errorText.includes('API key not valid') || errorText.includes('invalid')) {
+        throw new Error('Google API key is invalid or not configured properly');
+      } else if (errorText.includes('quota') || errorText.includes('limit')) {
+        throw new Error('Google API quota exceeded');
+      } else if (errorText.includes('not found') || errorText.includes('404')) {
+        throw new Error('Google Imagen API endpoint not found - may not be available in your region');
+      } else {
+        throw new Error(errorData.error?.message || 'Google Imagen generation failed');
+      }
+    } catch (parseError) {
+      throw new Error(`Google Imagen API error: ${response.status} - ${errorText}`);
+    }
   }
 
   const data = await response.json();
-  console.log('✅ Google Imagen generated successfully');
+  console.log('✅ Google Imagen 3 API Response received');
   
-  if (data.candidates && data.candidates[0] && data.candidates[0].image) {
-    const base64Data = data.candidates[0].image.data;
-    const dataUrl = `data:image/jpeg;base64,${base64Data}`;
-    return dataUrl;
+  // Handle the response format
+  if (data.generated_images && data.generated_images[0] && data.generated_images[0].image) {
+    const base64Data = data.generated_images[0].image.image_bytes;
+    if (base64Data) {
+      const dataUrl = `data:image/jpeg;base64,${base64Data}`;
+      console.log('✅ Google Imagen 3 generated successfully');
+      return dataUrl;
+    }
   }
   
-  throw new Error('No image data returned from Google Imagen');
+  // Alternative response format
+  if (data.candidates && data.candidates[0] && data.candidates[0].image) {
+    const base64Data = data.candidates[0].image.data;
+    if (base64Data) {
+      const dataUrl = `data:image/jpeg;base64,${base64Data}`;
+      console.log('✅ Google Imagen 3 generated successfully');
+      return dataUrl;
+    }
+  }
+  
+  console.error('Unexpected Google Imagen response format:', JSON.stringify(data, null, 2));
+  throw new Error('No image data returned from Google Imagen 3');
 }
 
 // 🎨 OPENAI DALL-E IMAGE GENERATION
@@ -387,7 +421,7 @@ serve(async (req) => {
     try {
       if (aiModel.includes('gemini') || aiModel.includes('imagen')) {
         temporaryImageUrl = await generateWithGemini(smartPrompt, size);
-        generatedWith = 'Google Imagen';
+        generatedWith = 'Google Imagen 3';
       } else if (aiModel.includes('dall-e') || aiModel.includes('gpt') || aiModel.includes('openai')) {
         temporaryImageUrl = await generateWithOpenAI(smartPrompt, size, quality, style);
         generatedWith = 'OpenAI DALL-E 3';

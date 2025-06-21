@@ -12,22 +12,42 @@ const googleApiKey = Deno.env.get('GOOGLE_API_KEY');
 
 interface ImageGenerationRequest {
   prompt: string;
-  aiModel?: string; // NEW: Allow model selection
+  aiModel?: string;
   style?: 'natural' | 'digital_art' | 'photographic' | 'vivid';
   size?: '1024x1024' | '1792x1024' | '1024x1792';
   quality?: 'standard' | 'hd';
   customInstructions?: string;
+  title?: string;
+  content?: string;
+  forceGenerate?: boolean; // NEW: Allow forcing new generation
 }
 
-// Create a simple hash from text for consistent filenames
+// IMPROVED: Better hash function that includes ALL prompt elements
 function createContentHash(text: string): string {
   let hash = 0;
+  if (text.length === 0) return hash.toString();
+  
   for (let i = 0; i < text.length; i++) {
     const char = text.charCodeAt(i);
     hash = ((hash << 5) - hash) + char;
-    hash = hash & hash;
+    hash = hash & hash; // Convert to 32bit integer
   }
-  return Math.abs(hash).toString();
+  
+  // Make it positive and add timestamp component for uniqueness
+  const positiveHash = Math.abs(hash);
+  const timeComponent = Date.now().toString().slice(-4); // Last 4 digits of timestamp
+  return `${positiveHash}-${timeComponent}`;
+}
+
+// IMPROVED: Create unique filename based on ACTUAL prompt content
+function createUniqueFileName(finalPrompt: string, aiModel: string, size: string, style: string): string {
+  // Create a hash from the COMPLETE prompt specification
+  const uniqueContent = `${finalPrompt}|${aiModel}|${size}|${style}|${Date.now()}`;
+  const hash = createContentHash(uniqueContent);
+  const modelName = aiModel.replace(/[^a-z0-9]/gi, '').toLowerCase();
+  const sizeFormatted = size.replace('x', 'by');
+  
+  return `img-${modelName}-${hash}-${sizeFormatted}.jpg`;
 }
 
 async function checkIfImageExists(fileName: string): Promise<string | null> {
@@ -69,7 +89,6 @@ async function generateWithGemini(prompt: string, size: string): Promise<string>
 
   console.log(`🎨 Generating image with Google Imagen: "${prompt.substring(0, 100)}..."`);
 
-  // Google's Imagen API endpoint
   const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-001:generateImage?key=${googleApiKey}`, {
     method: 'POST',
     headers: {
@@ -93,7 +112,6 @@ async function generateWithGemini(prompt: string, size: string): Promise<string>
   const data = await response.json();
   console.log('✅ Google Imagen generated successfully');
   
-  // Google returns base64 image data
   if (data.candidates && data.candidates[0] && data.candidates[0].image) {
     const base64Data = data.candidates[0].image.data;
     const dataUrl = `data:image/jpeg;base64,${base64Data}`;
@@ -151,10 +169,7 @@ function generatePlaceholderImage(prompt: string, size: string): string {
 
 // 🔄 CONVERT BASE64 TO BLOB FOR UPLOAD
 async function base64ToBlob(base64Data: string): Promise<ArrayBuffer> {
-  // Remove data URL prefix if present
   const base64String = base64Data.replace(/^data:image\/[a-z]+;base64,/, '');
-  
-  // Convert base64 to binary
   const binaryString = atob(base64String);
   const bytes = new Uint8Array(binaryString.length);
   
@@ -173,13 +188,10 @@ async function uploadImageToStorage(imageUrl: string, fileName: string): Promise
     
     let imageBuffer: ArrayBuffer;
     
-    // Handle different image formats
     if (imageUrl.startsWith('data:image')) {
-      // Base64 image (from Google Imagen)
       console.log(`📥 Processing base64 image data`);
       imageBuffer = await base64ToBlob(imageUrl);
     } else {
-      // URL image (from OpenAI or placeholder)
       console.log(`📥 Downloading image from: ${imageUrl}`);
       const imageResponse = await fetch(imageUrl);
       if (!imageResponse.ok) {
@@ -216,6 +228,89 @@ async function uploadImageToStorage(imageUrl: string, fileName: string): Promise
   }
 }
 
+// 🧠 SMART PROMPT BUILDER - Fixed to prioritize user prompts
+function buildSmartImagePrompt(request: ImageGenerationRequest): string {
+  console.log('🧠 Building smart prompt from request:', {
+    hasPrompt: !!request.prompt,
+    hasTitle: !!request.title,
+    hasContent: !!request.content,
+    hasCustomInstructions: !!request.customInstructions,
+    promptPreview: request.prompt?.substring(0, 50),
+    customInstructionsPreview: request.customInstructions?.substring(0, 50)
+  });
+
+  let finalPrompt = '';
+  let promptSource = '';
+
+  // PRIORITY 1: Use the explicit prompt if provided (this is what user typed in "Image Prompt" field)
+  if (request.prompt && request.prompt.trim()) {
+    finalPrompt = request.prompt.trim();
+    promptSource = 'User Prompt';
+    console.log('🎯 Using explicit user prompt as base');
+  }
+  // PRIORITY 2: Use custom instructions if no explicit prompt
+  else if (request.customInstructions && request.customInstructions.trim()) {
+    finalPrompt = request.customInstructions.trim();
+    promptSource = 'Custom Instructions';
+    console.log('🎯 Using custom instructions as base');
+  }
+  // PRIORITY 3: Build from title if available
+  else if (request.title && request.title.trim()) {
+    const cleanTitle = request.title.replace(/[#*]/g, '').trim();
+    finalPrompt = `Professional, high-quality illustration for an article titled: "${cleanTitle}"`;
+    promptSource = 'Article Title';
+    console.log('🎯 Built prompt from article title');
+  }
+  // PRIORITY 4: Build from content
+  else if (request.content && request.content.trim()) {
+    const contentPreview = request.content
+      .replace(/[#*]/g, '')
+      .split('\n')
+      .find(line => line.trim().length > 20) || 
+      request.content.substring(0, 100);
+    finalPrompt = `Professional illustration for content about: ${contentPreview.trim()}`;
+    promptSource = 'Content Preview';
+    console.log('🎯 Built prompt from content');
+  }
+  // FALLBACK: Generic prompt
+  else {
+    finalPrompt = 'Professional, high-quality illustration for a modern technology article';
+    promptSource = 'Generic Fallback';
+    console.log('🎯 Using generic fallback prompt');
+  }
+
+  // ENHANCEMENT: Only add title context if we're not already using user's explicit prompt
+  if (promptSource !== 'User Prompt' && request.title && request.title.trim()) {
+    const cleanTitle = request.title.replace(/[#*]/g, '').trim();
+    finalPrompt += `. This is for an article titled: "${cleanTitle}"`;
+    console.log('🎯 Added title context to prompt');
+  }
+
+  // ENHANCEMENT: Only add custom instructions if they weren't used as the main prompt
+  if (promptSource !== 'Custom Instructions' && request.customInstructions && request.customInstructions.trim()) {
+    finalPrompt += `. Additional instructions: ${request.customInstructions.trim()}`;
+    console.log('🎯 Added custom instructions to prompt');
+  }
+
+  // QUALITY ENHANCEMENTS: Only add if not already present
+  const qualityTerms = ['professional', 'high-quality', 'high quality'];
+  const hasQualityTerms = qualityTerms.some(term => 
+    finalPrompt.toLowerCase().includes(term.toLowerCase())
+  );
+
+  if (!hasQualityTerms) {
+    finalPrompt += '. Style: professional, high-quality';
+  }
+
+  console.log('🎯 Final prompt built:', {
+    source: promptSource,
+    length: finalPrompt.length,
+    preview: finalPrompt.substring(0, 100) + '...'
+  });
+
+  return finalPrompt;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -226,40 +321,50 @@ serve(async (req) => {
     
     const request: ImageGenerationRequest = await req.json();
     
-    if (!request.prompt) {
-      throw new Error('Image prompt is required');
-    }
+    console.log('📝 Received request:', {
+      hasPrompt: !!request.prompt,
+      hasTitle: !!request.title,
+      hasContent: !!request.content,
+      hasCustomInstructions: !!request.customInstructions,
+      forceGenerate: request.forceGenerate,
+      aiModel: request.aiModel,
+      promptPreview: request.prompt?.substring(0, 50),
+      titlePreview: request.title?.substring(0, 50)
+    });
 
-    // Build the full prompt with custom instructions
-    let fullPrompt = request.prompt;
-    if (request.customInstructions) {
-      fullPrompt += `. Additional instructions: ${request.customInstructions}`;
-    }
+    // Build the smart prompt using all available information
+    const smartPrompt = buildSmartImagePrompt(request);
 
-    const aiModel = request.aiModel || 'dall-e-3'; // Default to OpenAI
+    const aiModel = request.aiModel || 'dall-e-3';
     const size = request.size || '1024x1024';
     const quality = request.quality || 'standard';
     const style = request.style || 'natural';
 
     console.log(`🤖 Using AI Model: ${aiModel}`);
-    console.log(`📝 Image prompt: "${fullPrompt}"`);
+    console.log(`📝 Smart prompt: "${smartPrompt}"`);
 
-    // Create filename based on model + content
-    const contentHash = createContentHash(fullPrompt + aiModel + size + style);
-    const fileName = `img-${aiModel.replace(/[^a-z0-9]/gi, '')}-${contentHash}-${size.replace('x', 'by')}.jpg`;
+    // Create UNIQUE filename that includes the actual prompt content
+    const fileName = createUniqueFileName(smartPrompt, aiModel, size, style);
     
-    console.log(`🔍 Checking for existing image: ${fileName}`);
+    console.log(`🔍 Generated unique filename: ${fileName}`);
 
-    // Check if image already exists
-    const existingImageUrl = await checkIfImageExists(fileName);
+    // SKIP CACHE CHECK if forceGenerate is true OR if user provided explicit prompt
+    const shouldSkipCache = request.forceGenerate || (request.prompt && request.prompt.trim());
     
-    if (existingImageUrl) {
+    let existingImageUrl = null;
+    if (!shouldSkipCache) {
+      existingImageUrl = await checkIfImageExists(fileName);
+    } else {
+      console.log('🔄 Skipping cache check - generating fresh image');
+    }
+    
+    if (existingImageUrl && !shouldSkipCache) {
       console.log('🎯 Using existing image instead of generating new one!');
       
       return new Response(JSON.stringify({
         success: true,
         imageUrl: existingImageUrl,
-        prompt: fullPrompt,
+        prompt: smartPrompt,
         aiModel,
         size,
         quality,
@@ -273,30 +378,27 @@ serve(async (req) => {
       });
     }
 
-    // Generate new image based on selected model
-    console.log('📸 No existing image found, generating new one...');
+    // Generate NEW image
+    console.log('📸 Generating fresh image...');
 
     let temporaryImageUrl: string;
     let generatedWith: string;
 
     try {
       if (aiModel.includes('gemini') || aiModel.includes('imagen')) {
-        // Use Google Imagen
-        temporaryImageUrl = await generateWithGemini(fullPrompt, size);
+        temporaryImageUrl = await generateWithGemini(smartPrompt, size);
         generatedWith = 'Google Imagen';
       } else if (aiModel.includes('dall-e') || aiModel.includes('gpt') || aiModel.includes('openai')) {
-        // Use OpenAI DALL-E
-        temporaryImageUrl = await generateWithOpenAI(fullPrompt, size, quality, style);
+        temporaryImageUrl = await generateWithOpenAI(smartPrompt, size, quality, style);
         generatedWith = 'OpenAI DALL-E 3';
       } else {
-        // Unknown model, use placeholder
         throw new Error(`Unsupported image model: ${aiModel}`);
       }
     } catch (modelError) {
       console.log(`⚠️ ${aiModel} generation failed: ${modelError.message}`);
       console.log('🔄 Falling back to placeholder image...');
       
-      temporaryImageUrl = generatePlaceholderImage(fullPrompt, size);
+      temporaryImageUrl = generatePlaceholderImage(smartPrompt, size);
       generatedWith = 'High-Quality Placeholder';
     }
 
@@ -307,7 +409,7 @@ serve(async (req) => {
     const result = {
       success: true,
       imageUrl: permanentImageUrl,
-      prompt: fullPrompt,
+      prompt: smartPrompt,
       aiModel,
       size,
       quality,

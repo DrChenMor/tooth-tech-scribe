@@ -55,7 +55,7 @@ async function generateWithGemini(prompt, size) {
     body: JSON.stringify({
   "instances": [
     {
-      "prompt":,
+      "prompt":
     }
   ],
   "parameters": {

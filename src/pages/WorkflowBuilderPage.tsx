@@ -169,113 +169,109 @@ const WorkflowBuilderPage = () => {
           addLog(node.id, node.label, 'completed', `Completed research with ${researchData.sources.length} sources`);
           break;
 
-        case 'image-generator':
-          console.log('🎯 IMAGE GENERATOR: Starting execution...');
-          console.log('🎯 IMAGE GENERATOR: Previous data:', previousData);
-          console.log('🎯 IMAGE GENERATOR: Node config:', node.config);
-          
-          // Step 1: Build the image prompt with enhanced logic
-          let imagePrompt = '';
-          let promptSource = '';
-          
-          // Priority 1: Custom image prompt from node config
-          if (node.config.imagePrompt && node.config.imagePrompt.trim()) {
-            imagePrompt = node.config.imagePrompt.trim();
-            promptSource = 'Custom Image Prompt';
-            console.log('🎯 IMAGE GENERATOR: Using custom image prompt:', imagePrompt);
-          }
-          // Priority 2: Custom instructions as prompt
-          else if (node.config.customInstructions && node.config.customInstructions.trim()) {
-            imagePrompt = node.config.customInstructions.trim();
-            promptSource = 'Custom Instructions';
-            console.log('🎯 IMAGE GENERATOR: Using custom instructions as prompt:', imagePrompt);
-          }
-          // Priority 3: Generate from title (from AI Processor or other sources)
-          else if (previousData && previousData.title) {
-            imagePrompt = `Professional illustration representing: ${previousData.title}`;
-            promptSource = 'Article Title';
-            console.log('🎯 IMAGE GENERATOR: Generated from title:', previousData.title);
-            console.log('🎯 IMAGE GENERATOR: Generated prompt:', imagePrompt);
-          }
-          // Priority 4: Use content summary if available
-          else if (previousData && (previousData.processedContent || previousData.synthesizedContent)) {
-            const content = previousData.processedContent || previousData.synthesizedContent;
-            // Extract first meaningful sentence or use first 100 chars
-            const summary = content.split('\n').find(line => line.trim().length > 20) || content.substring(0, 100);
-            imagePrompt = `Professional illustration for content about: ${summary.replace(/[#*]/g, '').trim()}`;
-            promptSource = 'Content Summary';
-            console.log('🎯 IMAGE GENERATOR: Generated from content summary:', summary);
-            console.log('🎯 IMAGE GENERATOR: Generated prompt:', imagePrompt);
-          }
-          // Fallback: Generic prompt
-          else {
-            imagePrompt = 'Professional illustration for a news or informational article';
-            promptSource = 'Generic Fallback';
-            console.log('🎯 IMAGE GENERATOR: Using fallback prompt');
-          }
-          
-          // Step 2: Enhance prompt with custom instructions if they weren't used as main prompt
-          if (node.config.customInstructions && node.config.customInstructions !== imagePrompt) {
-            imagePrompt += `. Additional style: ${node.config.customInstructions}`;
-            console.log('🎯 IMAGE GENERATOR: Enhanced with custom instructions:', imagePrompt);
-          }
-          
-          // Step 3: Prepare the image generation request
-          const imageGenRequest = {
-            prompt: imagePrompt,
-            aiModel: node.config.aiModel || 'gemini-2.0-flash-preview-image-generation',
-            style: node.config.imageStyle || 'natural',
-            size: node.config.imageSize || '1024x1024',
-            quality: node.config.imageQuality || 'standard'
-          };
-          
-          console.log('🎯 IMAGE GENERATOR: Sending request to edge function:', imageGenRequest);
-          addLog(node.id, node.label, 'running', 
-            `Generating image using ${promptSource}: "${imagePrompt.substring(0, 100)}..." with model: ${imageGenRequest.aiModel}`);
-          
-          // Step 4: Call the image generation function
-          const { data: imageData, error: imageError } = await supabase.functions.invoke('image-generator', {
-            body: imageGenRequest
-          });
-          
-          if (imageError) {
-            console.error('🎯 IMAGE GENERATOR: Error from edge function:', imageError);
-            throw new Error(`Image generation failed: ${imageError.message}`);
-          }
-          
-          console.log('🎯 IMAGE GENERATOR: Response from edge function:', imageData);
-          
-          // Step 5: Prepare result data
-          result = { 
-            ...previousData, // Pass through previous data including title
-            imageUrl: imageData.imageUrl,
-            imagePrompt: imagePrompt,
-            imagePromptSource: promptSource,
-            imageStyle: node.config.imageStyle,
-            imageSize: node.config.imageSize,
-            aiModelUsed: imageGenRequest.aiModel,
-            wasImageReused: imageData.wasReused || false,
-            imageFileName: imageData.fileName || 'unknown'
-          };
-          
-          // Step 6: Log success
-          if (imageData.wasReused) {
-            addLog(node.id, node.label, 'completed', 
-              `Image reused from cache (${imageData.generatedWith}): ${imageData.fileName}`);
-            console.log('🎯 IMAGE GENERATOR: ✅ Image reused from cache');
-          } else {
-            addLog(node.id, node.label, 'completed', 
-              `New image generated with ${imageData.generatedWith}: ${imageData.fileName}`);
-            console.log('🎯 IMAGE GENERATOR: ✅ New image generated successfully');
-          }
-          
-          console.log('🎯 IMAGE GENERATOR: ✅ Final result:', {
-            imageUrl: result.imageUrl,
-            promptUsed: imagePrompt,
-            promptSource: promptSource,
-            fileName: result.imageFileName
-          });
-          break;
+
+case 'image-generator':
+  console.log('🎯 IMAGE GENERATOR: Starting execution...');
+  console.log('🎯 IMAGE GENERATOR: Previous data received:', {
+    hasTitle: !!previousData?.title,
+    hasContent: !!previousData?.processedContent || !!previousData?.synthesizedContent,
+    titlePreview: previousData?.title?.substring(0, 50),
+    contentPreview: (previousData?.processedContent || previousData?.synthesizedContent || '')?.substring(0, 100)
+  });
+  console.log('🎯 IMAGE GENERATOR: Node config:', node.config);
+  
+  // Step 1: Build the enhanced image request with ALL available data and user control
+  const imageGenRequest = {
+    // PRIORITY: User's explicit prompt from "Image Prompt" field
+    prompt: node.config.imagePrompt || '',
+    
+    // Pass title and content for context (only used if no explicit prompt)
+    title: previousData?.title || '',
+    content: previousData?.processedContent || previousData?.synthesizedContent || '',
+    
+    // User's additional styling instructions
+    customInstructions: node.config.customInstructions || '',
+    
+    // Technical settings
+    aiModel: node.config.aiModel || 'gemini-2.0-flash-preview-image-generation',
+    style: node.config.imageStyle || 'natural',
+    size: node.config.imageSize || '1024x1024',
+    quality: node.config.imageQuality || 'standard',
+    
+    // NEW: Force generation of new image (skip cache if user has explicit prompt)
+    forceGenerate: !!(node.config.imagePrompt && node.config.imagePrompt.trim())
+  };
+  
+  console.log('🎯 IMAGE GENERATOR: Sending request with user control:', {
+    hasExplicitPrompt: !!imageGenRequest.prompt,
+    hasTitle: !!imageGenRequest.title,
+    hasContent: !!imageGenRequest.content,
+    hasCustomInstructions: !!imageGenRequest.customInstructions,
+    forceGenerate: imageGenRequest.forceGenerate,
+    aiModel: imageGenRequest.aiModel,
+    promptPreview: imageGenRequest.prompt?.substring(0, 50) || 'No explicit prompt',
+    titlePreview: imageGenRequest.title?.substring(0, 50) || 'No title'
+  });
+  
+  // Determine what will be used for the image
+  let promptSource = '';
+  if (imageGenRequest.prompt) {
+    promptSource = `user prompt: "${imageGenRequest.prompt.substring(0, 50)}..."`;
+  } else if (imageGenRequest.title) {
+    promptSource = `article title: "${imageGenRequest.title.substring(0, 50)}..."`;
+  } else {
+    promptSource = 'fallback prompt';
+  }
+  
+  addLog(node.id, node.label, 'running', 
+    `Generating image using ${promptSource}. Model: ${imageGenRequest.aiModel}. Force new: ${imageGenRequest.forceGenerate}`);
+  
+  // Step 2: Call the improved image generation function
+  const { data: imageData, error: imageError } = await supabase.functions.invoke('image-generator', {
+    body: imageGenRequest
+  });
+  
+  if (imageError) {
+    console.error('🎯 IMAGE GENERATOR: Error from edge function:', imageError);
+    throw new Error(`Image generation failed: ${imageError.message}`);
+  }
+  
+  console.log('🎯 IMAGE GENERATOR: Response from edge function:', imageData);
+  
+  // Step 3: Prepare result data with all information
+  result = { 
+    ...previousData, // Pass through ALL previous data including title and content
+    imageUrl: imageData.imageUrl,
+    imagePrompt: imageData.prompt, // The actual prompt that was used
+    imagePromptSource: promptSource,
+    imageStyle: node.config.imageStyle,
+    imageSize: node.config.imageSize,
+    aiModelUsed: imageGenRequest.aiModel,
+    wasImageReused: imageData.wasReused || false,
+    imageFileName: imageData.fileName || 'unknown',
+    forcedGeneration: imageGenRequest.forceGenerate
+  };
+  
+  // Step 4: Log success with detailed information
+  if (imageData.wasReused) {
+    addLog(node.id, node.label, 'completed', 
+      `Image reused from cache (${imageData.generatedWith}): ${imageData.fileName}. Prompt used: "${imageData.prompt?.substring(0, 100)}..."`);
+    console.log('🎯 IMAGE GENERATOR: ✅ Image reused from cache');
+  } else {
+    addLog(node.id, node.label, 'completed', 
+      `NEW image generated with ${imageData.generatedWith}: ${imageData.fileName}. Prompt used: "${imageData.prompt?.substring(0, 100)}..."`);
+    console.log('🎯 IMAGE GENERATOR: ✅ New image generated successfully');
+  }
+  
+  console.log('🎯 IMAGE GENERATOR: ✅ Final result:', {
+    imageUrl: result.imageUrl,
+    promptUsed: imageData.prompt?.substring(0, 100),
+    fileName: result.imageFileName,
+    title: result.title,
+    wasReused: result.wasImageReused,
+    forcedGeneration: result.forcedGeneration
+  });
+  break;
           
         case 'seo-analyzer':
           if (!previousData || (!previousData.processedContent && !previousData.synthesizedContent)) {

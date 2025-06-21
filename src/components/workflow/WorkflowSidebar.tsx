@@ -12,7 +12,7 @@ import {
   ImagePlay, SearchCheck, Languages, Eye, Award, TrendingUp, 
   HeartPulse, Rss, GraduationCap, Newspaper, Search, Combine, BarChart3 
 } from 'lucide-react';
-import { WorkflowNode } from '@/pages/WorkflowBuilderPage';
+import { WorkflowNode } from '@/types/WorkflowTypes';
 import { AVAILABLE_MODELS } from '@/services/aiModelService';
 
 interface WorkflowSidebarProps {
@@ -667,7 +667,7 @@ const NodeConfiguration = ({
 {/* Image Generator Configuration */}
 {node.type === 'image-generator' && (
   <div className="space-y-4">
-    {renderAIModelSelector(localConfig, handleConfigChange, node.id)}
+    {renderAIModelSelector()}
     <div className="space-y-2">
       <Label>Image Prompt</Label>
       <Textarea

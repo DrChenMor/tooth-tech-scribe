@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { WorkflowNode } from '@/pages/WorkflowBuilderPage';
+import { WorkflowNode } from '@/types/WorkflowTypes';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { 

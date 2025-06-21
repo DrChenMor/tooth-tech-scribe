@@ -1,4 +1,3 @@
-
 // src/pages/WorkflowBuilderPage.tsx
 import { useState, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -171,64 +170,111 @@ const WorkflowBuilderPage = () => {
           break;
 
         case 'image-generator':
-          // Priority: Custom imagePrompt → Custom instructions → Title-based generation
-          let imagePrompt = '';
+          console.log('🎯 IMAGE GENERATOR: Starting execution...');
+          console.log('🎯 IMAGE GENERATOR: Previous data:', previousData);
+          console.log('🎯 IMAGE GENERATOR: Node config:', node.config);
           
-          // First priority: Custom image prompt
+          // Step 1: Build the image prompt with enhanced logic
+          let imagePrompt = '';
+          let promptSource = '';
+          
+          // Priority 1: Custom image prompt from node config
           if (node.config.imagePrompt && node.config.imagePrompt.trim()) {
             imagePrompt = node.config.imagePrompt.trim();
-            addLog(node.id, node.label, 'running', 'Using custom image prompt');
+            promptSource = 'Custom Image Prompt';
+            console.log('🎯 IMAGE GENERATOR: Using custom image prompt:', imagePrompt);
           }
-          // Second priority: Custom instructions as prompt
+          // Priority 2: Custom instructions as prompt
           else if (node.config.customInstructions && node.config.customInstructions.trim()) {
             imagePrompt = node.config.customInstructions.trim();
-            addLog(node.id, node.label, 'running', 'Using custom instructions as image prompt');
+            promptSource = 'Custom Instructions';
+            console.log('🎯 IMAGE GENERATOR: Using custom instructions as prompt:', imagePrompt);
           }
-          // Third priority: Generate from title
+          // Priority 3: Generate from title (from AI Processor or other sources)
           else if (previousData && previousData.title) {
             imagePrompt = `Professional illustration representing: ${previousData.title}`;
-            addLog(node.id, node.label, 'running', 'Generating image based on article title');
+            promptSource = 'Article Title';
+            console.log('🎯 IMAGE GENERATOR: Generated from title:', previousData.title);
+            console.log('🎯 IMAGE GENERATOR: Generated prompt:', imagePrompt);
+          }
+          // Priority 4: Use content summary if available
+          else if (previousData && (previousData.processedContent || previousData.synthesizedContent)) {
+            const content = previousData.processedContent || previousData.synthesizedContent;
+            // Extract first meaningful sentence or use first 100 chars
+            const summary = content.split('\n').find(line => line.trim().length > 20) || content.substring(0, 100);
+            imagePrompt = `Professional illustration for content about: ${summary.replace(/[#*]/g, '').trim()}`;
+            promptSource = 'Content Summary';
+            console.log('🎯 IMAGE GENERATOR: Generated from content summary:', summary);
+            console.log('🎯 IMAGE GENERATOR: Generated prompt:', imagePrompt);
           }
           // Fallback: Generic prompt
           else {
             imagePrompt = 'Professional illustration for a news or informational article';
-            addLog(node.id, node.label, 'running', 'Using fallback image prompt');
+            promptSource = 'Generic Fallback';
+            console.log('🎯 IMAGE GENERATOR: Using fallback prompt');
           }
           
-          // Add custom instructions to enhance the prompt (if not already used as main prompt)
+          // Step 2: Enhance prompt with custom instructions if they weren't used as main prompt
           if (node.config.customInstructions && node.config.customInstructions !== imagePrompt) {
-            imagePrompt += `. ${node.config.customInstructions}`;
+            imagePrompt += `. Additional style: ${node.config.customInstructions}`;
+            console.log('🎯 IMAGE GENERATOR: Enhanced with custom instructions:', imagePrompt);
           }
           
-          addLog(node.id, node.label, 'running', `Generating image with ${node.config.aiModel || 'default model'}: "${imagePrompt.substring(0, 100)}..."`);
+          // Step 3: Prepare the image generation request
+          const imageGenRequest = {
+            prompt: imagePrompt,
+            aiModel: node.config.aiModel || 'gemini-2.0-flash-preview-image-generation',
+            style: node.config.imageStyle || 'natural',
+            size: node.config.imageSize || '1024x1024',
+            quality: node.config.imageQuality || 'standard'
+          };
           
+          console.log('🎯 IMAGE GENERATOR: Sending request to edge function:', imageGenRequest);
+          addLog(node.id, node.label, 'running', 
+            `Generating image using ${promptSource}: "${imagePrompt.substring(0, 100)}..." with model: ${imageGenRequest.aiModel}`);
+          
+          // Step 4: Call the image generation function
           const { data: imageData, error: imageError } = await supabase.functions.invoke('image-generator', {
-            body: {
-              prompt: imagePrompt,
-              aiModel: node.config.aiModel || 'dall-e-3',
-              style: node.config.imageStyle || 'natural',
-              size: node.config.imageSize || '1024x1024',
-              quality: node.config.imageQuality || 'standard',
-              customInstructions: node.config.customInstructions
-            }
+            body: imageGenRequest
           });
-          if (imageError) throw new Error(imageError.message);
           
+          if (imageError) {
+            console.error('🎯 IMAGE GENERATOR: Error from edge function:', imageError);
+            throw new Error(`Image generation failed: ${imageError.message}`);
+          }
+          
+          console.log('🎯 IMAGE GENERATOR: Response from edge function:', imageData);
+          
+          // Step 5: Prepare result data
           result = { 
             ...previousData, // Pass through previous data including title
             imageUrl: imageData.imageUrl,
             imagePrompt: imagePrompt,
+            imagePromptSource: promptSource,
             imageStyle: node.config.imageStyle,
             imageSize: node.config.imageSize,
-            aiModelUsed: node.config.aiModel,
-            wasImageReused: imageData.wasReused || false
+            aiModelUsed: imageGenRequest.aiModel,
+            wasImageReused: imageData.wasReused || false,
+            imageFileName: imageData.fileName || 'unknown'
           };
           
+          // Step 6: Log success
           if (imageData.wasReused) {
-            addLog(node.id, node.label, 'completed', `Image reused from previous generation (${imageData.generatedWith})`);
+            addLog(node.id, node.label, 'completed', 
+              `Image reused from cache (${imageData.generatedWith}): ${imageData.fileName}`);
+            console.log('🎯 IMAGE GENERATOR: ✅ Image reused from cache');
           } else {
-            addLog(node.id, node.label, 'completed', `New image generated with ${imageData.generatedWith}`);
+            addLog(node.id, node.label, 'completed', 
+              `New image generated with ${imageData.generatedWith}: ${imageData.fileName}`);
+            console.log('🎯 IMAGE GENERATOR: ✅ New image generated successfully');
           }
+          
+          console.log('🎯 IMAGE GENERATOR: ✅ Final result:', {
+            imageUrl: result.imageUrl,
+            promptUsed: imagePrompt,
+            promptSource: promptSource,
+            fileName: result.imageFileName
+          });
           break;
           
         case 'seo-analyzer':
@@ -461,17 +507,22 @@ Generate the ${contentType} now with proper markdown formatting:`;
               processedContent = `# ${firstMeaningfulLine}\n\n${processedContent}`;
             }
 
-            // Extract the title from the markdown
-            const match = processedContent.match(/^#\s+(.+)/m);
-            const extractedTitle = match ? match[1].trim() : 'Untitled Article';
+            // Extract the title from the markdown and remove it from content
+            const titleMatch = processedContent.match(/^#\s+(.+)/m);
+            const extractedTitle = titleMatch ? titleMatch[1].trim() : 'Untitled Article';
             
-            console.log('AI Processor: Content generated successfully, title:', extractedTitle);
+            // Remove the title line from content to prevent duplication
+            const contentWithoutTitle = processedContent.replace(/^#\s+.+\n\n?/m, '').trim();
+            
+            console.log('AI Processor: Content generated successfully');
+            console.log('AI Processor: Extracted title:', extractedTitle);
+            console.log('AI Processor: Content after title removal (first 200 chars):', contentWithoutTitle.substring(0, 200));
             
             result = {
               ...contentToProcess,
               title: extractedTitle, // ✅ FIXED: Properly extract and pass title
-              content: processedContent,
-              processedContent: processedContent,
+              content: contentWithoutTitle, // ✅ FIXED: Content without title duplication
+              processedContent: contentWithoutTitle, // For downstream nodes
               processedBy: `AI Processor (${agentConfig.ai_model})`,
               category: category,
               contentType: contentType,

@@ -170,78 +170,54 @@ const WorkflowBuilderPage = () => {
           break;
 
         case 'image-generator':
-          console.log('🎨 IMAGE GENERATOR: Starting execution');
-          console.log('🎨 NODE CONFIG:', JSON.stringify(node.config, null, 2));
-          console.log('🎨 PREVIOUS DATA:', JSON.stringify(previousData, null, 2));
-          
           // Priority: Custom imagePrompt → Custom instructions → Title-based generation
           let imagePrompt = '';
           
           // First priority: Custom image prompt
           if (node.config.imagePrompt && node.config.imagePrompt.trim()) {
             imagePrompt = node.config.imagePrompt.trim();
-            console.log('🎨 USING CUSTOM IMAGE PROMPT:', imagePrompt);
             addLog(node.id, node.label, 'running', 'Using custom image prompt');
           }
           // Second priority: Custom instructions as prompt
           else if (node.config.customInstructions && node.config.customInstructions.trim()) {
             imagePrompt = node.config.customInstructions.trim();
-            console.log('🎨 USING CUSTOM INSTRUCTIONS AS PROMPT:', imagePrompt);
             addLog(node.id, node.label, 'running', 'Using custom instructions as image prompt');
           }
           // Third priority: Generate from title
           else if (previousData && previousData.title) {
             imagePrompt = `Professional illustration representing: ${previousData.title}`;
-            console.log('🎨 USING TITLE-BASED PROMPT:', imagePrompt);
             addLog(node.id, node.label, 'running', 'Generating image based on article title');
           }
           // Fallback: Generic prompt
           else {
             imagePrompt = 'Professional illustration for a news or informational article';
-            console.log('🎨 USING FALLBACK PROMPT:', imagePrompt);
             addLog(node.id, node.label, 'running', 'Using fallback image prompt');
           }
           
-          // Add custom instructions to enhance the prompt (if not already used as main prompt)
+          // ✅ CRITICAL FIX: Don't add custom instructions if already used as main prompt
+          let finalImagePrompt = imagePrompt;
           if (node.config.customInstructions && node.config.customInstructions !== imagePrompt) {
-            imagePrompt += `. ${node.config.customInstructions}`;
-            console.log('🎨 ENHANCED PROMPT WITH CUSTOM INSTRUCTIONS:', imagePrompt);
+            finalImagePrompt += `. ${node.config.customInstructions}`;
           }
           
-          console.log('🎨 FINAL IMAGE PROMPT:', imagePrompt);
-          console.log('🎨 AI MODEL SELECTED:', node.config.aiModel || 'default');
-          console.log('🎨 IMAGE STYLE:', node.config.imageStyle || 'natural');
-          console.log('🎨 IMAGE SIZE:', node.config.imageSize || '1024x1024');
-          console.log('🎨 IMAGE QUALITY:', node.config.imageQuality || 'standard');
-          
-          addLog(node.id, node.label, 'running', `Generating image with ${node.config.aiModel || 'default model'}: "${imagePrompt.substring(0, 100)}..."`);
-          
-          const imagePayload = {
-            prompt: imagePrompt,
-            aiModel: node.config.aiModel || 'dall-e-3',
-            style: node.config.imageStyle || 'natural',
-            size: node.config.imageSize || '1024x1024',
-            quality: node.config.imageQuality || 'standard',
-            customInstructions: node.config.customInstructions
-          };
-          
-          console.log('🎨 SENDING TO IMAGE GENERATOR:', JSON.stringify(imagePayload, null, 2));
+          addLog(node.id, node.label, 'running', `Generating image with ${node.config.aiModel || 'default model'}: "${finalImagePrompt.substring(0, 100)}..."`);
           
           const { data: imageData, error: imageError } = await supabase.functions.invoke('image-generator', {
-            body: imagePayload
+            body: {
+              prompt: finalImagePrompt, // ✅ Use the final constructed prompt
+              aiModel: node.config.aiModel || 'dall-e-3',
+              style: node.config.imageStyle || 'natural',
+              size: node.config.imageSize || '1024x1024',
+              quality: node.config.imageQuality || 'standard',
+              customInstructions: node.config.customInstructions
+            }
           });
-          
-          if (imageError) {
-            console.error('🎨 IMAGE GENERATOR ERROR:', imageError);
-            throw new Error(imageError.message);
-          }
-          
-          console.log('🎨 IMAGE GENERATOR RESPONSE:', JSON.stringify(imageData, null, 2));
+          if (imageError) throw new Error(imageError.message);
           
           result = { 
             ...previousData, // Pass through previous data including title
             imageUrl: imageData.imageUrl,
-            imagePrompt: imagePrompt,
+            imagePrompt: finalImagePrompt, // ✅ Store the actual prompt used
             imageStyle: node.config.imageStyle,
             imageSize: node.config.imageSize,
             aiModelUsed: node.config.aiModel,
@@ -249,14 +225,12 @@ const WorkflowBuilderPage = () => {
           };
           
           if (imageData.wasReused) {
-            console.log('🎨 IMAGE WAS REUSED FROM CACHE');
             addLog(node.id, node.label, 'completed', `Image reused from previous generation (${imageData.generatedWith})`);
           } else {
-            console.log('🎨 NEW IMAGE GENERATED');
             addLog(node.id, node.label, 'completed', `New image generated with ${imageData.generatedWith}`);
           }
           break;
-          
+
         case 'seo-analyzer':
           if (!previousData || (!previousData.processedContent && !previousData.synthesizedContent)) {
             throw new Error('No content to analyze for SEO. Connect this node to content sources.');
@@ -480,38 +454,29 @@ Generate the ${contentType} now with proper markdown formatting:`;
               }
             }
 
-            // Extract the title from the markdown
+            // ✅ CRITICAL FIX: Extract title and remove it from content
             const titleMatch = processedContent.match(/^#\s+(.+)/m);
             const extractedTitle = titleMatch ? titleMatch[1].trim() : 'Untitled Article';
             
-            // ✅ CRITICAL FIX: Remove the title line from the content
+            // ✅ Remove the title line from the content to prevent duplication
             let contentWithoutTitle = processedContent;
             if (titleMatch) {
-              contentWithoutTitle = processedContent.replace(/^#\s+.+$/m, '').trim();
-              console.log('✅ AI Processor: Removed title from content to prevent duplication');
-            }
-
-            // Ensure content starts with a proper title if it doesn't have one
-            if (!processedContent.trim().startsWith('#')) {
-              const lines = processedContent.split('\n');
-              const firstMeaningfulLine = lines.find(line => line.trim().length > 10) || 'Generated Article';
-              processedContent = `# ${firstMeaningfulLine}\n\n${processedContent}`;
-              // Extract title again after adding it
-              const newTitleMatch = processedContent.match(/^#\s+(.+)/m);
-              if (newTitleMatch) {
-                contentWithoutTitle = processedContent.replace(/^#\s+.+$/m, '').trim();
+              contentWithoutTitle = processedContent.replace(/^#\s+.+\n?/m, '').trim();
+              
+              // Ensure content still starts with proper formatting if needed
+              if (!contentWithoutTitle.startsWith('##') && !contentWithoutTitle.startsWith('*')) {
+                contentWithoutTitle = '\n\n' + contentWithoutTitle;
               }
             }
             
             console.log('AI Processor: Content generated successfully, title:', extractedTitle);
-            console.log('AI Processor: Content length with title:', processedContent.length);
-            console.log('AI Processor: Content length without title:', contentWithoutTitle.length);
+            console.log('AI Processor: Content length after title removal:', contentWithoutTitle.length);
             
             result = {
               ...contentToProcess,
               title: extractedTitle, // ✅ FIXED: Properly extract and pass title
-              content: contentWithoutTitle, // ✅ FIXED: Use content WITHOUT title
-              processedContent: contentWithoutTitle, // ✅ FIXED: Use content WITHOUT title
+              content: contentWithoutTitle, // ✅ FIXED: Content without title
+              processedContent: contentWithoutTitle, // ✅ FIXED: Content without title
               processedBy: `AI Processor (${agentConfig.ai_model})`,
               category: category,
               contentType: contentType,
@@ -808,6 +773,7 @@ Generate the ${contentType} now with proper markdown formatting:`;
       type,
       label: generateNodeLabel(type),
       position: { x: Math.random() * 400 + 50, y: Math.random() * 400 + 50 },
+      data: {}, // Add required data property
       config: {},
       connected: [],
     };

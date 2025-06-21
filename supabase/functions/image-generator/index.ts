@@ -377,19 +377,70 @@ serve(async (req) => {
     console.log(`🤖 Using AI Model: ${aiModel}`);
     console.log(`📝 Smart prompt: "${smartPrompt}"`);
 
-    // Create UNIQUE filename that includes the actual prompt content
+// QUICK FIX: Replace the filename generation function in your image-generator/index.ts
+
+// IMPROVED: Create unique filename based on ACTUAL prompt content + ALWAYS unique timestamp
+function createUniqueFileName(finalPrompt: string, aiModel: string, size: string, style: string): string {
+  // Create a hash from the COMPLETE prompt specification + current timestamp for uniqueness
+  const timestamp = Date.now();
+  const randomComponent = Math.random().toString(36).substring(2, 8); // Add random component
+  const uniqueContent = `${finalPrompt}|${aiModel}|${size}|${style}|${timestamp}|${randomComponent}`;
+  const hash = createContentHash(uniqueContent);
+  const modelName = aiModel.replace(/[^a-z0-9]/gi, '').toLowerCase();
+  const sizeFormatted = size.replace('x', 'by');
+  
+  return `img-${modelName}-${hash}-${timestamp}-${sizeFormatted}.jpg`;
+}
+
+// ALSO UPDATE: The cache checking logic to be more aggressive about skipping cache
+serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
+  }
+
+  try {
+    console.log('🚀 Image Generator: Starting...');
+    
+    const request: ImageGenerationRequest = await req.json();
+    
+    console.log('📝 Received request:', {
+      hasPrompt: !!request.prompt,
+      hasTitle: !!request.title,
+      hasContent: !!request.content,
+      hasCustomInstructions: !!request.customInstructions,
+      forceGenerate: request.forceGenerate,
+      aiModel: request.aiModel,
+      promptPreview: request.prompt?.substring(0, 50),
+      titlePreview: request.title?.substring(0, 50)
+    });
+
+    // Build the smart prompt using all available information
+    const smartPrompt = buildSmartImagePrompt(request);
+
+    const aiModel = request.aiModel || 'dall-e-3';
+    const size = request.size || '1024x1024';
+    const quality = request.quality || 'standard';
+    const style = request.style || 'natural';
+
+    console.log(`🤖 Using AI Model: ${aiModel}`);
+    console.log(`📝 Smart prompt: "${smartPrompt}"`);
+
+    // Create UNIQUE filename that includes the actual prompt content AND timestamp
     const fileName = createUniqueFileName(smartPrompt, aiModel, size, style);
     
     console.log(`🔍 Generated unique filename: ${fileName}`);
 
-    // SKIP CACHE CHECK if forceGenerate is true OR if user provided explicit prompt
-    const shouldSkipCache = request.forceGenerate || (request.prompt && request.prompt.trim());
+    // AGGRESSIVE: Skip cache if user provided ANY custom content OR if forcing generation
+    const hasUserInput = !!(request.prompt?.trim() || request.customInstructions?.trim());
+    const shouldSkipCache = request.forceGenerate || hasUserInput;
+    
+    console.log(`🎯 Cache decision: Skip cache = ${shouldSkipCache} (hasUserInput: ${hasUserInput}, forceGenerate: ${request.forceGenerate})`);
     
     let existingImageUrl = null;
     if (!shouldSkipCache) {
       existingImageUrl = await checkIfImageExists(fileName);
     } else {
-      console.log('🔄 Skipping cache check - generating fresh image');
+      console.log('🔄 SKIPPING CACHE - Will generate fresh image because user provided custom content');
     }
     
     if (existingImageUrl && !shouldSkipCache) {
@@ -413,7 +464,7 @@ serve(async (req) => {
     }
 
     // Generate NEW image
-    console.log('📸 Generating fresh image...');
+    console.log('📸 GENERATING FRESH IMAGE - No cache used');
 
     let temporaryImageUrl: string;
     let generatedWith: string;

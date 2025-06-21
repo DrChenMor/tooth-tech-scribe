@@ -118,8 +118,6 @@ const WorkflowSidebar = ({ selectedNode, onAddNode, onUpdateNodeConfig }: Workfl
         <div className="p-4">
           <h3 className="font-semibold mb-4">Configure {selectedNode.label}</h3>
           
-          {/* Common configurations for various node types */}
-          
           {/* AI Processor Configuration */}
           {selectedNode.type === 'ai-processor' && (
             <div className="space-y-4">

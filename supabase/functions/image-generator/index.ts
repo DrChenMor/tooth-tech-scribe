@@ -53,12 +53,16 @@ async function generateWithGemini(prompt, size) {
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      prompt: prompt,
-      generationConfig: {
-        sampleCount: 1,
-        includeRaiInfo: false
-      }
-    })
+  "instances": [
+    {
+      "prompt":,
+    }
+  ],
+  "parameters": {
+    "sampleCount": 1
+  }
+}
+)
   });
   if (!response.ok) {
     const errorData = await response.json();

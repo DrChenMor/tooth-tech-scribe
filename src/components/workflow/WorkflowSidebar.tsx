@@ -519,6 +519,7 @@ const NodeConfiguration = ({
         <SelectContent>
           <SelectItem value="Professional">Professional</SelectItem>
           <SelectItem value="Casual">Casual</SelectItem>
+          <SelectItem value="Funny">Funny</SelectItem>
           <SelectItem value="Academic">Academic</SelectItem>
           <SelectItem value="Technical">Technical</SelectItem>
           <SelectItem value="Conversational">Conversational</SelectItem>

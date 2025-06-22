@@ -170,6 +170,8 @@ const WorkflowBuilderPage = () => {
           break;
 
 
+// Update for WorkflowBuilderPage.tsx - Image Generator case in executeNode function
+
 case 'image-generator':
   console.log('🎯 IMAGE GENERATOR: Starting execution...');
   console.log('🎯 IMAGE GENERATOR: Previous data received:', {
@@ -192,11 +194,11 @@ case 'image-generator':
     // User's additional styling instructions
     customInstructions: node.config.customInstructions || '',
     
-    // Technical settings
-    aiModel: node.config.aiModel || 'gemini-2.0-flash-preview-image-generation',
+    // 🔧 UPDATED: Use the correct AI model names
+    aiModel: node.config.aiModel || 'google-imagen-3', // Default to Google Imagen 3
     style: node.config.imageStyle || 'natural',
     size: node.config.imageSize || '1024x1024',
-    quality: node.config.imageQuality || 'standard',
+    quality: node.config.imageQuality || 'medium',
     
     // NEW: Force generation of new image (skip cache if user has explicit prompt)
     forceGenerate: !!(node.config.imagePrompt && node.config.imagePrompt.trim())
@@ -249,18 +251,20 @@ case 'image-generator':
     aiModelUsed: imageGenRequest.aiModel,
     wasImageReused: imageData.wasReused || false,
     imageFileName: imageData.fileName || 'unknown',
-    forcedGeneration: imageGenRequest.forceGenerate
+    forcedGeneration: imageGenRequest.forceGenerate,
+    wasAIGenerated: imageData.wasAIGenerated || false,
+    generatedWith: imageData.generatedWith || 'Unknown'
   };
   
   // Step 4: Log success with detailed information
-  if (imageData.wasReused) {
+  if (imageData.wasAIGenerated) {
     addLog(node.id, node.label, 'completed', 
-      `Image reused from cache (${imageData.generatedWith}): ${imageData.fileName}. Prompt used: "${imageData.prompt?.substring(0, 100)}..."`);
-    console.log('🎯 IMAGE GENERATOR: ✅ Image reused from cache');
+      `✅ NEW AI image generated with ${imageData.generatedWith}: ${imageData.fileName}. Prompt used: "${imageData.prompt?.substring(0, 100)}..."`);
+    console.log('🎯 IMAGE GENERATOR: ✅ New AI image generated successfully');
   } else {
     addLog(node.id, node.label, 'completed', 
-      `NEW image generated with ${imageData.generatedWith}: ${imageData.fileName}. Prompt used: "${imageData.prompt?.substring(0, 100)}..."`);
-    console.log('🎯 IMAGE GENERATOR: ✅ New image generated successfully');
+      `⚠️ Placeholder image used (${imageData.generatedWith}): ${imageData.fileName}. AI generation failed.`);
+    console.log('🎯 IMAGE GENERATOR: ⚠️ Fallback to placeholder image');
   }
   
   console.log('🎯 IMAGE GENERATOR: ✅ Final result:', {
@@ -268,8 +272,8 @@ case 'image-generator':
     promptUsed: imageData.prompt?.substring(0, 100),
     fileName: result.imageFileName,
     title: result.title,
-    wasReused: result.wasImageReused,
-    forcedGeneration: result.forcedGeneration
+    wasAIGenerated: result.wasAIGenerated,
+    aiModel: result.aiModelUsed
   });
   break;
           

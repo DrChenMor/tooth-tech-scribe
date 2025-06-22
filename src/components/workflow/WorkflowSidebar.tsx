@@ -469,16 +469,16 @@ const NodeConfiguration = ({
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          {getTextGenerationModels().map((model) => (
-            <SelectItem key={model.id} value={model.id}>
-              <div className="flex flex-col">
-                <span>{model.name}</span>
-                <span className="text-xs text-muted-foreground">
-                  {model.provider} • {model.description || 'Text generation model'}
-                </span>
-              </div>
-            </SelectItem>
-          ))}
+        {getTextGenerationModels().map((model) => (
+          <SelectItem key={model.id} value={model.id}>
+            <div className="flex flex-col">
+              <span>{model.name}</span>
+              <span className="text-xs text-muted-foreground">
+                {model.provider} • {model.capabilities ? model.capabilities.join(', ') : 'Text generation model'}
+              </span>
+            </div>
+          </SelectItem>
+        ))}
         </SelectContent>
       </Select>
     </div>

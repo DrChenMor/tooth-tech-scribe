@@ -13,7 +13,7 @@ import {
   HeartPulse, Rss, GraduationCap, Newspaper, Search, Combine, BarChart3 
 } from 'lucide-react';
 import { WorkflowNode } from '@/types/WorkflowTypes';
-import { AVAILABLE_MODELS } from '@/services/aiModelService';
+import { AVAILABLE_MODELS, getImageGenerationModels, getTextGenerationModels } from '@/services/aiModelService';
 
 interface WorkflowSidebarProps {
   selectedNode: WorkflowNode | null;
@@ -455,88 +455,284 @@ const NodeConfiguration = ({
         </div>
       )}
 
-      {/* Enhanced AI Processor Configuration */}
-      {node.type === 'ai-processor' && (
-        <div className="space-y-4">
-          {renderAIModelSelector()}
-          <div className="space-y-2">
-            <Label>Content Type</Label>
-            <Select
-              key={`contentType-${node.id}`}
-              value={localConfig.contentType || 'article'}
-              onValueChange={(value) => handleConfigChange('contentType', value)}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="article">Full Article</SelectItem>
-                <SelectItem value="summary">Summary</SelectItem>
-                <SelectItem value="analysis">Analysis</SelectItem>
-                <SelectItem value="news-report">News Report</SelectItem>
-                <SelectItem value="tutorial">Tutorial</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label>Writing Style</Label>
-            <Select
-              key={`writingStyle-${node.id}`}
-              value={localConfig.writingStyle || 'Professional'}
-              onValueChange={(value) => handleConfigChange('writingStyle', value)}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Professional">Professional</SelectItem>
-                <SelectItem value="Casual">Casual</SelectItem>
-                <SelectItem value="Academic">Academic</SelectItem>
-                <SelectItem value="Technical">Technical</SelectItem>
-                <SelectItem value="Conversational">Conversational</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label>Target Audience</Label>
-            <Select
-              key={`targetAudience-${node.id}`}
-              value={localConfig.targetAudience || 'General readers'}
-              onValueChange={(value) => handleConfigChange('targetAudience', value)}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="General readers">General Readers</SelectItem>
-                <SelectItem value="Experts">Industry Experts</SelectItem>
-                <SelectItem value="Students">Students</SelectItem>
-                <SelectItem value="Beginners">Beginners</SelectItem>
-                <SelectItem value="Professionals">Professionals</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label>Article Category</Label>
-            <Input
-              key={`category-${node.id}`}
-              placeholder="Technology, Business, Science..."
-              value={localConfig.category || ''}
-              onChange={(e) => handleConfigChange('category', e.target.value)}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Custom Instructions (Optional)</Label>
-            <Textarea
-              key={`prompt-${node.id}`}
-              placeholder="Add specific instructions for content transformation..."
-              rows={3}
-              value={localConfig.prompt || ''}
-              onChange={(e) => handleConfigChange('prompt', e.target.value)}
-            />
-          </div>
-        </div>
-      )}
+{/* Enhanced AI Processor Configuration */}
+{node.type === 'ai-processor' && (
+  <div className="space-y-4">
+    <div className="space-y-2">
+      <Label>AI Model</Label>
+      <Select
+        key={`aiModel-${node.id}`}
+        value={localConfig.aiModel || 'gemini-2.5-flash-preview-05-20'}
+        onValueChange={(value) => handleConfigChange('aiModel', value)}
+      >
+        <SelectTrigger>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {getTextGenerationModels().map((model) => (
+            <SelectItem key={model.id} value={model.id}>
+              <div className="flex flex-col">
+                <span>{model.name}</span>
+                <span className="text-xs text-muted-foreground">
+                  {model.provider} • {model.description || 'Text generation model'}
+                </span>
+              </div>
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+
+    <div className="space-y-2">
+      <Label>Content Type</Label>
+      <Select
+        key={`contentType-${node.id}`}
+        value={localConfig.contentType || 'article'}
+        onValueChange={(value) => handleConfigChange('contentType', value)}
+      >
+        <SelectTrigger>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="article">Full Article</SelectItem>
+          <SelectItem value="summary">Summary</SelectItem>
+          <SelectItem value="analysis">Analysis</SelectItem>
+          <SelectItem value="news-report">News Report</SelectItem>
+          <SelectItem value="tutorial">Tutorial</SelectItem>
+          <SelectItem value="blog-post">Blog Post</SelectItem>
+          <SelectItem value="opinion-piece">Opinion Piece</SelectItem>
+          <SelectItem value="research-report">Research Report</SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
+
+    <div className="space-y-2">
+      <Label>Writing Style</Label>
+      <Select
+        key={`writingStyle-${node.id}`}
+        value={localConfig.writingStyle || 'Professional'}
+        onValueChange={(value) => handleConfigChange('writingStyle', value)}
+      >
+        <SelectTrigger>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="Professional">Professional</SelectItem>
+          <SelectItem value="Casual">Casual</SelectItem>
+          <SelectItem value="Academic">Academic</SelectItem>
+          <SelectItem value="Technical">Technical</SelectItem>
+          <SelectItem value="Conversational">Conversational</SelectItem>
+          <SelectItem value="Formal">Formal</SelectItem>
+          <SelectItem value="Friendly">Friendly</SelectItem>
+          <SelectItem value="Authoritative">Authoritative</SelectItem>
+          <SelectItem value="Creative">Creative</SelectItem>
+          <SelectItem value="Journalistic">Journalistic</SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
+
+    <div className="space-y-2">
+      <Label>Target Audience</Label>
+      <Select
+        key={`targetAudience-${node.id}`}
+        value={localConfig.targetAudience || 'General readers'}
+        onValueChange={(value) => handleConfigChange('targetAudience', value)}
+      >
+        <SelectTrigger>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="General readers">General Readers</SelectItem>
+          <SelectItem value="Experts">Industry Experts</SelectItem>
+          <SelectItem value="Students">Students</SelectItem>
+          <SelectItem value="Beginners">Beginners</SelectItem>
+          <SelectItem value="Professionals">Professionals</SelectItem>
+          <SelectItem value="Researchers">Researchers</SelectItem>
+          <SelectItem value="Business Leaders">Business Leaders</SelectItem>
+          <SelectItem value="Practitioners">Practitioners</SelectItem>
+          <SelectItem value="Consumers">Consumers</SelectItem>
+          <SelectItem value="Educators">Educators</SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
+
+    <div className="space-y-2">
+      <Label>Article Category</Label>
+      <Input
+        key={`category-${node.id}`}
+        placeholder="Technology, Business, Science, Health, etc."
+        value={localConfig.category || ''}
+        onChange={(e) => handleConfigChange('category', e.target.value)}
+      />
+    </div>
+
+    <div className="space-y-2">
+      <Label>Target Word Count</Label>
+      <Select
+        key={`wordCount-${node.id}`}
+        value={localConfig.wordCount || 'medium'}
+        onValueChange={(value) => handleConfigChange('wordCount', value)}
+      >
+        <SelectTrigger>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="short">Short (300-500 words)</SelectItem>
+          <SelectItem value="medium">Medium (500-800 words)</SelectItem>
+          <SelectItem value="long">Long (800-1200 words)</SelectItem>
+          <SelectItem value="extended">Extended (1200+ words)</SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
+
+    <div className="space-y-2">
+      <Label>Content Focus</Label>
+      <Select
+        key={`contentFocus-${node.id}`}
+        value={localConfig.contentFocus || 'balanced'}
+        onValueChange={(value) => handleConfigChange('contentFocus', value)}
+      >
+        <SelectTrigger>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="informative">Informative (Educational)</SelectItem>
+          <SelectItem value="analytical">Analytical (Deep Analysis)</SelectItem>
+          <SelectItem value="practical">Practical (How-to)</SelectItem>
+          <SelectItem value="persuasive">Persuasive (Opinion)</SelectItem>
+          <SelectItem value="balanced">Balanced (Mixed)</SelectItem>
+          <SelectItem value="narrative">Narrative (Story-driven)</SelectItem>
+          <SelectItem value="comparative">Comparative (Pros/Cons)</SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
+
+    <div className="space-y-2">
+      <Label>SEO Optimization</Label>
+      <div className="flex items-center space-x-2">
+        <Switch
+          key={`seoOptimized-${node.id}`}
+          checked={localConfig.seoOptimized !== false}
+          onCheckedChange={(checked) => handleConfigChange('seoOptimized', checked)}
+        />
+        <Label className="text-sm">Include SEO-friendly headings and structure</Label>
+      </div>
+    </div>
+
+    <div className="space-y-2">
+      <Label>Include Citations</Label>
+      <div className="flex items-center space-x-2">
+        <Switch
+          key={`includeCitations-${node.id}`}
+          checked={localConfig.includeCitations || false}
+          onCheckedChange={(checked) => handleConfigChange('includeCitations', checked)}
+        />
+        <Label className="text-sm">Add source references where appropriate</Label>
+      </div>
+    </div>
+
+    <div className="space-y-2">
+      <Label>Tone of Voice</Label>
+      <Select
+        key={`tone-${node.id}`}
+        value={localConfig.tone || 'neutral'}
+        onValueChange={(value) => handleConfigChange('tone', value)}
+      >
+        <SelectTrigger>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="neutral">Neutral</SelectItem>
+          <SelectItem value="optimistic">Optimistic</SelectItem>
+          <SelectItem value="cautious">Cautious</SelectItem>
+          <SelectItem value="confident">Confident</SelectItem>
+          <SelectItem value="empathetic">Empathetic</SelectItem>
+          <SelectItem value="enthusiastic">Enthusiastic</SelectItem>
+          <SelectItem value="critical">Critical</SelectItem>
+          <SelectItem value="supportive">Supportive</SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
+
+    <div className="space-y-2">
+      <Label>Custom Instructions (Optional)</Label>
+      <Textarea
+        key={`prompt-${node.id}`}
+        placeholder="Add specific instructions for content transformation, formatting requirements, or any special considerations..."
+        rows={4}
+        value={localConfig.prompt || ''}
+        onChange={(e) => handleConfigChange('prompt', e.target.value)}
+      />
+    </div>
+
+    <div className="space-y-2">
+      <Label>Output Format</Label>
+      <Select
+        key={`outputFormat-${node.id}`}
+        value={localConfig.outputFormat || 'markdown'}
+        onValueChange={(value) => handleConfigChange('outputFormat', value)}
+      >
+        <SelectTrigger>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="markdown">Markdown (Recommended)</SelectItem>
+          <SelectItem value="html">HTML</SelectItem>
+          <SelectItem value="plain">Plain Text</SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
+
+    <div className="space-y-2">
+      <Label>Language</Label>
+      <Select
+        key={`language-${node.id}`}
+        value={localConfig.language || 'en'}
+        onValueChange={(value) => handleConfigChange('language', value)}
+      >
+        <SelectTrigger>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="en">English</SelectItem>
+          <SelectItem value="es">Spanish</SelectItem>
+          <SelectItem value="fr">French</SelectItem>
+          <SelectItem value="de">German</SelectItem>
+          <SelectItem value="it">Italian</SelectItem>
+          <SelectItem value="pt">Portuguese</SelectItem>
+          <SelectItem value="zh">Chinese</SelectItem>
+          <SelectItem value="ja">Japanese</SelectItem>
+          <SelectItem value="ko">Korean</SelectItem>
+          <SelectItem value="ru">Russian</SelectItem>
+          <SelectItem value="ar">Arabic</SelectItem>
+          <SelectItem value="he">Hebrew</SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
+
+    <div className="text-sm text-muted-foreground bg-blue-50 p-3 rounded">
+      <strong>🤖 AI Processor Features:</strong>
+      <ul className="mt-2 space-y-1 text-xs">
+        <li>• <strong>Smart Content Generation:</strong> Automatically creates well-structured articles from any input</li>
+        <li>• <strong>Flexible Output:</strong> Supports multiple content types and writing styles</li>
+        <li>• <strong>SEO Ready:</strong> Generates SEO-friendly headings and meta descriptions</li>
+        <li>• <strong>Multi-language:</strong> Can generate content in multiple languages</li>
+        <li>• <strong>Quality Control:</strong> Advanced prompting ensures high-quality, relevant content</li>
+      </ul>
+    </div>
+
+    <div className="text-sm text-muted-foreground bg-amber-50 p-3 rounded border border-amber-200">
+      <strong>💡 Pro Tips:</strong>
+      <ul className="mt-2 space-y-1 text-xs">
+        <li>• Use <strong>Custom Instructions</strong> to specify exact formatting or style requirements</li>
+        <li>• Enable <strong>SEO Optimization</strong> for better search engine visibility</li>
+        <li>• Match <strong>Target Audience</strong> with <strong>Writing Style</strong> for better engagement</li>
+        <li>• For technical content, use "Technical" style with "Experts" audience</li>
+        <li>• For blog posts, try "Conversational" style with "General readers" audience</li>
+      </ul>
+    </div>
+  </div>
+)}
 
       {/* Enhanced Publisher Configuration */}
       {node.type === 'publisher' && (
@@ -667,7 +863,31 @@ const NodeConfiguration = ({
 {/* Image Generator Configuration */}
 {node.type === 'image-generator' && (
   <div className="space-y-4">
-    {renderAIModelSelector()}
+    <div className="space-y-2">
+      <Label>AI Model for Image Generation</Label>
+      <Select
+        key={`aiModel-${node.id}`}
+        value={localConfig.aiModel || 'google-imagen-3'}
+        onValueChange={(value) => handleConfigChange('aiModel', value)}
+      >
+        <SelectTrigger>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {getImageGenerationModels().map((model) => (
+            <SelectItem key={model.id} value={model.id}>
+              <div className="flex flex-col">
+                <span>{model.name}</span>
+                <span className="text-xs text-muted-foreground">
+                  {model.provider} • {model.pricing || 'See pricing'}
+                </span>
+              </div>
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+    
     <div className="space-y-2">
       <Label>Image Prompt</Label>
       <Textarea
@@ -678,6 +898,7 @@ const NodeConfiguration = ({
         onChange={(e) => handleConfigChange('imagePrompt', e.target.value)}
       />
     </div>
+    
     <div className="space-y-2">
       <Label>Image Style</Label>
       <Select
@@ -690,12 +911,14 @@ const NodeConfiguration = ({
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="natural">Natural</SelectItem>
-          <SelectItem value="digital_art">Digital Art</SelectItem>
-          <SelectItem value="photographic">Photographic</SelectItem>
           <SelectItem value="vivid">Vivid</SelectItem>
+          <SelectItem value="photorealistic">Photorealistic</SelectItem>
+          <SelectItem value="digital_art">Digital Art</SelectItem>
+          <SelectItem value="artistic">Artistic</SelectItem>
         </SelectContent>
       </Select>
     </div>
+    
     <div className="space-y-2">
       <Label>Image Size</Label>
       <Select
@@ -708,35 +931,42 @@ const NodeConfiguration = ({
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="1024x1024">Square (1024x1024)</SelectItem>
-          <SelectItem value="1792x1024">Landscape (1792x1024)</SelectItem>
-          <SelectItem value="1024x1792">Portrait (1024x1792)</SelectItem>
+          <SelectItem value="1152x896">Landscape (1152x896)</SelectItem>
+          <SelectItem value="896x1152">Portrait (896x1152)</SelectItem>
+          <SelectItem value="1536x640">Wide (1536x640)</SelectItem>
+          <SelectItem value="640x1536">Tall (640x1536)</SelectItem>
+          <SelectItem value="1024x1536">Portrait Large (1024x1536)</SelectItem>
+          <SelectItem value="1536x1024">Landscape Large (1536x1024)</SelectItem>
         </SelectContent>
       </Select>
     </div>
+    
     <div className="space-y-2">
       <Label>Image Quality</Label>
       <Select
         key={`imageQuality-${node.id}`}
-        value={localConfig.imageQuality || 'standard'}
+        value={localConfig.imageQuality || 'medium'}
         onValueChange={(value) => handleConfigChange('imageQuality', value)}
       >
         <SelectTrigger>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="standard">Standard</SelectItem>
-          <SelectItem value="hd">HD</SelectItem>
+          <SelectItem value="low">Low (Fastest, Cheapest)</SelectItem>
+          <SelectItem value="medium">Medium (Balanced)</SelectItem>
+          <SelectItem value="high">High (Best Quality)</SelectItem>
         </SelectContent>
       </Select>
     </div>
+    
     {renderCustomInstructions("Add specific instructions for image generation...")}
     
     <div className="text-sm text-muted-foreground bg-blue-50 p-3 rounded">
-      <strong>AI Model Notes:</strong>
+      <strong>🎨 Image Generation Models:</strong>
       <ul className="mt-2 space-y-1 text-xs">
-        <li>• <strong>Gemini models:</strong> Use Google Imagen for high-quality images</li>
-        <li>• <strong>DALL-E models:</strong> Use OpenAI for creative, detailed images</li>
-        <li>• <strong>Fallback:</strong> High-quality placeholder if API fails</li>
+        <li>• <strong>Google Imagen 3:</strong> $0.03/image, highest quality, SynthID watermark</li>
+        <li>• <strong>OpenAI GPT-Image-1:</strong> Token-based pricing, superior text rendering</li>
+        <li>• <strong>Gemini 2.0 Flash:</strong> Experimental, native image generation with reasoning</li>
       </ul>
     </div>
   </div>

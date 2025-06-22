@@ -393,149 +393,205 @@ case 'image-generator':
           addLog(node.id, node.label, 'completed', `Synthesized content from ${synthData.sourceCount} sources`);
           break;
 
-        case 'ai-processor':
-          try {
-            console.log('AI Processor: Processing content...');
-            
-            // Get the content to process from previous data
-            const contentToProcess = previousData || {};
-            
-            // Build enhanced prompt for better content generation
-            const contentType = node.config.contentType || 'article';
-            const writingStyle = node.config.writingStyle || 'Professional';
-            const targetAudience = node.config.targetAudience || 'General readers';
-            const category = node.config.category || 'General';
-            const customInstructions = node.config.customInstructions || '';
-            
-            // Extract content from various possible sources
-            let sourceContent = '';
-            if (contentToProcess.articles && Array.isArray(contentToProcess.articles)) {
-              sourceContent = contentToProcess.articles.map((article: any) => 
-                `Title: ${article.title || 'Untitled'}\nContent: ${article.description || article.content || ''}`
-              ).join('\n\n');
-            } else if (contentToProcess.synthesizedContent) {
-              sourceContent = contentToProcess.synthesizedContent;
-            } else if (contentToProcess.research) {
-              sourceContent = contentToProcess.research;
-            } else if (contentToProcess.scrapedContent && Array.isArray(contentToProcess.scrapedContent)) {
-              sourceContent = contentToProcess.scrapedContent.map((item: any) => item.content || '').join('\n\n');
-            } else if (typeof contentToProcess === 'string') {
-              sourceContent = contentToProcess;
-            } else {
-              sourceContent = JSON.stringify(contentToProcess);
-            }
-            
-            const enhancedPrompt = `
-You are an expert content writer. Create a ${contentType} based on the following content.
+case 'ai-processor':
+  try {
+    console.log('AI Processor: Processing content...');
+    
+    // Get the content to process from previous data
+    const contentToProcess = previousData || {};
+    
+    // 🎯 NEW: Get ALL configuration from node.config
+    const contentType = node.config.contentType || 'article';
+    const writingStyle = node.config.writingStyle || 'Professional';
+    const targetAudience = node.config.targetAudience || 'General readers';
+    const category = node.config.category || 'General';
+    const customInstructions = node.config.customInstructions || '';
+    const wordCount = node.config.wordCount || 'medium';
+    const contentFocus = node.config.contentFocus || 'balanced';
+    const tone = node.config.tone || 'neutral';
+    const language = node.config.language || 'en';
+    const outputFormat = node.config.outputFormat || 'markdown';
+    const seoOptimized = node.config.seoOptimized !== false;
+    const includeCitations = node.config.includeCitations || false;
+    
+    console.log('AI Processor: Using configuration:', {
+      contentType, writingStyle, targetAudience, wordCount, contentFocus, tone, language
+    });
+    
+    // Extract content from various possible sources
+    let sourceContent = '';
+    if (contentToProcess.articles && Array.isArray(contentToProcess.articles)) {
+      sourceContent = contentToProcess.articles.map((article: any) => 
+        `Title: ${article.title || 'Untitled'}\nContent: ${article.description || article.content || ''}`
+      ).join('\n\n');
+    } else if (contentToProcess.synthesizedContent) {
+      sourceContent = contentToProcess.synthesizedContent;
+    } else if (contentToProcess.research) {
+      sourceContent = contentToProcess.research;
+    } else if (contentToProcess.scrapedContent && Array.isArray(contentToProcess.scrapedContent)) {
+      sourceContent = contentToProcess.scrapedContent.map((item: any) => item.content || '').join('\n\n');
+    } else if (typeof contentToProcess === 'string') {
+      sourceContent = contentToProcess;
+    } else {
+      sourceContent = JSON.stringify(contentToProcess);
+    }
+    
+    // 🎯 NEW: Build word count guidelines
+    const wordCountGuides = {
+      'short': '300-500 words',
+      'medium': '500-800 words', 
+      'long': '800-1200 words',
+      'extended': '1200+ words'
+    };
+    const wordCountGuide = wordCountGuides[wordCount as keyof typeof wordCountGuides] || '500-800 words';
+    
+    // 🎯 NEW: Build enhanced, dynamic prompt using ALL the configuration
+    const enhancedPrompt = `
+You are an expert content writer. Create a ${contentType} based on the following content and specifications.
 
-**Content Type**: ${contentType}
-**Writing Style**: ${writingStyle}
-**Target Audience**: ${targetAudience}
-**Category**: ${category}
+**CONTENT SPECIFICATIONS:**
+- Content Type: ${contentType}
+- Writing Style: ${writingStyle}
+- Target Audience: ${targetAudience}
+- Content Focus: ${contentFocus}
+- Tone of Voice: ${tone}
+- Target Length: ${wordCountGuide}
+- Language: ${language}
+- Category: ${category}
+${seoOptimized ? '- SEO Optimized: Include SEO-friendly headings and structure' : ''}
+${includeCitations ? '- Include Citations: Add source references where appropriate' : ''}
 
-${customInstructions ? `**Additional Instructions**: ${customInstructions}` : ''}
+**CUSTOM INSTRUCTIONS:**
+${customInstructions || 'No additional instructions provided.'}
 
 **CRITICAL FORMATTING RULES:**
 - Start with a clear, engaging title as an H1 heading using # (not ** for bold)
-- Use proper markdown formatting: # for main title, ## for sections, ### for subsections
+- Use proper ${outputFormat} formatting: # for main title, ## for sections, ### for subsections
 - NO bold titles (**title**) - only use # Title format
 - Create engaging, well-structured content suitable for publication
 - Include relevant subheadings to organize the content (##, ###)
-- Ensure the content is informative and valuable to the target audience
+- Ensure the content matches the ${writingStyle} writing style
+- Write for ${targetAudience} audience using ${tone} tone
+- Focus on ${contentFocus} approach
 - Use lists, emphasis, and proper paragraph structure
 - The title should be descriptive and engaging, not generic
 
-**Example of proper format:**
-# Engaging Article Title Here
+**TARGET AUDIENCE GUIDELINES:**
+${targetAudience === 'Experts' ? 'Use technical terminology and assume deep knowledge of the subject.' :
+  targetAudience === 'Beginners' ? 'Explain concepts clearly and avoid jargon.' :
+  targetAudience === 'Students' ? 'Make content educational and easy to understand.' :
+  'Write for a general audience with clear explanations.'}
 
-Brief introduction paragraph...
+**WRITING STYLE GUIDELINES:**
+${writingStyle === 'Academic' ? 'Use formal language, citations, and structured arguments.' :
+  writingStyle === 'Conversational' ? 'Use friendly, approachable language like talking to a friend.' :
+  writingStyle === 'Technical' ? 'Focus on precise, technical details and specifications.' :
+  writingStyle === 'Creative' ? 'Use engaging storytelling and creative elements.' :
+  'Use professional but accessible language.'}
 
-## First Section Heading
-
-Content for first section...
-
-## Second Section Heading
-
-Content for second section...
+**CONTENT FOCUS GUIDELINES:**
+${contentFocus === 'informative' ? 'Focus on providing educational value and comprehensive information.' :
+  contentFocus === 'practical' ? 'Emphasize actionable advice and step-by-step guidance.' :
+  contentFocus === 'analytical' ? 'Provide deep analysis and critical thinking.' :
+  'Balance information, analysis, and practical insights.'}
 
 **Source Content to Transform:**
 ${sourceContent}
 
-Generate the ${contentType} now with proper markdown formatting:`;
+Generate the ${contentType} now following all specifications above:`;
 
-            const agentConfig = {
-              ai_model: node.config.aiModel || 'gemini-2.5-flash-preview-05-20',
-              provider: node.config.aiModel?.startsWith('gemini-') ? 'Google' : 
-                     node.config.aiModel?.startsWith('gpt-') ? 'OpenAI' : 
-                     node.config.aiModel?.startsWith('claude-') ? 'Anthropic' : 'Google'
-            };
+    // 🎯 NEW: Use the configured AI model
+    const agentConfig = {
+      ai_model: node.config.aiModel || 'gemini-2.5-flash-preview-05-20',
+      provider: node.config.aiModel?.startsWith('gemini-') ? 'Google' : 
+               node.config.aiModel?.startsWith('gpt-') ? 'OpenAI' : 
+               node.config.aiModel?.startsWith('claude-') ? 'Anthropic' : 'Google'
+    };
 
-            const { data: aiResult, error: aiError } = await supabase.functions.invoke('run-ai-agent-analysis', {
-              body: { prompt: enhancedPrompt, agentConfig }
-            });
+    console.log('AI Processor: Using AI model:', agentConfig.ai_model);
 
-            if (aiError) {
-              throw new Error(`AI processing failed: ${aiError.message}`);
-            }
+    const { data: aiResult, error: aiError } = await supabase.functions.invoke('run-ai-agent-analysis', {
+      body: { prompt: enhancedPrompt, agentConfig }
+    });
 
-            let processedContent = aiResult.analysis;
-            
-            // Clean any potential JSON formatting that might have slipped through
-            if (processedContent.includes('```') || processedContent.trim().startsWith('{')) {
-              // Extract clean content if wrapped in code blocks or JSON
-              processedContent = processedContent
-                .replace(/```(?:json|markdown)?\s*/g, '')
-                .replace(/```\s*$/g, '')
-                .trim();
-                
-              // If it's JSON, try to extract the content field
-              if (processedContent.startsWith('{')) {
-                try {
-                  const parsed = JSON.parse(processedContent);
-                  processedContent = parsed.content || parsed.text || processedContent;
-                } catch (e) {
-                  // If JSON parsing fails, use as-is
-                  console.log('Could not parse as JSON, using raw content');
-                }
-              }
-            }
+    if (aiError) {
+      throw new Error(`AI processing failed: ${aiError.message}`);
+    }
 
-            // Ensure content starts with a proper title if it doesn't have one
-            if (!processedContent.trim().startsWith('#')) {
-              const lines = processedContent.split('\n');
-              const firstMeaningfulLine = lines.find(line => line.trim().length > 10) || 'Generated Article';
-              processedContent = `# ${firstMeaningfulLine}\n\n${processedContent}`;
-            }
+    let processedContent = aiResult.analysis;
+    
+    // Clean any potential JSON formatting that might have slipped through
+    if (processedContent.includes('```') || processedContent.trim().startsWith('{')) {
+      processedContent = processedContent
+        .replace(/```(?:json|markdown)?\s*/g, '')
+        .replace(/```\s*$/g, '')
+        .trim();
+        
+      if (processedContent.startsWith('{')) {
+        try {
+          const parsed = JSON.parse(processedContent);
+          processedContent = parsed.content || parsed.text || processedContent;
+        } catch (e) {
+          console.log('Could not parse as JSON, using raw content');
+        }
+      }
+    }
 
-            // Extract the title from the markdown and remove it from content
-            const titleMatch = processedContent.match(/^#\s+(.+)/m);
-            const extractedTitle = titleMatch ? titleMatch[1].trim() : 'Untitled Article';
-            
-            // Remove the title line from content to prevent duplication
-            const contentWithoutTitle = processedContent.replace(/^#\s+.+\n\n?/m, '').trim();
-            
-            console.log('AI Processor: Content generated successfully');
-            console.log('AI Processor: Extracted title:', extractedTitle);
-            console.log('AI Processor: Content after title removal (first 200 chars):', contentWithoutTitle.substring(0, 200));
-            
-            result = {
-              ...contentToProcess,
-              title: extractedTitle, // ✅ FIXED: Properly extract and pass title
-              content: contentWithoutTitle, // ✅ FIXED: Content without title duplication
-              processedContent: contentWithoutTitle, // For downstream nodes
-              processedBy: `AI Processor (${agentConfig.ai_model})`,
-              category: category,
-              contentType: contentType,
-              writingStyle: writingStyle,
-              targetAudience: targetAudience
-            };
-            
-            addLog(node.id, node.label, 'completed', `Content processed successfully with title: "${extractedTitle}"`);
-            break;
-          } catch (error) {
-            console.error('AI Processor error:', error);
-            throw new Error(`AI Processor failed: ${error.message}`);
-          }
+    // Ensure content starts with a proper title if it doesn't have one
+    if (!processedContent.trim().startsWith('#')) {
+      const lines = processedContent.split('\n');
+      const firstMeaningfulLine = lines.find(line => line.trim().length > 10) || 'Generated Article';
+      processedContent = `# ${firstMeaningfulLine}\n\n${processedContent}`;
+    }
+
+    // Extract the title from the markdown and remove it from content
+    const titleMatch = processedContent.match(/^#\s+(.+)/m);
+    const extractedTitle = titleMatch ? titleMatch[1].trim() : 'Untitled Article';
+    
+    // Remove the title line from content to prevent duplication
+    const contentWithoutTitle = processedContent.replace(/^#\s+.+\n\n?/m, '').trim();
+    
+    console.log('AI Processor: Content generated successfully');
+    console.log('AI Processor: Extracted title:', extractedTitle);
+    console.log('AI Processor: Content preview:', contentWithoutTitle.substring(0, 200));
+    
+    // 🎯 NEW: Return enhanced result with ALL configuration details
+    result = {
+      ...contentToProcess,
+      title: extractedTitle,
+      content: contentWithoutTitle,
+      processedContent: contentWithoutTitle,
+      processedBy: `AI Processor (${agentConfig.ai_model})`,
+      
+      // 🎯 NEW: Include all the configuration that was used
+      category: category,
+      contentType: contentType,
+      writingStyle: writingStyle,
+      targetAudience: targetAudience,
+      contentFocus: contentFocus,
+      tone: tone,
+      language: language,
+      outputFormat: outputFormat,
+      wordCountTarget: wordCountGuide,
+      seoOptimized: seoOptimized,
+      includeCitations: includeCitations,
+      aiModelUsed: agentConfig.ai_model,
+      
+      // Meta information
+      generatedAt: new Date().toISOString(),
+      configurationUsed: {
+        contentType, writingStyle, targetAudience, category, 
+        wordCount, contentFocus, tone, language, outputFormat
+      }
+    };
+    
+    addLog(node.id, node.label, 'completed', 
+      `Content processed successfully with title: "${extractedTitle}" using ${writingStyle} style for ${targetAudience} audience (${wordCountGuide})`);
+    break;
+  } catch (error) {
+    console.error('AI Processor error:', error);
+    throw new Error(`AI Processor failed: ${error.message}`);
+  }
 
         case 'publisher':
           if (!previousData || (!previousData.processedContent && !previousData.synthesizedContent)) {

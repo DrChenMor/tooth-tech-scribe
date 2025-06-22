@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 export const AI_PROVIDERS = {
@@ -16,11 +15,29 @@ export const AVAILABLE_MODELS = [
   { id: 'gemini-2.5-pro-preview-06-05', name: 'Gemini 2.5 Pro Preview', provider: AI_PROVIDERS.GOOGLE },
   { id: 'gemini-2.5-pro-preview-tts', name: 'Gemini 2.5 Pro Preview TTS', provider: AI_PROVIDERS.GOOGLE },
   { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', provider: AI_PROVIDERS.GOOGLE },
-  { id: 'gemini-2.0-flash-preview-image-generation', name: 'Gemini 2.0 Flash Image Gen', provider: AI_PROVIDERS.GOOGLE },
   { id: 'gemini-2.0-flash-lite', name: 'Gemini 2.0 Flash Lite', provider: AI_PROVIDERS.GOOGLE },
   { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', provider: AI_PROVIDERS.GOOGLE },
   { id: 'gemini-1.5-flash-latest', name: 'Gemini 1.5 Flash Latest', provider: AI_PROVIDERS.GOOGLE },
   { id: 'gemini-1.5-pro-latest', name: 'Gemini 1.5 Pro Latest', provider: AI_PROVIDERS.GOOGLE },
+  
+  // 🎨 IMAGE GENERATION MODELS - Google
+  {
+    id: 'google-imagen-3',
+    name: 'Google Imagen 3',
+    provider: 'Google',
+    type: 'image',
+    capabilities: ['image-generation', 'text-to-image', 'high-quality'],
+    pricing: '$0.03 per image',
+    description: 'Google\'s latest high-quality image generation model with SynthID watermarking'
+  },
+  {
+    id: 'gemini-2.0-flash-preview-image-generation',
+    name: 'Gemini 2.0 Flash (Image)',
+    provider: 'Google',
+    type: 'image',
+    capabilities: ['image-generation', 'native-image-output', 'reasoning'],
+    description: 'Experimental native image generation with enhanced reasoning'
+  },
   
   // OpenAI Models
   { id: 'gpt-4.1-2025-04-14', name: 'GPT-4.1 (Latest)', provider: AI_PROVIDERS.OPENAI },
@@ -28,8 +45,33 @@ export const AVAILABLE_MODELS = [
   { id: 'o4-mini-2025-04-16', name: 'O4 Mini (Fast Reasoning)', provider: AI_PROVIDERS.OPENAI },
   { id: 'gpt-4o-mini', name: 'GPT-4o Mini', provider: AI_PROVIDERS.OPENAI },
   { id: 'gpt-4o', name: 'GPT-4o', provider: AI_PROVIDERS.OPENAI },
-  { id: 'dall-e-3', name: 'DALL-E 3 (Images)', provider: 'OpenAI', type: 'image' },
-  { id: 'dall-e-2', name: 'DALL-E 2 (Images)', provider: 'OpenAI', type: 'image' },
+  
+  // 🎨 IMAGE GENERATION MODELS - OpenAI
+  { 
+    id: 'dall-e-2', 
+    name: 'DALL-E 2 (Images)', 
+    provider: 'OpenAI', 
+    type: 'image',
+    capabilities: ['image-generation', 'text-to-image'],
+    description: 'Original DALL-E model'
+  },
+  {
+    id: 'dall-e-3',
+    name: 'DALL-E 3 (Legacy)',
+    provider: 'OpenAI',
+    type: 'image',
+    capabilities: ['image-generation', 'text-to-image'],
+    description: 'Legacy DALL-E model (use GPT-Image-1 instead)'
+  },
+  {
+    id: 'openai-gpt-image-1',
+    name: 'OpenAI GPT-Image-1',
+    provider: 'OpenAI',
+    type: 'image',
+    capabilities: ['image-generation', 'text-to-image', 'text-rendering'],
+    pricing: 'Token-based',
+    description: 'OpenAI\'s latest image generation model with superior instruction following'
+  },
   
   // Anthropic Models
   { id: 'claude-opus-4-20250514', name: 'Claude Opus 4 (Latest)', provider: AI_PROVIDERS.ANTHROPIC },
@@ -51,3 +93,41 @@ export async function getAIAnalysis(prompt: string, agentConfig: any): Promise<a
 
   return data;
 }
+
+// Helper functions
+export const getModelsByType = (type: 'text' | 'image' | 'multimodal') => {
+  return AVAILABLE_MODELS.filter(model => model.type === type);
+};
+
+export const getModelsByProvider = (provider: string) => {
+  return AVAILABLE_MODELS.filter(model => model.provider === provider);
+};
+
+export const getImageGenerationModels = () => {
+  return AVAILABLE_MODELS.filter(model => 
+    model.type === 'image' || 
+    (model.capabilities && model.capabilities.includes('image-generation'))
+  );
+};
+
+export const getTextGenerationModels = () => {
+  return AVAILABLE_MODELS.filter(model => 
+    !model.type || // Models without type are assumed to be text models
+    model.type === 'text' || 
+    model.type === 'multimodal'
+  );
+};
+
+export const getModelById = (id: string) => {
+  return AVAILABLE_MODELS.find(model => model.id === id);
+};
+
+// Model validation
+export const isValidModel = (modelId: string): boolean => {
+  return AVAILABLE_MODELS.some(model => model.id === modelId);
+};
+
+export const isImageGenerationModel = (modelId: string): boolean => {
+  const model = getModelById(modelId);
+  return model?.type === 'image' || (model?.capabilities && model.capabilities.includes('image-generation')) || false;
+};

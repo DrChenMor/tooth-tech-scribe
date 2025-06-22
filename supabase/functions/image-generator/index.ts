@@ -18,13 +18,57 @@ async function generateWithOpenAI(prompt: string, size: string, quality: string,
     throw new Error('OpenAI API key not configured. Please add OPENAI_API_KEY to Supabase secrets.');
   }
   
-  // 🔍 STEP 2: Log what we're trying to do
+  // 🔧 STEP 2: Clean and validate the prompt
+  let cleanPrompt = prompt.trim();
+  
+  // Remove any problematic characters and limit length
+  cleanPrompt = cleanPrompt
+    .replace(/[^\w\s\.,!?-]/g, ' ') // Remove special characters except basic punctuation
+    .replace(/\s+/g, ' ') // Replace multiple spaces with single space
+    .trim();
+  
+  // DALL-E 3 has a 4000 character limit for prompts
+  if (cleanPrompt.length > 1000) {
+    cleanPrompt = cleanPrompt.substring(0, 1000) + '...';
+    console.log('⚠️ Prompt was too long, truncated to 1000 characters');
+  }
+  
+  // If prompt is too short or empty, use a safe default
+  if (cleanPrompt.length < 10) {
+    cleanPrompt = 'A professional, clean, modern illustration for a blog article';
+    console.log('⚠️ Prompt was too short, using safe default');
+  }
+  
+  // 🔧 STEP 3: Validate and fix size
+  const validSizes = ['1024x1024', '1792x1024', '1024x1792'];
+  let validSize = validSizes.includes(size) ? size : '1024x1024';
+  
+  // 🔧 STEP 4: Validate quality and style
+  const validQualities = ['standard', 'hd'];
+  const validStyles = ['natural', 'vivid'];
+  
+  let validQuality = validQualities.includes(quality) ? quality : 'standard';
+  let validStyle = validStyles.includes(style) ? style : 'natural';
+  
+  // 🔍 STEP 5: Log what we're actually sending
   console.log(`🎨 Attempting to generate image with OpenAI DALL-E`);
-  console.log(`📝 Prompt: "${prompt.substring(0, 100)}..."`);
-  console.log(`📐 Size: ${size}, Quality: ${quality}, Style: ${style}`);
+  console.log(`📝 Clean Prompt: "${cleanPrompt}"`);
+  console.log(`📐 Valid Size: ${validSize}, Quality: ${validQuality}, Style: ${validStyle}`);
   console.log(`🔑 API Key exists: ${openAIApiKey ? 'YES' : 'NO'}`);
   console.log(`🔑 API Key length: ${openAIApiKey ? openAIApiKey.length : 0} characters`);
   console.log(`🔑 API Key starts with: ${openAIApiKey ? openAIApiKey.substring(0, 8) + '...' : 'N/A'}`);
+  
+  // 🔧 STEP 6: Create the request body and log it
+  const requestBody = {
+    model: 'dall-e-3',
+    prompt: cleanPrompt,
+    size: validSize,
+    quality: validQuality,
+    style: validStyle,
+    n: 1
+  };
+  
+  console.log('📡 Request body that will be sent:', JSON.stringify(requestBody, null, 2));
   
   try {
     const response = await fetch('https://api.openai.com/v1/images/generations', {
@@ -33,30 +77,35 @@ async function generateWithOpenAI(prompt: string, size: string, quality: string,
         'Authorization': `Bearer ${openAIApiKey}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        model: 'dall-e-3',
-        prompt: prompt,
-        size: size,
-        quality: quality,
-        style: style,
-        n: 1
-      })
+      body: JSON.stringify(requestBody)
     });
     
-    // 🔍 STEP 3: Check the response status
+    // 🔍 STEP 7: Check the response status with detailed logging
     console.log(`📡 OpenAI API Response Status: ${response.status} ${response.statusText}`);
     
     if (!response.ok) {
       const errorData = await response.json();
       console.error('❌ OpenAI API Error Details:', JSON.stringify(errorData, null, 2));
+      console.error('❌ Request that failed:', JSON.stringify(requestBody, null, 2));
       
-      // 🔍 STEP 4: Give helpful error messages
+      // 🔍 STEP 8: Give detailed, helpful error messages
       if (response.status === 401) {
         throw new Error('OpenAI API key is invalid or expired. Please check your API key in Supabase secrets.');
       } else if (response.status === 429) {
-        throw new Error('OpenAI API rate limit exceeded. Please try again later.');
+        throw new Error('OpenAI API rate limit exceeded. Please try again later or check your OpenAI usage limits.');
       } else if (response.status === 400) {
-        throw new Error(`OpenAI API rejected the request: ${errorData.error?.message || 'Bad request'}`);
+        const errorMsg = errorData.error?.message || 'Bad request';
+        if (errorMsg.includes('safety') || errorMsg.includes('policy')) {
+          throw new Error(`OpenAI rejected the prompt for safety reasons: ${errorMsg}. Try a more general description.`);
+        } else if (errorMsg.includes('prompt')) {
+          throw new Error(`OpenAI rejected the prompt: ${errorMsg}. The prompt might be too complex or contain invalid characters.`);
+        } else if (errorMsg.includes('size')) {
+          throw new Error(`Invalid image size: ${validSize}. DALL-E 3 only supports 1024x1024, 1792x1024, or 1024x1792.`);
+        } else {
+          throw new Error(`OpenAI API validation error: ${errorMsg}`);
+        }
+      } else if (response.status === 403) {
+        throw new Error('OpenAI API access denied. Check if your account has image generation permissions.');
       } else {
         throw new Error(`OpenAI API error (${response.status}): ${errorData.error?.message || 'Unknown error'}`);
       }
@@ -184,13 +233,15 @@ serve(async (req) => {
       imagePrompt += `. Additional instructions: ${request.customInstructions}`;
     }
     
+    console.log(`📝 Raw image prompt BEFORE cleaning: "${imagePrompt}"`);
+    
     const aiModel = request.aiModel || 'dall-e-3';
     const size = request.size || '1024x1024';
     const quality = request.quality || 'standard';
     const style = request.style || 'natural';
     
     console.log(`🤖 Using AI Model: ${aiModel}`);
-    console.log(`📝 Final image prompt: "${imagePrompt}"`);
+    console.log(`📐 Raw parameters: size=${size}, quality=${quality}, style=${style}`);
     
     // Create filename - simpler approach
     const timestamp = Date.now();
@@ -212,6 +263,11 @@ serve(async (req) => {
       console.log('✅ AI generation successful!');
     } catch (modelError) {
       console.log(`❌ AI generation failed: ${modelError.message}`);
+      console.log('📊 Error details:', {
+        errorType: modelError.constructor.name,
+        fullError: modelError.toString(),
+        originalPrompt: imagePrompt
+      });
       console.log('🔄 Falling back to placeholder image...');
       temporaryImageUrl = generatePlaceholderImage(imagePrompt, size);
       generatedWith = 'High-Quality Placeholder (AI failed)';

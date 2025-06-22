@@ -484,6 +484,7 @@ ${targetAudience === 'Experts' ? 'Use technical terminology and assume deep know
 
 **WRITING STYLE GUIDELINES:**
 ${writingStyle === 'Academic' ? 'Use formal language, citations, and structured arguments.' :
+  writingStyle === 'Funny' ? 'Use funny language like you are comedian.' :
   writingStyle === 'Conversational' ? 'Use friendly, approachable language like talking to a friend.' :
   writingStyle === 'Technical' ? 'Focus on precise, technical details and specifications.' :
   writingStyle === 'Creative' ? 'Use engaging storytelling and creative elements.' :

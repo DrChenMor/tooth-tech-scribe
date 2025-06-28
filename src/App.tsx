@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -30,6 +29,7 @@ import AutomatedWorkflowsPage from './pages/AutomatedWorkflowsPage';
 import AnalyticsPage from './pages/AnalyticsPage';
 import AIAgentManagementPage from './pages/AIAgentManagementPage';
 import ArticlesManagementPage from './pages/ArticlesManagementPage';
+import ScrollToTop from './components/ScrollToTop'; // Add this import
 
 const queryClient = new QueryClient();
 
@@ -41,6 +41,7 @@ function App() {
         <Sonner />
         <AuthProvider>
           <BrowserRouter>
+            <ScrollToTop /> {/* Add this component inside BrowserRouter */}
             <Routes>
               <Route element={<MainLayout />}>
                 <Route path="/" element={<Index />} />

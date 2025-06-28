@@ -25,7 +25,7 @@ const TopNavigation = () => {
 
           {/* Logo */}
           <Link to="/" className="text-2xl font-bold text-foreground">
-            Blogle
+            DentAI
           </Link>
         </div>
         

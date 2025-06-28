@@ -1,4 +1,3 @@
-
 import {
   Sidebar,
   SidebarContent,
@@ -9,12 +8,13 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from "@/components/ui/sidebar"
 import { useAuth } from "@/contexts/AuthContext"
 import { useCategories } from "@/hooks/use-categories"
+import { cn } from "@/lib/utils"
 import { Home, Info, LayoutGrid, LogIn, LogOut, Mail, Smile, User } from "lucide-react"
 import { Link, useLocation, useNavigate } from "react-router-dom"
-import { Button } from "./ui/button"
 import { Skeleton } from "./ui/skeleton"
 
 export function AppSidebar() {
@@ -22,10 +22,17 @@ export function AppSidebar() {
   const { user, isAdmin, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const { isMobile, setOpenMobile } = useSidebar();
 
   const handleLogout = async () => {
     await logout();
     navigate('/');
+  };
+
+  const handleLinkClick = () => {
+    if (isMobile) {
+      setOpenMobile(false);
+    }
   };
   
   const mainNav = [
@@ -34,12 +41,28 @@ export function AppSidebar() {
     { title: 'Contact', href: '/contact', icon: Mail },
   ];
 
+  const buttonClasses = cn(!isMobile && "justify-center gap-0 group-hover:justify-start group-hover:gap-3");
+  const textClasses = cn(isMobile ? "inline-block" : "hidden group-hover:inline-block");
+  
+  /**
+   * THE FINAL FIX: This now handles all states correctly.
+   * - Mobile: Left-aligned with large padding.
+   * - Desktop (Collapsed): Centered with small padding to prevent icon shrinking.
+   * - Desktop (Expanded on Hover): Left-aligned with large padding to match menu items.
+   */
+  const headerClasses = cn(
+    "flex items-center gap-2 text-xl font-bold text-foreground",
+    isMobile 
+      ? "justify-start px-4" 
+      : "justify-center px-2 group-hover:justify-start group-hover:px-5"
+  );
+
   return (
-    <Sidebar collapsible="icon">
+    <Sidebar collapsible="icon" className="[&_[data-sidebar='sidebar']]:rounded-tr-xl">
       <SidebarHeader className="p-4">
-        <Link to="/" className="flex items-center gap-2 text-xl font-bold text-foreground">
+        <Link to="/" onClick={handleLinkClick} className={headerClasses}>
           <Smile className="text-primary" size={28} />
-          <span className="group-data-[collapsible=icon]:hidden">Dental AI Insights</span>
+          <span className={textClasses}>DentAI</span>
         </Link>
       </SidebarHeader>
       <SidebarContent className="p-4">
@@ -47,10 +70,14 @@ export function AppSidebar() {
           <SidebarMenu>
             {mainNav.map((item) => (
               <SidebarMenuItem key={item.title}>
-                <SidebarMenuButton asChild isActive={location.pathname === item.href}>
-                  <Link to={item.href}>
+                <SidebarMenuButton
+                  asChild
+                  isActive={location.pathname === item.href}
+                  className={buttonClasses}
+                >
+                  <Link to={item.href} onClick={handleLinkClick}>
                     <item.icon />
-                    <span>{item.title}</span>
+                    <span className={textClasses}>{item.title}</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -58,17 +85,21 @@ export function AppSidebar() {
           </SidebarMenu>
         </SidebarGroup>
         <SidebarGroup>
-          <SidebarGroupLabel>Categories</SidebarGroupLabel>
+          <SidebarGroupLabel className={textClasses}>Categories</SidebarGroupLabel>
           <SidebarMenu>
             {isLoadingCategories ? (
               [...Array(3)].map((_, i) => <Skeleton key={i} className="h-8 w-full" />)
             ) : (
               categories?.map((category) => (
                 <SidebarMenuItem key={category}>
-                  <SidebarMenuButton asChild isActive={location.pathname === `/category/${category}`}>
-                    <Link to={`/category/${category}`}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={location.pathname === `/category/${category}`}
+                    className={buttonClasses}
+                  >
+                    <Link to={`/category/${category}`} onClick={handleLinkClick}>
                       <LayoutGrid />
-                      <span>{category}</span>
+                      <span className={textClasses}>{category}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -81,25 +112,25 @@ export function AppSidebar() {
         {user ? (
           <>
             {isAdmin && (
-              <SidebarMenuButton asChild className="w-full">
-                <Link to="/admin">
+              <SidebarMenuButton asChild className={cn("w-full", buttonClasses)}>
+                <Link to="/admin" onClick={handleLinkClick}>
                   <User />
-                  <span>Admin</span>
+                  <span className={textClasses}>Admin</span>
                 </Link>
               </SidebarMenuButton>
             )}
-            <SidebarMenuButton asChild className="w-full">
-              <button onClick={handleLogout} className="w-full flex items-center gap-2">
+            <SidebarMenuButton asChild className={cn("w-full", buttonClasses)}>
+              <button onClick={() => { handleLogout(); handleLinkClick(); }} className="w-full">
                 <LogOut />
-                <span>Logout</span>
+                <span className={textClasses}>Logout</span>
               </button>
             </SidebarMenuButton>
           </>
         ) : (
-          <SidebarMenuButton asChild className="w-full">
-            <Link to="/auth">
+          <SidebarMenuButton asChild className={cn("w-full", buttonClasses)}>
+            <Link to="/auth" onClick={handleLinkClick}>
               <LogIn />
-              <span>Login</span>
+              <span className={textClasses}>Login</span>
             </Link>
           </SidebarMenuButton>
         )}

@@ -201,10 +201,58 @@ const saveTheme = () => {
     key !== '--font-secondary'
   );
 
-  const fontOptions = [
-    { value: "Inter, sans-serif", label: 'Inter' },
-    { value: "Playfair Display, serif", label: 'Playfair Display' },
-  ];
+const fontOptions = [
+  // Current fonts
+  { value: "Inter, sans-serif", label: 'Inter (Current Body)' },
+  { value: "Playfair Display, serif", label: 'Playfair Display (Current Heading)' },
+  
+  // 🎯 RECOMMENDED: Modern & Trustworthy
+  { value: "Poppins, sans-serif", label: 'Poppins (Modern Headings) ⭐' },
+  { value: "Inter, sans-serif", label: 'Inter (Tech Body) ⭐' },
+  
+  // Professional & Medical
+  { value: "Source Sans Pro, sans-serif", label: 'Source Sans Pro (Medical)' },
+  { value: "Lato, sans-serif", label: 'Lato (Friendly Professional)' },
+  
+  // Tech-Forward & Clean  
+  { value: "Montserrat, sans-serif", label: 'Montserrat (Strong Headings)' },
+  { value: "Open Sans, sans-serif", label: 'Open Sans (Accessible)' },
+  
+  // Premium & Sophisticated
+  { value: "Raleway, sans-serif", label: 'Raleway (Elegant)' },
+  { value: "Nunito Sans, sans-serif", label: 'Nunito Sans (Rounded)' },
+  
+  // Classic & Readable
+  { value: "Roboto, sans-serif", label: 'Roboto (Google Classic)' },
+  { value: "Work Sans, sans-serif", label: 'Work Sans (Geometric)' },
+];
+
+const fontPresets = [
+  {
+    name: "Modern Medical ⭐",
+    description: "Perfect for dental AI content",
+    headingFont: "Poppins, sans-serif",
+    bodyFont: "Inter, sans-serif"
+  },
+  {
+    name: "Classic Professional", 
+    description: "Traditional and trustworthy",
+    headingFont: "Playfair Display, serif",
+    bodyFont: "Source Sans Pro, sans-serif"
+  },
+  {
+    name: "Tech Forward",
+    description: "Clean and modern",
+    headingFont: "Montserrat, sans-serif", 
+    bodyFont: "Open Sans, sans-serif"
+  },
+  {
+    name: "Premium Elegant",
+    description: "Sophisticated and polished", 
+    headingFont: "Raleway, sans-serif",
+    bodyFont: "Lato, sans-serif"
+  }
+];
 
   return (
     <main className="container mx-auto px-4 py-8">

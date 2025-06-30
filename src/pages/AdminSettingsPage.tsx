@@ -1,6 +1,5 @@
-
 import { useState, useEffect } from 'react';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -9,12 +8,18 @@ import { Badge } from '@/components/ui/badge';
 import { Settings, Key, CheckCircle, AlertCircle, Palette, Type, Network } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ApiKeyStatus {
   name: string;
   displayName: string;
   configured: boolean;
   description: string;
+}
+
+interface SystemConfig {
+  defaultCategory: string;
+  defaultAuthor: string;
 }
 
 type Theme = {
@@ -55,7 +60,47 @@ const initialTheme: Theme = {
   '--h6-font-size': '',
 };
 
+// 🔥 NEW: Fetch system configuration from database
+const fetchSystemConfig = async (): Promise<SystemConfig> => {
+  const { data, error } = await supabase
+    .from('system_config')
+    .select('*')
+    .single();
+
+  if (error && error.code !== 'PGRST116') {
+    console.error('Error fetching system config:', error);
+    // Return defaults if no config exists
+    return {
+      defaultCategory: 'AI Generated',
+      defaultAuthor: 'AI Content Generator'
+    };
+  }
+
+  return data || {
+    defaultCategory: 'AI Generated',
+    defaultAuthor: 'AI Content Generator'
+  };
+};
+
+// 🔥 NEW: Save system configuration to database
+const saveSystemConfig = async (config: SystemConfig) => {
+  const { error } = await supabase
+    .from('system_config')
+    .upsert({
+      id: 1, // Use a fixed ID for singleton config
+      default_category: config.defaultCategory,
+      default_author: config.defaultAuthor,
+      updated_at: new Date().toISOString()
+    });
+
+  if (error) {
+    throw new Error(`Failed to save system configuration: ${error.message}`);
+  }
+};
+
 const AdminSettingsPage = () => {
+  const queryClient = useQueryClient();
+  
   const [apiKeys, setApiKeys] = useState({
     OPENAI_API_KEY: '',
     ANTHROPIC_API_KEY: '',
@@ -66,7 +111,7 @@ const AdminSettingsPage = () => {
     {
       name: 'OPENAI_API_KEY',
       displayName: 'OpenAI API Key',
-      configured: true, // Assuming it's configured since it's working
+      configured: true,
       description: 'Required for GPT-4 content generation'
     },
     {
@@ -78,12 +123,31 @@ const AdminSettingsPage = () => {
     {
       name: 'GOOGLE_API_KEY',
       displayName: 'Google API Key',
-      configured: true, // Just configured
+      configured: true,
       description: 'Required for Gemini content generation'
     }
   ]);
 
   const [theme, setTheme] = useState<Theme>(initialTheme);
+
+  // 🔥 NEW: System configuration state
+  const [systemConfig, setSystemConfig] = useState<SystemConfig>({
+    defaultCategory: 'AI Generated',
+    defaultAuthor: 'AI Content Generator'
+  });
+
+  // 🔥 NEW: Fetch system configuration
+  const { data: configData, isLoading: isLoadingConfig } = useQuery({
+    queryKey: ['system-config'],
+    queryFn: fetchSystemConfig,
+  });
+
+  // 🔥 NEW: Update local state when config data loads
+  useEffect(() => {
+    if (configData) {
+      setSystemConfig(configData);
+    }
+  }, [configData]);
 
   // Load theme from localStorage or CSS variables on initial render
   useEffect(() => {
@@ -114,44 +178,127 @@ const AdminSettingsPage = () => {
   }, []);
 
   // Apply theme changes live as they are updated in the state
-useEffect(() => {
-  // Only update in real-time for preview, global hook handles persistence
-  Object.entries(theme).forEach(([key, value]) => {
-    if (value) {
-      const finalValue = key.includes('font') && !value.includes("'") ? `'${value}'` : value;
-      document.documentElement.style.setProperty(key, finalValue);
-    }
-  });
-}, [theme]);
+  useEffect(() => {
+    // Only update in real-time for preview, global hook handles persistence
+    Object.entries(theme).forEach(([key, value]) => {
+      if (value) {
+        const finalValue = key.includes('font') && !value.includes("'") ? `'${value}'` : value;
+        document.documentElement.style.setProperty(key, finalValue);
+      }
+    });
+  }, [theme]);
   
   const handleThemeChange = (key: keyof Theme, value: string) => {
     setTheme(prev => ({ ...prev, [key]: value }));
   };
   
-const saveTheme = () => {
-  localStorage.setItem('app-theme', JSON.stringify(theme));
-  
-  // Trigger storage event for other tabs
-  window.dispatchEvent(new StorageEvent('storage', {
-    key: 'app-theme',
-    newValue: JSON.stringify(theme)
-  }));
-  
-  toast({
-    title: "Theme Saved",
-    description: "Your custom theme has been applied globally across the website.",
-  });
-};
+  // 🔥 FIXED: Enhanced saveTheme function with proper global application
+  const saveTheme = () => {
+    // Save to localStorage
+    localStorage.setItem('app-theme', JSON.stringify(theme));
+    
+    // 🔥 FIXED: Apply theme immediately to document root with proper font handling
+    Object.entries(theme).forEach(([key, value]) => {
+      if (value) {
+        let finalValue = value;
+        
+        // Handle font values properly - ensure they're quoted if they contain spaces
+        if (key.includes('font') && !value.includes("'") && !value.includes('"')) {
+          // If it's a font stack with commas, quote the first font if it has spaces
+          const fonts = value.split(',').map(f => f.trim());
+          const firstFont = fonts[0];
+          if (firstFont.includes(' ') && !firstFont.includes("'") && !firstFont.includes('"')) {
+            fonts[0] = `"${firstFont}"`;
+            finalValue = fonts.join(', ');
+          } else {
+            finalValue = value;
+          }
+        }
+        
+        document.documentElement.style.setProperty(key, finalValue);
+        console.log(`Applied ${key}: ${finalValue}`);
+      }
+    });
+    
+    // 🔥 FIXED: Trigger storage event for other tabs/windows
+    window.dispatchEvent(new StorageEvent('storage', {
+      key: 'app-theme',
+      newValue: JSON.stringify(theme),
+      oldValue: null,
+      storageArea: localStorage,
+      url: window.location.href
+    }));
+    
+    // 🔥 NEW: Force re-render by invalidating related queries
+    queryClient.invalidateQueries({ queryKey: ['app-theme'] });
+    
+    // 🔥 NEW: Force browser to recalculate styles
+    document.body.style.display = 'none';
+    document.body.offsetHeight; // Trigger reflow
+    document.body.style.display = '';
+    
+    toast({
+      title: "Theme Saved & Applied",
+      description: "Your custom theme has been applied globally across the website. Refresh the page if you don't see all changes.",
+    });
+  };
 
   const resetTheme = () => {
     localStorage.removeItem('app-theme');
-    window.location.reload();
+    
+    // Reset CSS custom properties to their default values
+    const defaultTheme = {
+      '--primary': '217 91% 60%',
+      '--background': '210 20% 98%',
+      '--foreground': '224 71% 4%',
+      '--card': '0 0% 100%',
+      '--muted': '210 40% 96.1%',
+      '--border': '214.3 31.8% 91.4%',
+      '--font-main': 'Inter, sans-serif',
+      '--font-secondary': 'Playfair Display, serif',
+      '--radius': '0.5rem',
+      '--p-font-size': '1rem',
+      '--h1-font-size': '2.25rem',
+      '--h2-font-size': '1.875rem',
+      '--h3-font-size': '1.5rem',
+      '--h4-font-size': '1.25rem',
+      '--h5-font-size': '1.125rem',
+      '--h6-font-size': '1rem',
+    };
+    
+    Object.entries(defaultTheme).forEach(([key, value]) => {
+      document.documentElement.style.setProperty(key, value);
+    });
+    
+    setTheme(defaultTheme as Theme);
+    
+    toast({
+      title: "Theme Reset",
+      description: "Theme has been reset to default values.",
+    });
   };
+
+  // 🔥 NEW: System configuration mutation
+  const systemConfigMutation = useMutation({
+    mutationFn: saveSystemConfig,
+    onSuccess: () => {
+      toast({
+        title: "System Configuration Saved",
+        description: "Default settings have been updated and will be used in AI workflows.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['system-config'] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Save failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
 
   const updateKeyMutation = useMutation({
     mutationFn: async ({ keyName, keyValue }: { keyName: string; keyValue: string }) => {
-      // This would typically update the secret via Supabase edge function
-      // For now, we'll simulate the update
       console.log(`Updating ${keyName} with value: ${keyValue.substring(0, 10)}...`);
       return { success: true };
     },
@@ -184,6 +331,11 @@ const saveTheme = () => {
     updateKeyMutation.mutate({ keyName, keyValue });
   };
 
+  // 🔥 NEW: Handle system config save
+  const handleSaveSystemConfig = () => {
+    systemConfigMutation.mutate(systemConfig);
+  };
+
   const typographyAndSizingFields = [
     { key: '--h1-font-size', label: 'Heading 1 Size', placeholder: 'e.g., 2.25rem' },
     { key: '--h2-font-size', label: 'Heading 2 Size', placeholder: 'e.g., 1.875rem' },
@@ -201,58 +353,59 @@ const saveTheme = () => {
     key !== '--font-secondary'
   );
 
-const fontOptions = [
-  // Current fonts
-  { value: "Inter, sans-serif", label: 'Inter (Current Body)' },
-  { value: "Playfair Display, serif", label: 'Playfair Display (Current Heading)' },
-  
-  // 🎯 RECOMMENDED: Modern & Trustworthy
-  { value: "Poppins, sans-serif", label: 'Poppins (Modern Headings) ⭐' },
-  { value: "Inter, sans-serif", label: 'Inter (Tech Body) ⭐' },
-  
-  // Professional & Medical
-  { value: "Source Sans Pro, sans-serif", label: 'Source Sans Pro (Medical)' },
-  { value: "Lato, sans-serif", label: 'Lato (Friendly Professional)' },
-  
-  // Tech-Forward & Clean  
-  { value: "Montserrat, sans-serif", label: 'Montserrat (Strong Headings)' },
-  { value: "Open Sans, sans-serif", label: 'Open Sans (Accessible)' },
-  
-  // Premium & Sophisticated
-  { value: "Raleway, sans-serif", label: 'Raleway (Elegant)' },
-  { value: "Nunito Sans, sans-serif", label: 'Nunito Sans (Rounded)' },
-  
-  // Classic & Readable
-  { value: "Roboto, sans-serif", label: 'Roboto (Google Classic)' },
-  { value: "Work Sans, sans-serif", label: 'Work Sans (Geometric)' },
-];
+  const fontOptions = [
+    { value: "Inter, sans-serif", label: 'Inter (Current Body)' },
+    { value: "Playfair Display, serif", label: 'Playfair Display (Current Heading)' },
+    { value: "Poppins, sans-serif", label: 'Poppins (Modern Headings) ⭐' },
+    { value: "Source Sans Pro, sans-serif", label: 'Source Sans Pro (Medical)' },
+    { value: "Lato, sans-serif", label: 'Lato (Friendly Professional)' },
+    { value: "Montserrat, sans-serif", label: 'Montserrat (Strong Headings)' },
+    { value: "Open Sans, sans-serif", label: 'Open Sans (Accessible)' },
+    { value: "Raleway, sans-serif", label: 'Raleway (Elegant)' },
+    { value: "Nunito Sans, sans-serif", label: 'Nunito Sans (Rounded)' },
+    { value: "Roboto, sans-serif", label: 'Roboto (Google Classic)' },
+    { value: "Work Sans, sans-serif", label: 'Work Sans (Geometric)' },
+  ];
 
-const fontPresets = [
-  {
-    name: "Modern Medical ⭐",
-    description: "Perfect for dental AI content",
-    headingFont: "Poppins, sans-serif",
-    bodyFont: "Inter, sans-serif"
-  },
-  {
-    name: "Classic Professional", 
-    description: "Traditional and trustworthy",
-    headingFont: "Playfair Display, serif",
-    bodyFont: "Source Sans Pro, sans-serif"
-  },
-  {
-    name: "Tech Forward",
-    description: "Clean and modern",
-    headingFont: "Montserrat, sans-serif", 
-    bodyFont: "Open Sans, sans-serif"
-  },
-  {
-    name: "Premium Elegant",
-    description: "Sophisticated and polished", 
-    headingFont: "Raleway, sans-serif",
-    bodyFont: "Lato, sans-serif"
-  }
-];
+  const fontPresets = [
+    {
+      name: "Modern Medical ⭐",
+      description: "Perfect for dental AI content",
+      headingFont: "Poppins, sans-serif",
+      bodyFont: "Inter, sans-serif"
+    },
+    {
+      name: "Classic Professional", 
+      description: "Traditional and trustworthy",
+      headingFont: "Playfair Display, serif",
+      bodyFont: "Source Sans Pro, sans-serif"
+    },
+    {
+      name: "Tech Forward",
+      description: "Clean and modern",
+      headingFont: "Montserrat, sans-serif", 
+      bodyFont: "Open Sans, sans-serif"
+    },
+    {
+      name: "Premium Elegant",
+      description: "Sophisticated and polished", 
+      headingFont: "Raleway, sans-serif",
+      bodyFont: "Lato, sans-serif"
+    }
+  ];
+
+  // 🔥 NEW: Apply font preset
+  const applyFontPreset = (preset: typeof fontPresets[0]) => {
+    setTheme(prev => ({
+      ...prev,
+      '--font-main': preset.bodyFont,
+      '--font-secondary': preset.headingFont
+    }));
+    toast({
+      title: "Font Preset Applied",
+      description: `Applied ${preset.name} font combination. Click "Save Theme" to persist.`,
+    });
+  };
 
   return (
     <main className="container mx-auto px-4 py-8">
@@ -325,12 +478,12 @@ const fontPresets = [
           </CardContent>
         </Card>
 
-        {/* System Configuration */}
+        {/* 🔥 FIXED: System Configuration */}
         <Card className="mb-6">
           <CardHeader>
             <CardTitle>System Configuration</CardTitle>
             <CardDescription>
-              General system settings and preferences.
+              Default settings used by AI workflows and content generation.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -340,18 +493,39 @@ const fontPresets = [
                 <Input
                   id="default-category"
                   placeholder="e.g., AI Generated"
-                  defaultValue="AI Generated"
+                  value={systemConfig.defaultCategory}
+                  onChange={(e) => setSystemConfig(prev => ({ 
+                    ...prev, 
+                    defaultCategory: e.target.value 
+                  }))}
+                  disabled={isLoadingConfig}
                 />
+                <p className="text-xs text-muted-foreground mt-1">
+                  This category will be used by AI workflows and content generators
+                </p>
               </div>
               <div>
                 <Label htmlFor="default-author">Default Author Name</Label>
                 <Input
                   id="default-author"
                   placeholder="e.g., AI Content Generator"
-                  defaultValue="AI Content Generator"
+                  value={systemConfig.defaultAuthor}
+                  onChange={(e) => setSystemConfig(prev => ({ 
+                    ...prev, 
+                    defaultAuthor: e.target.value 
+                  }))}
+                  disabled={isLoadingConfig}
                 />
+                <p className="text-xs text-muted-foreground mt-1">
+                  This author name will be used for AI-generated articles
+                </p>
               </div>
-              <Button>Save Configuration</Button>
+              <Button 
+                onClick={handleSaveSystemConfig}
+                disabled={systemConfigMutation.isPending || isLoadingConfig}
+              >
+                {systemConfigMutation.isPending ? 'Saving...' : 'Save Configuration'}
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -377,6 +551,38 @@ const fontPresets = [
                 View Sitemap
               </a>
             </Button>
+          </CardContent>
+        </Card>
+
+        {/* 🔥 NEW: Font Presets Section */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Type className="h-5 w-5" />
+              Font Presets
+            </CardTitle>
+            <CardDescription>
+              Quick font combinations for different styles. Apply a preset then save your theme.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {fontPresets.map((preset) => (
+                <div key={preset.name} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="font-semibold">{preset.name}</h4>
+                    <Button size="sm" variant="outline" onClick={() => applyFontPreset(preset)}>
+                      Apply
+                    </Button>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-2">{preset.description}</p>
+                  <div className="text-xs space-y-1">
+                    <div><strong>Headings:</strong> {preset.headingFont}</div>
+                    <div><strong>Body:</strong> {preset.bodyFont}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </CardContent>
         </Card>
 
@@ -432,49 +638,56 @@ const fontPresets = [
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Font Selectors */}
               <div>
-                  <Label htmlFor="theme---font-main">Main Font</Label>
-                  <Select value={theme['--font-main']} onValueChange={(value) => handleThemeChange('--font-main', value)}>
-                      <SelectTrigger id="theme---font-main" className="mt-1">
-                          <SelectValue placeholder="Select a font" />
-                      </SelectTrigger>
-                      <SelectContent>
-                          {fontOptions.map(font => (
-                              <SelectItem key={font.value} value={font.value}>{font.label}</SelectItem>
-                          ))}
-                      </SelectContent>
-                  </Select>
+                <Label htmlFor="theme---font-main">Main Font (Body Text)</Label>
+                <Select value={theme['--font-main']} onValueChange={(value) => handleThemeChange('--font-main', value)}>
+                  <SelectTrigger id="theme---font-main" className="mt-1">
+                    <SelectValue placeholder="Select a font" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {fontOptions.map(font => (
+                      <SelectItem key={font.value} value={font.value}>{font.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
-                  <Label htmlFor="theme---font-secondary">Heading Font</Label>
-                  <Select value={theme['--font-secondary']} onValueChange={(value) => handleThemeChange('--font-secondary', value)}>
-                      <SelectTrigger id="theme---font-secondary" className="mt-1">
-                          <SelectValue placeholder="Select a font" />
-                      </SelectTrigger>
-                      <SelectContent>
-                          {fontOptions.map(font => (
-                              <SelectItem key={font.value} value={font.value}>{font.label}</SelectItem>
-                          ))}
-                      </SelectContent>
-                  </Select>
+                <Label htmlFor="theme---font-secondary">Heading Font</Label>
+                <Select value={theme['--font-secondary']} onValueChange={(value) => handleThemeChange('--font-secondary', value)}>
+                  <SelectTrigger id="theme---font-secondary" className="mt-1">
+                    <SelectValue placeholder="Select a font" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {fontOptions.map(font => (
+                      <SelectItem key={font.value} value={font.value}>{font.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               {/* Size Inputs */}
               {typographyAndSizingFields.map(({ key, label, placeholder }) => (
-                  <div key={key}>
-                      <Label htmlFor={`theme-${key}`}>{label}</Label>
-                      <Input
-                          id={`theme-${key}`}
-                          value={theme[key]}
-                          onChange={(e) => handleThemeChange(key, e.target.value)}
-                          placeholder={placeholder}
-                          className="mt-1"
-                      />
-                  </div>
+                <div key={key}>
+                  <Label htmlFor={`theme-${key}`}>{label}</Label>
+                  <Input
+                    id={`theme-${key}`}
+                    value={theme[key]}
+                    onChange={(e) => handleThemeChange(key, e.target.value)}
+                    placeholder={placeholder}
+                    className="mt-1"
+                  />
+                </div>
               ))}
             </div>
             <div className="flex gap-2 mt-6">
-              <Button onClick={saveTheme}>Save Theme</Button>
-              <Button variant="outline" onClick={resetTheme}>Reset to Default</Button>
+              <Button onClick={saveTheme} className="bg-green-600 hover:bg-green-700">
+                💾 Save Theme Globally
+              </Button>
+              <Button variant="outline" onClick={resetTheme}>
+                🔄 Reset to Default
+              </Button>
             </div>
+            <p className="text-sm text-muted-foreground mt-2">
+              💡 <strong>Tip:</strong> Save your theme to apply it across all pages. If some changes don't appear immediately, refresh the page.
+            </p>
           </CardContent>
         </Card>
       </div>

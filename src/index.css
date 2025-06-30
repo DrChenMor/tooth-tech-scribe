@@ -1,9 +1,13 @@
+/* Import Google Fonts first */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&family=Source+Sans+Pro:wght@300;400;600;700&family=Lato:wght@300;400;700&family=Montserrat:wght@300;400;500;600;700&family=Open+Sans:wght@300;400;600;700&family=Raleway:wght@300;400;500;600;700&family=Nunito+Sans:wght@300;400;600;700&family=Roboto:wght@300;400;500;700&family=Work+Sans:wght@300;400;500;600;700&family=Merriweather:wght@300;400;700&family=Lora:wght@400;500;600;700&family=Crimson+Text:wght@400;600;700&family=JetBrains+Mono:wght@300;400;500;600;700&family=Fira+Code:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
+    /* Color Variables */
     --background: 210 20% 98%; /* Alabaster */
     --foreground: 224 71% 4%; /* Near black */
 
@@ -43,44 +47,291 @@
 
     --radius: 0.5rem;
     
-    /* Typography */
-    --font-main: "Inter", sans-serif;
-    --font-secondary: "Playfair Display", serif;
-    --p-font-size: 1rem;
+    /* 🔥 GRANULAR FONT CONTROL: Individual Font Families */
+    --h1-font-family: "Playfair Display", serif;
+    --h2-font-family: "Playfair Display", serif;
+    --h3-font-family: "Playfair Display", serif;
+    --h4-font-family: "Playfair Display", serif;
+    --h5-font-family: "Playfair Display", serif;
+    --h6-font-family: "Playfair Display", serif;
+    --p-font-family: "Inter", sans-serif;
+    --body-font-family: "Inter", sans-serif;
+    --button-font-family: "Inter", sans-serif;
+    --input-font-family: "Inter", sans-serif;
+    --nav-font-family: "Inter", sans-serif;
+    --card-title-font-family: "Playfair Display", serif;
+    
+    /* Font Sizes */
     --h1-font-size: 2.25rem;
     --h2-font-size: 1.875rem;
     --h3-font-size: 1.5rem;
     --h4-font-size: 1.25rem;
     --h5-font-size: 1.125rem;
     --h6-font-size: 1rem;
+    --p-font-size: 1rem;
+    --small-font-size: 0.875rem;
+    --large-font-size: 1.125rem;
+    
+    /* Font Weights */
+    --h1-font-weight: 700;
+    --h2-font-weight: 600;
+    --h3-font-weight: 600;
+    --h4-font-weight: 500;
+    --h5-font-weight: 500;
+    --h6-font-weight: 500;
+    --p-font-weight: 400;
+    --button-font-weight: 500;
+    --nav-font-weight: 500;
   }
-
-  /* No dark mode for now to keep it simple */
 }
 
 @layer base {
   * {
     @apply border-border;
+    /* Smooth transitions for font changes */
+    transition: font-family 0.2s ease, font-size 0.2s ease, font-weight 0.2s ease;
   }
 
+  /* 🔥 BODY DEFAULT */
   body {
     @apply bg-background text-foreground;
-    font-family: var(--font-main);
+    font-family: var(--body-font-family) !important;
   }
 
-  h1, h2, h3, h4, h5, h6 {
-    font-family: var(--font-secondary);
+  /* 🔥 INDIVIDUAL HEADING TARGETING */
+  h1, .h1-style {
+    font-family: var(--h1-font-family) !important;
+    font-size: var(--h1-font-size) !important;
+    font-weight: var(--h1-font-weight) !important;
+    line-height: 1.2 !important;
+    margin-bottom: 1rem !important;
   }
-  
-  h1 { font-size: var(--h1-font-size); }
-  h2 { font-size: var(--h2-font-size); }
-  h3 { font-size: var(--h3-font-size); }
-  h4 { font-size: var(--h4-font-size); }
-  h5 { font-size: var(--h5-font-size); }
-  h6 { font-size: var(--h6-font-size); }
-  
-  p {
-    font-size: var(--p-font-size);
+
+  h2, .h2-style {
+    font-family: var(--h2-font-family) !important;
+    font-size: var(--h2-font-size) !important;
+    font-weight: var(--h2-font-weight) !important;
+    line-height: 1.3 !important;
+    margin-bottom: 0.875rem !important;
+  }
+
+  h3, .h3-style {
+    font-family: var(--h3-font-family) !important;
+    font-size: var(--h3-font-size) !important;
+    font-weight: var(--h3-font-weight) !important;
+    line-height: 1.4 !important;
+    margin-bottom: 0.75rem !important;
+  }
+
+  h4, .h4-style {
+    font-family: var(--h4-font-family) !important;
+    font-size: var(--h4-font-size) !important;
+    font-weight: var(--h4-font-weight) !important;
+    line-height: 1.4 !important;
+    margin-bottom: 0.625rem !important;
+  }
+
+  h5, .h5-style {
+    font-family: var(--h5-font-family) !important;
+    font-size: var(--h5-font-size) !important;
+    font-weight: var(--h5-font-weight) !important;
+    line-height: 1.5 !important;
+    margin-bottom: 0.5rem !important;
+  }
+
+  h6, .h6-style {
+    font-family: var(--h6-font-family) !important;
+    font-size: var(--h6-font-size) !important;
+    font-weight: var(--h6-font-weight) !important;
+    line-height: 1.5 !important;
+    margin-bottom: 0.5rem !important;
+  }
+
+  /* 🔥 PARAGRAPH AND BODY TEXT */
+  p, .p-style {
+    font-family: var(--p-font-family) !important;
+    font-size: var(--p-font-size) !important;
+    font-weight: var(--p-font-weight) !important;
+    line-height: 1.6 !important;
+    margin-bottom: 1rem !important;
+  }
+
+  /* 🔥 UI ELEMENTS */
+  button, .btn, [role="button"], .button {
+    font-family: var(--button-font-family) !important;
+    font-weight: var(--button-font-weight) !important;
+  }
+
+  input, textarea, select, .input-style {
+    font-family: var(--input-font-family) !important;
+  }
+
+  nav, .nav-style, [role="navigation"], .sidebar a, .nav-link, .menu-item {
+    font-family: var(--nav-font-family) !important;
+    font-weight: var(--nav-font-weight) !important;
+  }
+
+  /* 🔥 CARD TITLES */
+  .card-title, [data-card-title], .card h1, .card h2, .card h3, .card h4, .card h5, .card h6 {
+    font-family: var(--card-title-font-family) !important;
+  }
+
+  .card p {
+    font-family: var(--p-font-family) !important;
+  }
+
+  /* 🔥 MAXIMUM SPECIFICITY OVERRIDES */
+  html body h1,
+  html body .text-4xl,
+  html body .text-5xl,
+  html body .text-6xl {
+    font-family: var(--h1-font-family) !important;
+    font-size: var(--h1-font-size) !important;
+    font-weight: var(--h1-font-weight) !important;
+  }
+
+  html body h2,
+  html body .text-3xl {
+    font-family: var(--h2-font-family) !important;
+    font-size: var(--h2-font-size) !important;
+    font-weight: var(--h2-font-weight) !important;
+  }
+
+  html body h3,
+  html body .text-2xl {
+    font-family: var(--h3-font-family) !important;
+    font-size: var(--h3-font-size) !important;
+    font-weight: var(--h3-font-weight) !important;
+  }
+
+  html body h4,
+  html body .text-xl {
+    font-family: var(--h4-font-family) !important;
+    font-size: var(--h4-font-size) !important;
+    font-weight: var(--h4-font-weight) !important;
+  }
+
+  html body h5,
+  html body .text-lg {
+    font-family: var(--h5-font-family) !important;
+    font-size: var(--h5-font-size) !important;
+    font-weight: var(--h5-font-weight) !important;
+  }
+
+  html body h6,
+  html body .text-base {
+    font-family: var(--h6-font-family) !important;
+    font-size: var(--h6-font-size) !important;
+    font-weight: var(--h6-font-weight) !important;
+  }
+
+  html body p,
+  html body span:not(.icon):not([class*="lucide"]):not([data-lucide]),
+  html body div:not([class*="text-"]):not([role]):not([class*="lucide"]) {
+    font-family: var(--p-font-family) !important;
+    font-size: var(--p-font-size) !important;
+    font-weight: var(--p-font-weight) !important;
+  }
+
+  /* 🔥 TAILWIND SIZE CLASS OVERRIDES */
+  .text-sm, .small-text {
+    font-size: var(--small-font-size) !important;
+  }
+
+  .text-lg, .large-text {
+    font-size: var(--large-font-size) !important;
+  }
+
+  /* 🔥 UTILITY CLASSES for manual assignment */
+  .use-h1-font { font-family: var(--h1-font-family) !important; }
+  .use-h2-font { font-family: var(--h2-font-family) !important; }
+  .use-h3-font { font-family: var(--h3-font-family) !important; }
+  .use-h4-font { font-family: var(--h4-font-family) !important; }
+  .use-h5-font { font-family: var(--h5-font-family) !important; }
+  .use-h6-font { font-family: var(--h6-font-family) !important; }
+  .use-p-font { font-family: var(--p-font-family) !important; }
+  .use-button-font { font-family: var(--button-font-family) !important; }
+  .use-nav-font { font-family: var(--nav-font-family) !important; }
+  .use-card-title-font { font-family: var(--card-title-font-family) !important; }
+
+  /* 🔥 PROSE CONTENT TARGETING */
+  .prose h1, .wmde-markdown h1 { 
+    font-family: var(--h1-font-family) !important;
+    font-size: var(--h1-font-size) !important;
+    font-weight: var(--h1-font-weight) !important;
+  }
+  .prose h2, .wmde-markdown h2 { 
+    font-family: var(--h2-font-family) !important;
+    font-size: var(--h2-font-size) !important;
+    font-weight: var(--h2-font-weight) !important;
+  }
+  .prose h3, .wmde-markdown h3 { 
+    font-family: var(--h3-font-family) !important;
+    font-size: var(--h3-font-size) !important;
+    font-weight: var(--h3-font-weight) !important;
+  }
+  .prose h4, .wmde-markdown h4 { 
+    font-family: var(--h4-font-family) !important;
+    font-size: var(--h4-font-size) !important;
+    font-weight: var(--h4-font-weight) !important;
+  }
+  .prose h5, .wmde-markdown h5 { 
+    font-family: var(--h5-font-family) !important;
+    font-size: var(--h5-font-size) !important;
+    font-weight: var(--h5-font-weight) !important;
+  }
+  .prose h6, .wmde-markdown h6 { 
+    font-family: var(--h6-font-family) !important;
+    font-size: var(--h6-font-size) !important;
+    font-weight: var(--h6-font-weight) !important;
+  }
+  .prose p, .wmde-markdown p { 
+    font-family: var(--p-font-family) !important;
+    font-size: var(--p-font-size) !important;
+    font-weight: var(--p-font-weight) !important;
+  }
+
+  /* 🔥 BUTTON COMPONENT TARGETING */
+  .button, .btn, button[class*="btn"], button[class*="Button"] {
+    font-family: var(--button-font-family) !important;
+    font-weight: var(--button-font-weight) !important;
+  }
+
+  /* 🔥 FORM ELEMENT TARGETING */
+  input[type="text"], 
+  input[type="email"], 
+  input[type="password"], 
+  input[type="search"],
+  input[type="url"],
+  input[type="tel"],
+  input[type="number"],
+  textarea, 
+  select {
+    font-family: var(--input-font-family) !important;
+  }
+}
+
+/* 🔥 RESPONSIVE FONT SIZES */
+@media (max-width: 768px) {
+  :root {
+    --h1-font-size: 1.875rem; /* Smaller on mobile */
+    --h2-font-size: 1.5rem;
+    --h3-font-size: 1.25rem;
+    --h4-font-size: 1.125rem;
+    --h5-font-size: 1rem;
+    --h6-font-size: 0.875rem;
+    --p-font-size: 0.875rem;
+  }
+}
+
+@media (max-width: 480px) {
+  :root {
+    --h1-font-size: 1.5rem; /* Even smaller on very small screens */
+    --h2-font-size: 1.25rem;
+    --h3-font-size: 1.125rem;
+    --h4-font-size: 1rem;
+    --h5-font-size: 0.875rem;
+    --h6-font-size: 0.875rem;
   }
 }
 
@@ -142,31 +393,6 @@
   color: inherit !important;
 }
 
-.wmde-markdown h1,
-.wmde-markdown h2,
-.wmde-markdown h3,
-.wmde-markdown h4,
-.wmde-markdown h5,
-.wmde-markdown h6 {
-  font-family: var(--font-secondary) !important;
-  color: inherit !important;
-  margin-top: 2rem !important;
-  margin-bottom: 1rem !important;
-}
-
-.wmde-markdown h1 { font-size: var(--h1-font-size) !important; }
-.wmde-markdown h2 { font-size: var(--h2-font-size) !important; }
-.wmde-markdown h3 { font-size: var(--h3-font-size) !important; }
-.wmde-markdown h4 { font-size: var(--h4-font-size) !important; }
-.wmde-markdown h5 { font-size: var(--h5-font-size) !important; }
-.wmde-markdown h6 { font-size: var(--h6-font-size) !important; }
-
-.wmde-markdown p {
-  margin-bottom: 1.5rem !important;
-  line-height: 1.8 !important;
-  font-size: var(--p-font-size) !important;
-}
-
 .wmde-markdown img {
   border-radius: 0.5rem !important;
   margin: 2rem auto !important;
@@ -218,8 +444,6 @@
   margin: 2rem 0 !important;
 }
 
-/* Add this CSS to your global styles (app.css or index.css) */
-
 /* RTL Support for Hebrew and Arabic content */
 .prose-rtl {
   direction: rtl;
@@ -234,11 +458,13 @@
 .prose-rtl h6 {
   text-align: right;
   direction: rtl;
+  font-family: var(--h1-font-family) !important; /* Use our custom heading fonts */
 }
 
 .prose-rtl p {
   text-align: right;
   direction: rtl;
+  font-family: var(--p-font-family) !important; /* Use our custom body font */
 }
 
 .prose-rtl ul,
@@ -309,12 +535,14 @@
 .markdown-body[dir="rtl"] h6 {
   text-align: right;
   direction: rtl;
+  font-family: var(--h1-font-family) !important;
 }
 
 .markdown-body[dir="rtl"] p {
   text-align: right;
   direction: rtl;
   unicode-bidi: embed;
+  font-family: var(--p-font-family) !important;
 }
 
 .markdown-body[dir="rtl"] ul,
@@ -342,3 +570,50 @@
   text-align: right;
   unicode-bidi: embed;
 }
+
+/* 🔥 THEME UPDATING: Disable transitions during theme changes */
+.theme-updating * {
+  transition: none !important;
+}
+
+/* 🔥 UTILITY CLASSES FOR SPECIAL CASES */
+.heading-display {
+  font-family: var(--h1-font-family) !important;
+  font-size: calc(var(--h1-font-size) * 1.5) !important;
+  font-weight: var(--h1-font-weight) !important;
+  line-height: 1.1 !important;
+}
+
+.heading-small {
+  font-family: var(--h6-font-family) !important;
+  font-size: var(--small-font-size) !important;
+  font-weight: var(--h6-font-weight) !important;
+}
+
+/* 🔥 SPECIAL COMPONENT TARGETING */
+.card-header h1, .card-header h2, .card-header h3 {
+  font-family: var(--card-title-font-family) !important;
+}
+
+.sidebar-title {
+  font-family: var(--nav-font-family) !important;
+  font-weight: var(--nav-font-weight) !important;
+}
+
+/* 🔥 ADMIN PAGE SPECIFIC OVERRIDES */
+.admin-page h1 {
+  font-family: var(--h1-font-family) !important;
+}
+
+.admin-page .card-title {
+  font-family: var(--card-title-font-family) !important;
+}
+
+/* 🔥 ARTICLE PAGE SPECIFIC OVERRIDES */
+.article-content h1 { font-family: var(--h1-font-family) !important; }
+.article-content h2 { font-family: var(--h2-font-family) !important; }
+.article-content h3 { font-family: var(--h3-font-family) !important; }
+.article-content h4 { font-family: var(--h4-font-family) !important; }
+.article-content h5 { font-family: var(--h5-font-family) !important; }
+.article-content h6 { font-family: var(--h6-font-family) !important; }
+.article-content p { font-family: var(--p-font-family) !important; }

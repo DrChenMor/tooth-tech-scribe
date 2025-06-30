@@ -30,10 +30,13 @@ import AnalyticsPage from './pages/AnalyticsPage';
 import AIAgentManagementPage from './pages/AIAgentManagementPage';
 import ArticlesManagementPage from './pages/ArticlesManagementPage';
 import ScrollToTop from './components/ScrollToTop'; // Add this import
+import { useGlobalTheme } from './hooks/useGlobalTheme';
+
 
 const queryClient = new QueryClient();
 
 function App() {
+  useGlobalTheme(); // ← Add this line!
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>

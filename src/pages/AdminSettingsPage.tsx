@@ -114,27 +114,34 @@ const AdminSettingsPage = () => {
   }, []);
 
   // Apply theme changes live as they are updated in the state
-  useEffect(() => {
-    Object.entries(theme).forEach(([key, value]) => {
-      if (value) {
-        // For fonts, wrap with quotes if not already
-        const finalValue = key.includes('font') && !value.includes("'") ? `'${value}'` : value;
-        document.documentElement.style.setProperty(key, finalValue);
-      }
-    });
-  }, [theme]);
+useEffect(() => {
+  // Only update in real-time for preview, global hook handles persistence
+  Object.entries(theme).forEach(([key, value]) => {
+    if (value) {
+      const finalValue = key.includes('font') && !value.includes("'") ? `'${value}'` : value;
+      document.documentElement.style.setProperty(key, finalValue);
+    }
+  });
+}, [theme]);
   
   const handleThemeChange = (key: keyof Theme, value: string) => {
     setTheme(prev => ({ ...prev, [key]: value }));
   };
   
-  const saveTheme = () => {
-    localStorage.setItem('app-theme', JSON.stringify(theme));
-    toast({
-      title: "Theme Saved",
-      description: "Your custom theme has been saved to your browser.",
-    });
-  };
+const saveTheme = () => {
+  localStorage.setItem('app-theme', JSON.stringify(theme));
+  
+  // Trigger storage event for other tabs
+  window.dispatchEvent(new StorageEvent('storage', {
+    key: 'app-theme',
+    newValue: JSON.stringify(theme)
+  }));
+  
+  toast({
+    title: "Theme Saved",
+    description: "Your custom theme has been applied globally across the website.",
+  });
+};
 
   const resetTheme = () => {
     localStorage.removeItem('app-theme');

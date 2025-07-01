@@ -27,7 +27,8 @@ const ArticleCard = ({ article, index }: ArticleCardProps) => {
   return (
     <div className="animate-fade-in article-card" style={{ animationDelay: `${(index + 1) * 100}ms` }}>
       <Link to={`/article/${article.slug}`} className="group block">
-        <div className="overflow-hidden rounded-lg mb-4">
+        {/* Image container with overlay badge */}
+        <div className="overflow-hidden rounded-lg mb-4 relative">
           <img 
             src={article.image_url || 'https://placehold.co/400x250/EEE/BDBDBD?text=Denti-AI'} 
             alt={article.title} 
@@ -35,13 +36,32 @@ const ArticleCard = ({ article, index }: ArticleCardProps) => {
             onError={handleImageError}
             onLoad={handleImageLoad}
           />
+          {/* Category badge overlay - clickable */}
+          {article.category && (
+            <div className="absolute top-3 left-3 z-10">
+              <Link 
+                to={`/category/${encodeURIComponent(article.category)}`}
+                onClick={(e) => e.stopPropagation()} // Prevent parent link from triggering
+                className="inline-block"
+              >
+                <Badge 
+                  variant="secondary" 
+                  className="bg-[hsl(210,40%,96.1%)]/90 backdrop-blur-sm text-foreground border border-white/20 hover:bg-[hsl(210,40%,88%)] hover:shadow-md transition-all duration-200 cursor-pointer"
+                >
+                  {article.category}
+                </Badge>
+              </Link>
+            </div>
+          )}
         </div>
+        
         <div className="py-4">
-          {article.category && <Badge variant="outline">{article.category}</Badge>}
-          <h3 className="text-xl font-serif font-bold mt-2 text-foreground group-hover:text-primary transition-colors">{article.title}</h3>
+          {/* Removed the category badge from here since it's now on the image */}
+          <h3 className="text-xl font-serif font-bold text-foreground group-hover:text-primary transition-colors">{article.title}</h3>
           <p className="mt-2 text-muted-foreground">{article.excerpt}</p>
-          {/* 🎯 REDUCED SPACING: Changed from mt-4 to mt-2 for tighter spacing */}
-          <div className="flex items-center mt-5 article-author-info">
+          
+          {/* Author/Date section with fixed spacing */}
+          <div className="flex items-center mt-2 article-author-info">
             <img 
               src={article.author_avatar_url || undefined} 
               alt={article.author_name || ''} 
@@ -50,9 +70,9 @@ const ArticleCard = ({ article, index }: ArticleCardProps) => {
                 e.currentTarget.style.display = 'none';
               }}
             />
-            <div className="text-sm space-y-0">
-              <p className="font-semibold text-foreground leading-none">{article.author_name}</p>
-              <p className="text-muted-foreground leading-none">{format(new Date(article.published_date), 'MMMM d, yyyy')}</p>
+            <div className="text-sm">
+              <p className="font-semibold text-foreground">{article.author_name}</p>
+              <p className="text-muted-foreground">{format(new Date(article.published_date), 'MMMM d, yyyy')}</p>
             </div>
           </div>
         </div>

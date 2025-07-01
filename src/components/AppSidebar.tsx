@@ -89,10 +89,12 @@ export function AppSidebar() {
         "[&_[data-sidebar='sidebar']]:rounded-tr-3xl", 
         "[&_[data-sidebar='sidebar']]:shadow-none",   
         "[&_[data-sidebar='sidebar']]:bg-blue-50",    
-        // 🎯 RESPONSIVE SVG STROKE: Lighter stroke on mobile/tablet
-        isMobile ? "[&_svg]:stroke-[1.2]" : "[&_svg]:stroke-[1.5]"
-     )}
-    >
+        // 🎯 MORE SPECIFIC: Target all SVGs with higher specificity
+        "[&_[data-sidebar='sidebar']_svg]:stroke-[1.2]", // Mobile-first approach
+        // 🎯 DESKTOP OVERRIDE: Only apply heavier stroke on larger screens
+        "lg:[&_[data-sidebar='sidebar']_svg]:stroke-[1.5]"
+      )}
+   >
       <SidebarHeader className="p-3"> {/* 🎯 RESTORED: Back to p-4 for better mobile spacing */}
         <Link 
           to="/" 

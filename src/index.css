@@ -17,7 +17,7 @@
     --popover: 0 0% 100%;
     --popover-foreground: 224 71% 4%;
 
-    --primary: 217 91% 60%; /* Bright blue */
+    --primary: 217 91% 34%; /* Bright blue */
     --primary-foreground: 0 0% 100%;
 
     --secondary: 220 14% 25%; /* Dark Gray */
@@ -34,16 +34,16 @@
 
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 217 91% 60%;
+    --ring: 217 91% 34%;
 
     --sidebar: 0 0% 100%; /* White sidebar */
     --sidebar-foreground: 224 71% 4%;
-    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary: 217 91% 34%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 210 40% 96.1%;
     --sidebar-accent-foreground: 222.2 47.4% 11.2%;
     --sidebar-border: 214.3 31.8% 91.4%;
-    --sidebar-ring: 217 91% 60%;
+    --sidebar-ring: 217 91% 34%;
 
     --radius: 0.5rem;
     
@@ -51,21 +51,21 @@
     --h1-font-family: "Playfair Display", serif;
     --h2-font-family: "Playfair Display", serif;
     --h3-font-family: "Playfair Display", serif;
-    --h4-font-family: "Playfair Display", serif;
-    --h5-font-family: "Playfair Display", serif;
-    --h6-font-family: "Playfair Display", serif;
-    --p-font-family: "Inter", sans-serif;
-    --body-font-family: "Inter", sans-serif;
-    --button-font-family: "Inter", sans-serif;
-    --input-font-family: "Inter", sans-serif;
-    --nav-font-family: "Inter", sans-serif;
+    --h4-font-family: "Source Sans Pro", sans-serif;
+    --h5-font-family: "Source Sans Pro", sans-serif;
+    --h6-font-family: "Source Sans Pro", sans-serif;
+    --p-font-family: "Source Sans Pro", sans-serif;
+    --body-font-family: "Source Sans Pro", sans-serif;
+    --button-font-family: "Source Sans Pro", sans-serif;
+    --input-font-family: "Source Sans Pro", sans-serif;
+    --nav-font-family: "Source Sans Pro", sans-serif;
     --card-title-font-family: "Playfair Display", serif;
     
     /* Font Sizes */
-    --h1-font-size: 2.25rem;
-    --h2-font-size: 1.875rem;
+    --h1-font-size: 2.5rem;
+    --h2-font-size: 2rem;
     --h3-font-size: 1.5rem;
-    --h4-font-size: 1.25rem;
+    --h4-font-size: 1.5rem;
     --h5-font-size: 1.125rem;
     --h6-font-size: 1rem;
     --p-font-size: 1rem;
@@ -74,14 +74,14 @@
     
     /* Font Weights */
     --h1-font-weight: 700;
-    --h2-font-weight: 600;
-    --h3-font-weight: 600;
+    --h2-font-weight: 500;
+    --h3-font-weight: 500;
     --h4-font-weight: 500;
-    --h5-font-weight: 500;
-    --h6-font-weight: 500;
-    --p-font-weight: 400;
-    --button-font-weight: 500;
-    --nav-font-weight: 500;
+    --h5-font-weight: 400;
+    --h6-font-weight: 400;
+    --p-font-weight: 300;
+    --button-font-weight: 400;
+    --nav-font-weight: 700;
   }
 }
 

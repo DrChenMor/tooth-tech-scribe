@@ -168,7 +168,7 @@ const Index = () => {
                           {article.category && <Badge variant="outline">{article.category}</Badge>}
                           <h2 className="text-3xl md:text-4xl font-serif font-bold mt-2 text-foreground group-hover:text-primary transition-colors">{article.title}</h2>
                           <p className="mt-4 text-muted-foreground">{article.excerpt}</p>
-                           <div className="flex items-center mt-4">
+                          <div className="flex items-center mt-4 article-author-info">
                             <img src={article.author_avatar_url || undefined} alt={article.author_name || ''} className="w-10 h-10 rounded-full mr-3" />
                             <div className="text-sm">
                               <p className="font-semibold text-foreground">{article.author_name}</p>
@@ -180,8 +180,11 @@ const Index = () => {
                     </CarouselItem>
                   ))}
                 </CarouselContent>
-                <CarouselPrevious className="left-4 bottom-4 top-auto translate-y-0" />
-                <CarouselNext className="left-16 bottom-4 top-auto translate-y-0" />
+                {/* Custom arrow container: bottom right, side by side */}
+                <div className="absolute flex gap-2 right-4 bottom-4 z-10">
+                  <CarouselPrevious className="static relative translate-y-0 left-0 top-0 bottom-0" />
+                  <CarouselNext className="static relative translate-y-0 left-0 top-0 bottom-0" />
+                </div>
               </Carousel>
             </div>
           )}

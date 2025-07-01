@@ -335,6 +335,44 @@
   }
 }
 
+/* 🔥 HOMEPAGE HERO TITLE - Specific override */
+.homepage-hero-title {
+  /* Mobile: Keep default size */
+  font-size: var(--h1-font-size, 2.25rem);
+  
+  /* Tablet (768px) and up: Your custom size */
+  @media (min-width: 768px) {
+    font-size: 3.25rem !important;
+    line-height: 1.1 !important;
+  }
+  
+  /* Large desktop (1024px) and up: Even bigger if you want */
+  @media (min-width: 1024px) {
+    font-size: 3.5rem !important;
+    line-height: 1.05 !important;
+  }
+  
+  /* Extra large (1280px) and up: Maximum impact */
+  @media (min-width: 1280px) {
+    font-size: 4rem !important;
+    line-height: 1.02 !important;
+  }
+}
+
+/* 🔥 ALTERNATIVE: Use container queries for more precise control */
+@container (min-width: 768px) {
+  .homepage-hero-title {
+    font-size: 3.5rem !important;
+  }
+}
+
+/* 🔥 FALLBACK: Target by position if you don't want to modify React code */
+.container .text-center h1:first-child {
+  @media (min-width: 768px) {
+    font-size: 3.5rem !important;
+  }
+}
+
 /* Enhanced sidebar hover animations */
 .group[data-collapsible="icon"]:hover [data-sidebar="sidebar"] {
   transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -607,6 +645,32 @@
 
 .admin-page .card-title {
   font-family: var(--card-title-font-family) !important;
+}
+
+/* Add this to your src/index.css file - more specific selectors to override the global paragraph margin */
+
+/* Target the specific author info section */
+.article-author-info p {
+  margin: 0 !important;
+  margin-bottom: 0 !important;
+  margin-top: 0 !important;
+}
+
+/* Even more specific targeting */
+.article-card .article-author-info p {
+  margin: 0 !important;
+}
+
+/* Alternative: Target by text content classes */
+.article-card .text-sm p {
+  margin: 0 !important;
+}
+
+/* Nuclear option - target all paragraphs in article cards */
+.article-card p.font-semibold,
+.article-card p.text-muted-foreground {
+  margin: 0 !important;
+  padding: 0 !important;
 }
 
 /* 🔥 ARTICLE PAGE SPECIFIC OVERRIDES */

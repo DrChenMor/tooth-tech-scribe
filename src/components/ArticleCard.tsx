@@ -1,4 +1,3 @@
-
 import { Link } from 'react-router-dom';
 import { Article } from '@/types';
 import { format } from 'date-fns';
@@ -26,7 +25,7 @@ const ArticleCard = ({ article, index }: ArticleCardProps) => {
   }
 
   return (
-    <div className="animate-fade-in" style={{ animationDelay: `${(index + 1) * 100}ms` }}>
+    <div className="animate-fade-in article-card" style={{ animationDelay: `${(index + 1) * 100}ms` }}>
       <Link to={`/article/${article.slug}`} className="group block">
         <div className="overflow-hidden rounded-lg mb-4">
           <img 
@@ -41,7 +40,8 @@ const ArticleCard = ({ article, index }: ArticleCardProps) => {
           {article.category && <Badge variant="outline">{article.category}</Badge>}
           <h3 className="text-xl font-serif font-bold mt-2 text-foreground group-hover:text-primary transition-colors">{article.title}</h3>
           <p className="mt-2 text-muted-foreground">{article.excerpt}</p>
-          <div className="flex items-center mt-4">
+          {/* 🎯 REDUCED SPACING: Changed from mt-4 to mt-2 for tighter spacing */}
+          <div className="flex items-center mt-5 article-author-info">
             <img 
               src={article.author_avatar_url || undefined} 
               alt={article.author_name || ''} 
@@ -50,9 +50,9 @@ const ArticleCard = ({ article, index }: ArticleCardProps) => {
                 e.currentTarget.style.display = 'none';
               }}
             />
-            <div className="text-sm">
-              <p className="font-semibold text-foreground">{article.author_name}</p>
-              <p className="text-muted-foreground">{format(new Date(article.published_date), 'MMMM d, yyyy')}</p>
+            <div className="text-sm space-y-0">
+              <p className="font-semibold text-foreground leading-none">{article.author_name}</p>
+              <p className="text-muted-foreground leading-none">{format(new Date(article.published_date), 'MMMM d, yyyy')}</p>
             </div>
           </div>
         </div>

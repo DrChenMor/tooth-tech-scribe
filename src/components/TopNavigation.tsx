@@ -15,9 +15,9 @@ const TopNavigation = () => {
   ];
 
   return (
-    <nav className="bg-background py-4 px-6 border-b">
+    <nav className="bg-background py-4 px-10 border-b">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-6">
           {/* Hamburger Menu Trigger for mobile/tablet */}
           <div className="block lg:hidden">
             <SidebarTrigger />
@@ -73,7 +73,7 @@ const TopNavigation = () => {
           </div>
 
           {/* Subscribe Button */}
-          <Button className="bg-primary hover:bg-primary/90 text-white rounded-lg font-medium p-2 lg:px-6">
+          <Button className="bg-primary hover:bg-primary/90 text-white rounded-lg font-medium p-3 lg:px-6">
             <Mail className="w-4 h-4 lg:mr-2" />
             <span className="hidden lg:inline">Subscribe</span>
           </Button>

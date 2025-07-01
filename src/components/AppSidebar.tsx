@@ -63,11 +63,9 @@ export function AppSidebar() {
     { title: 'Contact', href: '/contact', icon: Mail },
   ];
 
-  // 🔥 KEEP ORIGINAL STYLING: Restore the exact original button classes
+  // 🔧 FIXED: Removed problematic touch styles that interfere with sidebar trigger
   const buttonClasses = cn(
-    !isMobile && "justify-center gap-0 group-hover:justify-start group-hover:gap-3",
-    // 🔥 ONLY ADD: Touch improvements without changing visual style
-    "touch-manipulation select-none"
+    !isMobile && "justify-center gap-0 group-hover:justify-start group-hover:gap-3"
   );
   
   const textClasses = cn(
@@ -94,21 +92,27 @@ export function AppSidebar() {
         "[&_svg]:stroke-[1.5]"
       )}
     >
-      <SidebarHeader className="p-4">
+      <SidebarHeader className="p-3"> {/* 🎯 REDUCED: Changed from p-4 to p-2 to reduce padding */}
         <Link 
           to="/" 
           onClick={handleLinkClick} 
-          className={headerClasses}
-          // 🔥 ONLY ADD: Touch improvements without visual changes
-          style={{ 
-            WebkitTapHighlightColor: 'transparent',
-            touchAction: 'manipulation'
-          }}
+          className={cn(headerClasses, "items-end p-2")} // 🎯 ADDED: p-2 for consistent inner padding
         >
           <img 
             src="/sidebar-icon.png"
             alt="DentAI logo"
-            className="w-8 h-8"
+            className="w-8 h-8 mt-1" // 🎯 Better positioning: use margin-top instead of transform
+            // 🚀 PERFORMANCE OPTIMIZATIONS (removed problematic touch styles)
+            loading="eager"
+            decoding="async"
+            fetchPriority="high"
+            sizes="32px"
+            onError={(e) => {
+              console.warn('Sidebar icon failed to load');
+            }}
+            onLoad={() => {
+              console.log('Sidebar icon loaded successfully');
+            }}
           />
           <span className={textClasses}>DentAI</span>
         </Link>
@@ -123,11 +127,6 @@ export function AppSidebar() {
                   asChild
                   isActive={location.pathname === item.href}
                   className={buttonClasses}
-                  // 🔥 ONLY ADD: Touch improvements
-                  style={{ 
-                    WebkitTapHighlightColor: 'transparent',
-                    touchAction: 'manipulation'
-                  }}
                 >
                   <Link to={item.href} onClick={handleLinkClick}>
                     <item.icon className="w-8 h-8" /> 
@@ -141,14 +140,19 @@ export function AppSidebar() {
 
         <SidebarGroup>
           {!isMobile && (
-            <div className="mb-5 border-t border-gray-300 group-hover:hidden" />
+            <div className="mb-6 border-t border-gray-300 group-hover:hidden" />
           )}
-<SidebarGroupLabel className={cn(
-  textClasses,
-  "text-sm font-medium" // Changed from default text-xs to text-sm, and font-light to font-medium
-)}>
-  Categories
-</SidebarGroupLabel>          <SidebarMenu>
+          <SidebarGroupLabel className={cn(
+            textClasses,
+            "text-sm font-medium hover:text-primary transition-colors cursor-pointer" // 🔗 ADDED: Clickable styling
+          )}
+          asChild // 🔗 ADDED: Allow SidebarGroupLabel to render as child component
+          >
+            <Link to="/categories" onClick={handleLinkClick}> {/* 🔗 ADDED: Link wrapper */}
+              Categories
+            </Link>
+          </SidebarGroupLabel>
+          <SidebarMenu>
             {isLoadingCategories ? (
               [...Array(3)].map((_, i) => <Skeleton key={i} className="h-8 w-full" />)
             ) : (
@@ -158,11 +162,6 @@ export function AppSidebar() {
                     asChild
                     isActive={location.pathname === `/category/${category}`}
                     className={buttonClasses}
-                    // 🔥 ONLY ADD: Touch improvements
-                    style={{ 
-                      WebkitTapHighlightColor: 'transparent',
-                      touchAction: 'manipulation'
-                    }}
                   >
                     <Link to={`/category/${category}`} onClick={handleLinkClick}>
                       {getCategoryIcon(category)}
@@ -183,10 +182,6 @@ export function AppSidebar() {
               <SidebarMenuButton 
                 asChild 
                 className={cn("w-full", buttonClasses)}
-                style={{ 
-                  WebkitTapHighlightColor: 'transparent',
-                  touchAction: 'manipulation'
-                }}
               >
                 <Link to="/admin" onClick={handleLinkClick}>
                   <User className="w-8 h-8" />
@@ -197,10 +192,6 @@ export function AppSidebar() {
             <SidebarMenuButton 
               asChild 
               className={cn("w-full", buttonClasses)}
-              style={{ 
-                WebkitTapHighlightColor: 'transparent',
-                touchAction: 'manipulation'
-              }}
             >
               <button onClick={() => { handleLogout(); handleLinkClick(); }} className="w-full">
                 <LogOut className="w-8 h-8" />
@@ -212,10 +203,6 @@ export function AppSidebar() {
           <SidebarMenuButton 
             asChild 
             className={cn("w-full", buttonClasses)}
-            style={{ 
-              WebkitTapHighlightColor: 'transparent',
-              touchAction: 'manipulation'
-            }}
           >
             <Link to="/auth" onClick={handleLinkClick}>
               <LogIn className="w-8 h-8" />

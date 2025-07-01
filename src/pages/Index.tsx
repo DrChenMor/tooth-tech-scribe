@@ -138,7 +138,7 @@ const Index = () => {
     <div className="flex flex-col flex-grow">
       <main className="flex-grow">
         <div className="container mx-auto px-6 lg:px-12">
-          <div className="pt-12 pb-16 text-center animate-fade-in">
+          <div className="pt-16 pb-16 text-center animate-fade-in">
             <h1 className="text-6xl md:text-6xl font-serif font-bold leading-tight text-balance">
               Exploring the Future of Dentistry
             </h1>

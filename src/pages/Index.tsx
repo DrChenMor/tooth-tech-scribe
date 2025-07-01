@@ -189,38 +189,42 @@ const Index = () => {
             </div>
           )}
           
-          {/* Category Filters */}
-          <div className="flex justify-center flex-wrap gap-2 mb-12">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setSelectedCategory(null)}
-              className={cn(
-                "rounded-full",
-                !selectedCategory ? 'bg-primary text-primary-foreground hover:bg-primary/90' : 'hover:bg-accent'
-              )}
-            >
-              All
-            </Button>
-            {isLoadingCategories ? (
-              [...Array(3)].map((_, i) => <Skeleton key={i} className="h-8 w-24 rounded-full" />)
-            ) : (
-              categories?.map((category) => (
-                <Button
-                  key={category}
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setSelectedCategory(category)}
-                  className={cn(
-                    "rounded-full",
-                    selectedCategory === category ? 'bg-primary text-primary-foreground hover:bg-primary/90' : 'hover:bg-accent'
-                  )}
-                >
-                  {category}
-                </Button>
-              ))
-            )}
-          </div>
+{/* Category Filters */}
+<div className="flex justify-center flex-wrap gap-3 mb-12">
+  <Button
+    variant="ghost"
+    size="default"
+    onClick={() => setSelectedCategory(null)}
+    className={cn(
+      "rounded-full px-5 py-2 h-10 text-base font-medium transition-all duration-200",
+      !selectedCategory
+        ? 'bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground shadow-sm'
+        : 'bg-[hsl(210,40%,96.1%)] text-foreground hover:bg-[hsl(210,40%,90%)] border border-border/50'
+    )}
+  >
+    All
+  </Button>
+  {isLoadingCategories ? (
+    [...Array(3)].map((_, i) => <Skeleton key={i} className="h-10 w-24 rounded-full" />)
+  ) : (
+    categories?.map((category) => (
+      <Button
+        key={category}
+        variant="ghost"
+        size="default"
+        onClick={() => setSelectedCategory(category)}
+        className={cn(
+          "rounded-full px-5 py-2 h-10 text-base font-medium transition-all duration-200",
+          selectedCategory === category 
+        ? 'bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground shadow-sm'
+            : 'bg-[hsl(210,40%,96.1%)] text-foreground hover:bg-[hsl(210,40%,90%)] border border-border/50'
+        )}
+      >
+        {category}
+      </Button>
+    ))
+  )}
+</div>
           
           {/* Section title for article grid */}
           {otherArticles.length > 0 && (

@@ -61,7 +61,7 @@ const ArticleCard = ({ article, index }: ArticleCardProps) => {
           <p className="mt-2 text-muted-foreground">{article.excerpt}</p>
           
           {/* Author/Date section with fixed spacing */}
-          <div className="flex items-center mt-2 article-author-info">
+          <div className="flex items-center mt-6 article-author-info">
             <img 
               src={article.author_avatar_url || undefined} 
               alt={article.author_name || ''} 

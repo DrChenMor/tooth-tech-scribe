@@ -139,9 +139,11 @@ const Index = () => {
       <main className="flex-grow">
         <div className="container mx-auto px-6 lg:px-12">
           <div className="pt-12 pb-16 text-center animate-fade-in">
-            <h1 className="text-5xl md:text-6xl font-serif font-bold leading-tight">Exploring the Future of Dentistry</h1>
+            <h1 className="text-6xl md:text-6xl font-serif font-bold leading-tight text-balance">
+              Exploring the Future of Dentistry
+            </h1>
             <p className="mt-4 max-w-2xl mx-auto text-lg text-muted-foreground">
-              Your source for the latest in AI and Dentistry Technology, from industry news to groundbreaking research and clinical tools.
+              Your source for the latest in AI and Dentistry Technology.
             </p>
           </div>
 

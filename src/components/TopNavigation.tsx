@@ -1,6 +1,5 @@
-
 import { Link, useLocation } from 'react-router-dom';
-import { Mail, Search } from 'lucide-react';
+import { Mail, Search, Menu } from 'lucide-react'; // 🍔 ADDED: Menu icon for hamburger
 import { Button } from '@/components/ui/button';
 import SearchCommand from './SearchCommand';
 import { SidebarTrigger } from './ui/sidebar';
@@ -15,16 +14,19 @@ const TopNavigation = () => {
   ];
 
   return (
-    <nav className="bg-background py-4 px-10 border-b">
+    <nav className="bg-background py-4 px-6 border-b">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
-        <div className="flex items-center gap-6">
-          {/* Hamburger Menu Trigger for mobile/tablet */}
+        <div className="flex items-center gap-4">
+          {/* 🍔 CUSTOM HAMBURGER: Replace SidebarTrigger with custom hamburger */}
           <div className="block lg:hidden">
-            <SidebarTrigger />
+            <SidebarTrigger className="mt-1"> {/* 🎯 POSITIONED: mt-1 to move it down slightly */}
+              <Menu className="h-6 w-6" /> {/* 🍔 HAMBURGER: Using Menu icon instead of PanelLeft */}
+              <span className="sr-only">Toggle Sidebar</span>
+            </SidebarTrigger>
           </div>
 
-          {/* Logo */}
-          <Link to="/" className="text-2xl font-bold text-foreground">
+          {/* 🎨 DARK BLUE COLOR: Changed text color to match sidebar blue */}
+          <Link to="/" className="text-2xl font-bold text-blue-900"> {/* Changed from text-foreground to text-blue-900 */}
             DentAI
           </Link>
         </div>

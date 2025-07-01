@@ -89,14 +89,20 @@ export function AppSidebar() {
         "[&_[data-sidebar='sidebar']]:rounded-tr-3xl", 
         "[&_[data-sidebar='sidebar']]:shadow-none",   
         "[&_[data-sidebar='sidebar']]:bg-blue-50",    
-        "[&_svg]:stroke-[1.5]"
-      )}
+        // 🎯 RESPONSIVE SVG STROKE: Lighter stroke on mobile/tablet
+        isMobile ? "[&_svg]:stroke-[1.2]" : "[&_svg]:stroke-[1.5]"
+     )}
     >
-      <SidebarHeader className="p-3"> {/* 🎯 REDUCED: Changed from p-4 to p-2 to reduce padding */}
+      <SidebarHeader className="p-3"> {/* 🎯 RESTORED: Back to p-4 for better mobile spacing */}
         <Link 
           to="/" 
           onClick={handleLinkClick} 
-          className={cn(headerClasses, "items-end p-2")} // 🎯 ADDED: p-2 for consistent inner padding
+          className={cn(
+            headerClasses, 
+            "items-end",
+            // 🎯 MOBILE SPECIFIC: Better padding for mobile vs desktop
+            isMobile ? "px-4 py-2" : "p-2"
+          )}
         >
           <img 
             src="/sidebar-icon.png"
@@ -120,7 +126,7 @@ export function AppSidebar() {
 
       <SidebarContent className="p-4">
         <SidebarGroup>
-          <SidebarMenu>
+          <SidebarMenu className="space-y-1"> {/* 🎯 SPACING: Added space-y-2 for gap between menu items */}
             {mainNav.map((item) => (
               <SidebarMenuItem key={item.title}>
                 <SidebarMenuButton
@@ -140,7 +146,11 @@ export function AppSidebar() {
 
         <SidebarGroup>
           {!isMobile && (
-            <div className="mb-6 border-t border-gray-300 group-hover:hidden" />
+            <div className="mb-5 border-t border-gray-300 group-hover:hidden" />
+          )}
+          {/* 🎯 MOBILE/TABLET: Smaller gap between main nav and categories */}
+          {isMobile && (
+            <div className="mb-2 border-t border-gray-300" />
           )}
           <SidebarGroupLabel className={cn(
             textClasses,
@@ -152,7 +162,7 @@ export function AppSidebar() {
               Categories
             </Link>
           </SidebarGroupLabel>
-          <SidebarMenu>
+          <SidebarMenu className="space-y-1"> {/* 🎯 SPACING: Added space-y-2 for category menu items */}
             {isLoadingCategories ? (
               [...Array(3)].map((_, i) => <Skeleton key={i} className="h-8 w-full" />)
             ) : (
@@ -175,7 +185,7 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="p-4 flex flex-col gap-2">
+      <SidebarFooter className="p-4 flex flex-col gap-3"> {/* 🎯 SPACING: Increased gap from gap-2 to gap-3 */}
         {user ? (
           <>
             {isAdmin && (

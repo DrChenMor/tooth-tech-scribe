@@ -190,25 +190,57 @@ const Sidebar = React.forwardRef<
       )
     }
 
-    if (isMobile) {
-      return (
-        <Sheet open={openMobile} onOpenChange={setOpenMobile} {...props}>
-          <SheetContent
-            data-sidebar="sidebar"
-            data-mobile="true"
-            className="w-[--sidebar-width] bg-white p-0 text-sidebar-foreground [&>button]:hidden"
-            style={
-              {
-                "--sidebar-width": SIDEBAR_WIDTH_MOBILE,
-              } as React.CSSProperties
-            }
-            side={side}
-          >
-            <div className="flex h-full w-full flex-col bg-white">{children}</div>
-          </SheetContent>
-        </Sheet>
-      )
-    }
+    
+if (isMobile) {
+  return (
+    <Sheet open={openMobile} onOpenChange={setOpenMobile} {...props}>
+      <SheetContent
+        data-sidebar="sidebar"
+        data-mobile="true"
+        className={cn(
+          "w-[--sidebar-width] p-0 [&>button]:hidden",
+          // 🔥 CRITICAL FIX: Override ALL Sheet default styling
+          "!bg-blue-50 !text-blue-900 !rounded-tr-3xl !border-0",
+          // 🔥 FORCE: Remove any conflicting styles from Sheet
+          "shadow-none outline-none",
+          // 🔥 ENSURE: Proper positioning and overflow
+          "overflow-hidden"
+        )}
+        style={
+          {
+            "--sidebar-width": SIDEBAR_WIDTH_MOBILE,
+            // 🔥 FORCE: Override any CSS custom properties
+            backgroundColor: 'rgb(239 246 255)', // blue-50
+            borderTopRightRadius: '1.5rem', // rounded-tr-3xl
+            border: 'none'
+          } as React.CSSProperties
+        }
+        side={side}
+      >
+        <div
+          data-sidebar="sidebar"
+          className={cn(
+            "flex h-full w-full flex-col",
+            // 🔥 MATCH: Same styling as parent but without border
+            "bg-blue-50 text-blue-900",
+            // 🔥 REMOVE: Border that might show behind rounded corner
+            "border-0",
+            // 🔥 ENSURE: Proper overflow handling
+            "overflow-hidden rounded-tr-3xl"
+          )}
+          style={{
+            // 🔥 FORCE: Inline styles to override any conflicting CSS
+            backgroundColor: 'rgb(239 246 255)', // blue-50
+            borderTopRightRadius: '1.5rem', // rounded-tr-3xl
+            border: 'none'
+          }}
+        >
+          {children}
+        </div>
+      </SheetContent>
+    </Sheet>
+  )
+}
 
     return (
       <div
@@ -269,6 +301,11 @@ const SidebarTrigger = React.forwardRef<
         onClick?.(event)
         toggleSidebar()
       }}
+      // 🔥 ONLY ADD: Touch improvements without visual changes
+      style={{ 
+        WebkitTapHighlightColor: 'transparent',
+        touchAction: 'manipulation'
+      }}
       {...props}
     >
       <PanelLeft />
@@ -301,6 +338,11 @@ const SidebarRail = React.forwardRef<
         "[[data-side=right][data-collapsible=offcanvas]_&]:-left-2",
         className
       )}
+      // 🔥 ONLY ADD: Touch improvements without visual changes
+      style={{ 
+        WebkitTapHighlightColor: 'transparent',
+        touchAction: 'manipulation'
+      }}
       {...props}
     />
   )
@@ -457,6 +499,11 @@ const SidebarGroupAction = React.forwardRef<
         "after:absolute after:-inset-2 after:lg:hidden",
         className
       )}
+      // 🔥 ONLY ADD: Touch improvements without visual changes
+      style={{ 
+        WebkitTapHighlightColor: 'transparent',
+        touchAction: 'manipulation'
+      }}
       {...props}
     />
   )
@@ -483,7 +530,7 @@ const SidebarMenu = React.forwardRef<
   <ul
     ref={ref}
     data-sidebar="menu"
-    className={cn("flex w-full min-w-0 flex-col gap-1", className)}
+    className={cn("flex w-full min-w-0 flex-col gap-2", className)}
     {...props}
   />
 ))
@@ -554,6 +601,11 @@ const SidebarMenuButton = React.forwardRef<
         data-size={size}
         data-active={isActive}
         className={cn(sidebarMenuButtonVariants({ variant, size }), className)}
+        // 🔥 ONLY ADD: Touch improvements without visual changes
+        style={{ 
+          WebkitTapHighlightColor: 'transparent',
+          touchAction: 'manipulation'
+        }}
         {...props}
       />
     )
@@ -607,6 +659,11 @@ const SidebarMenuAction = React.forwardRef<
           "group-focus-within/menu-item:opacity-100 group-hover/menu-item:opacity-100 data-[state=open]:opacity-100 peer-data-[active=true]/menu-button:text-sidebar-accent-foreground lg:opacity-0",
         className
       )}
+      // 🔥 ONLY ADD: Touch improvements without visual changes
+      style={{ 
+        WebkitTapHighlightColor: 'transparent',
+        touchAction: 'manipulation'
+      }}
       {...props}
     />
   )
@@ -716,6 +773,11 @@ const SidebarMenuSubButton = React.forwardRef<
         size === "md" && "text-sm",
         className
       )}
+      // 🔥 ONLY ADD: Touch improvements without visual changes
+      style={{ 
+        WebkitTapHighlightColor: 'transparent',
+        touchAction: 'manipulation'
+      }}
       {...props}
     />
   )

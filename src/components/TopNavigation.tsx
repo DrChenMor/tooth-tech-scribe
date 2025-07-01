@@ -39,9 +39,11 @@ const TopNavigation = () => {
                 location.pathname === item.href
                   ? 'text-primary'
                   : 'text-muted-foreground'
-              }`}
-            >
-              {item.title}
+      } 
+      text-sm md:text-base lg:text-md`} // 🔥 RESPONSIVE TEXT SIZES
+      // text-sm on small screens, text-base on tablet (md), text-lg on desktop (lg)
+    >
+      {item.title}
             </Link>
           ))}
         </div>

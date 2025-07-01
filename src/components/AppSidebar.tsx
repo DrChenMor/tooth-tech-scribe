@@ -63,11 +63,20 @@ export function AppSidebar() {
     { title: 'Contact', href: '/contact', icon: Mail },
   ];
 
-  const buttonClasses = cn(!isMobile && "justify-center gap-0 group-hover:justify-start group-hover:gap-3");
-  const textClasses = cn(isMobile ? "inline-block" : "hidden group-hover:inline-block", "font-light");
+  // 🔥 KEEP ORIGINAL STYLING: Restore the exact original button classes
+  const buttonClasses = cn(
+    !isMobile && "justify-center gap-0 group-hover:justify-start group-hover:gap-3",
+    // 🔥 ONLY ADD: Touch improvements without changing visual style
+    "touch-manipulation select-none"
+  );
+  
+  const textClasses = cn(
+    isMobile ? "inline-block" : "hidden group-hover:inline-block", 
+    "font-light"
+  );
   
   const headerClasses = cn(
-    "flex items-center gap-2 text-xl font-light", // FIX #2: Removed `text-foreground` to allow inheritance
+    "flex items-center gap-2 text-xl font-light",
     isMobile 
       ? "justify-start px-4" 
       : "justify-center px-2 group-hover:justify-start group-hover:px-5"
@@ -78,7 +87,7 @@ export function AppSidebar() {
       collapsible="icon" 
       className={cn(
         "border-none", 
-        "text-blue-900", // FIX #1: Set global dark blue color for all icons and text
+        "text-blue-900",
         "[&_[data-sidebar='sidebar']]:rounded-tr-3xl", 
         "[&_[data-sidebar='sidebar']]:shadow-none",   
         "[&_[data-sidebar='sidebar']]:bg-blue-50",    
@@ -86,16 +95,25 @@ export function AppSidebar() {
       )}
     >
       <SidebarHeader className="p-4">
-        <Link to="/" onClick={handleLinkClick} className={headerClasses}>
+        <Link 
+          to="/" 
+          onClick={handleLinkClick} 
+          className={headerClasses}
+          // 🔥 ONLY ADD: Touch improvements without visual changes
+          style={{ 
+            WebkitTapHighlightColor: 'transparent',
+            touchAction: 'manipulation'
+          }}
+        >
           <img 
             src="/sidebar-icon.png"
             alt="DentAI logo"
             className="w-8 h-8"
           />
-            {/* FIX #2: Removed inline style to allow inheritance */ }
-            <span className={textClasses}>DentAI</span>
+          <span className={textClasses}>DentAI</span>
         </Link>
       </SidebarHeader>
+
       <SidebarContent className="p-4">
         <SidebarGroup>
           <SidebarMenu>
@@ -105,22 +123,32 @@ export function AppSidebar() {
                   asChild
                   isActive={location.pathname === item.href}
                   className={buttonClasses}
+                  // 🔥 ONLY ADD: Touch improvements
+                  style={{ 
+                    WebkitTapHighlightColor: 'transparent',
+                    touchAction: 'manipulation'
+                  }}
                 >
-                    <Link to={item.href} onClick={handleLinkClick}>
-                      <item.icon className="w-8 h-8" /> 
-                      <span className={textClasses}>{item.title}</span>
-                    </Link>
+                  <Link to={item.href} onClick={handleLinkClick}>
+                    <item.icon className="w-8 h-8" /> 
+                    <span className={textClasses}>{item.title}</span>
+                  </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             ))}
           </SidebarMenu>
         </SidebarGroup>
+
         <SidebarGroup>
-            {!isMobile && (
-              <div className="mb-5 border-t border-gray-300 group-hover:hidden" />
-            )}
-            <SidebarGroupLabel className={textClasses}>Categories</SidebarGroupLabel>
-            <SidebarMenu>
+          {!isMobile && (
+            <div className="mb-5 border-t border-gray-300 group-hover:hidden" />
+          )}
+<SidebarGroupLabel className={cn(
+  textClasses,
+  "text-sm font-medium" // Changed from default text-xs to text-sm, and font-light to font-medium
+)}>
+  Categories
+</SidebarGroupLabel>          <SidebarMenu>
             {isLoadingCategories ? (
               [...Array(3)].map((_, i) => <Skeleton key={i} className="h-8 w-full" />)
             ) : (
@@ -130,6 +158,11 @@ export function AppSidebar() {
                     asChild
                     isActive={location.pathname === `/category/${category}`}
                     className={buttonClasses}
+                    // 🔥 ONLY ADD: Touch improvements
+                    style={{ 
+                      WebkitTapHighlightColor: 'transparent',
+                      touchAction: 'manipulation'
+                    }}
                   >
                     <Link to={`/category/${category}`} onClick={handleLinkClick}>
                       {getCategoryIcon(category)}
@@ -142,18 +175,33 @@ export function AppSidebar() {
           </SidebarMenu>
         </SidebarGroup>
       </SidebarContent>
+
       <SidebarFooter className="p-4 flex flex-col gap-2">
         {user ? (
           <>
             {isAdmin && (
-              <SidebarMenuButton asChild className={cn("w-full", buttonClasses)}>
+              <SidebarMenuButton 
+                asChild 
+                className={cn("w-full", buttonClasses)}
+                style={{ 
+                  WebkitTapHighlightColor: 'transparent',
+                  touchAction: 'manipulation'
+                }}
+              >
                 <Link to="/admin" onClick={handleLinkClick}>
                   <User className="w-8 h-8" />
                   <span className={textClasses}>Admin</span>
                 </Link>
               </SidebarMenuButton>
             )}
-            <SidebarMenuButton asChild className={cn("w-full", buttonClasses)}>
+            <SidebarMenuButton 
+              asChild 
+              className={cn("w-full", buttonClasses)}
+              style={{ 
+                WebkitTapHighlightColor: 'transparent',
+                touchAction: 'manipulation'
+              }}
+            >
               <button onClick={() => { handleLogout(); handleLinkClick(); }} className="w-full">
                 <LogOut className="w-8 h-8" />
                 <span className={textClasses}>Logout</span>
@@ -161,7 +209,14 @@ export function AppSidebar() {
             </SidebarMenuButton>
           </>
         ) : (
-          <SidebarMenuButton asChild className={cn("w-full", buttonClasses)}>
+          <SidebarMenuButton 
+            asChild 
+            className={cn("w-full", buttonClasses)}
+            style={{ 
+              WebkitTapHighlightColor: 'transparent',
+              touchAction: 'manipulation'
+            }}
+          >
             <Link to="/auth" onClick={handleLinkClick}>
               <LogIn className="w-8 h-8" />
               <span className={textClasses}>Login</span>

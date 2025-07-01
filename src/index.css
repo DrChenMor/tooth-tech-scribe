@@ -373,56 +373,169 @@
   }
 }
 
-/* Enhanced sidebar hover animations */
-.group[data-collapsible="icon"]:hover [data-sidebar="sidebar"] {
-  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+/* 🔥 MOBILE SIDEBAR ENHANCEMENTS */
+
+/* Enhanced sidebar hover animations - UNIFIED for mobile and desktop */
+.group[data-collapsible="icon"] [data-sidebar="sidebar"],
+.group [data-sidebar="sidebar"][data-mobile="true"] {
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
-.group[data-collapsible="icon"] [data-sidebar="menu-button"] span {
-  opacity: 0;
-  transition: opacity 0.2s ease-in-out;
+/* 🔥 UNIFIED TEXT VISIBILITY: Same behavior on mobile and desktop */
+.group[data-collapsible="icon"] [data-sidebar="menu-button"] span,
+.group [data-sidebar="sidebar"][data-mobile="true"] [data-sidebar="menu-button"] span {
+  transition: opacity 0.2s ease-in-out !important;
 }
 
-.group[data-collapsible="icon"]:hover [data-sidebar="menu-button"] span {
-  opacity: 1;
-  transition-delay: 0.1s;
-}
-
-.group[data-collapsible="icon"] [data-sidebar="group-label"] {
-  opacity: 0;
-  transition: opacity 0.2s ease-in-out;
-}
-
-.group[data-collapsible="icon"]:hover [data-sidebar="group-label"] {
-  opacity: 1;
-  transition-delay: 0.1s;
-}
-
-/* Ensure icons are always visible and properly sized in collapsed state */
-.group[data-collapsible="icon"] [data-sidebar="menu-button"] svg {
+.group[data-collapsible="icon"]:hover [data-sidebar="menu-button"] span,
+.group[data-collapsible="icon"]:focus-within [data-sidebar="menu-button"] span,
+.group[data-collapsible="icon"]:active [data-sidebar="menu-button"] span,
+.group [data-sidebar="sidebar"][data-mobile="true"]:hover [data-sidebar="menu-button"] span,
+.group [data-sidebar="sidebar"][data-mobile="true"]:focus-within [data-sidebar="menu-button"] span,
+.group [data-sidebar="sidebar"][data-mobile="true"]:active [data-sidebar="menu-button"] span {
   opacity: 1 !important;
-  min-width: 20px !important;
-  width: 20px !important;
-  height: 20px !important;
+  transition-delay: 0.1s !important;
+}
+
+/* 🔥 UNIFIED GROUP LABEL VISIBILITY */
+.group[data-collapsible="icon"] [data-sidebar="group-label"],
+.group [data-sidebar="sidebar"][data-mobile="true"] [data-sidebar="group-label"] {
+  transition: opacity 0.2s ease-in-out !important;
+}
+
+.group[data-collapsible="icon"]:hover [data-sidebar="group-label"],
+.group[data-collapsible="icon"]:focus-within [data-sidebar="group-label"],
+.group[data-collapsible="icon"]:active [data-sidebar="group-label"],
+.group [data-sidebar="sidebar"][data-mobile="true"]:hover [data-sidebar="group-label"],
+.group [data-sidebar="sidebar"][data-mobile="true"]:focus-within [data-sidebar="group-label"],
+.group [data-sidebar="sidebar"][data-mobile="true"]:active [data-sidebar="group-label"] {
+  opacity: 1 !important;
+  transition-delay: 0.1s !important;
+}
+
+/* 🔥 UNIFIED ICON BEHAVIOR: Ensure icons are always visible and properly sized */
+.group[data-collapsible="icon"] [data-sidebar="menu-button"] svg,
+.group [data-sidebar="sidebar"][data-mobile="true"] [data-sidebar="menu-button"] svg {
+  opacity: 1 !important;
   flex-shrink: 0 !important;
 }
 
-/* Center icons in collapsed sidebar */
-.group[data-collapsible="icon"] [data-sidebar="menu-button"] {
+/* 🔥 UNIFIED BUTTON LAYOUT: Center icons in collapsed state, expand on interaction */
+.group[data-collapsible="icon"] [data-sidebar="menu-button"],
+.group [data-sidebar="sidebar"][data-mobile="true"] [data-sidebar="menu-button"] {
   justify-content: center !important;
   padding: 0.75rem !important;
+  gap: 0 !important;
+  transition: all 0.2s ease-in-out !important;
 }
 
-.group[data-collapsible="icon"]:hover [data-sidebar="menu-button"] {
+.group[data-collapsible="icon"]:hover [data-sidebar="menu-button"],
+.group[data-collapsible="icon"]:focus-within [data-sidebar="menu-button"],
+.group[data-collapsible="icon"]:active [data-sidebar="menu-button"],
+.group [data-sidebar="sidebar"][data-mobile="true"]:hover [data-sidebar="menu-button"],
+.group [data-sidebar="sidebar"][data-mobile="true"]:focus-within [data-sidebar="menu-button"],
+.group [data-sidebar="sidebar"][data-mobile="true"]:active [data-sidebar="menu-button"] {
   justify-content: flex-start !important;
   padding: 0.75rem !important;
+  gap: 0.75rem !important;
 }
 
-/* Improved mobile sidebar styles */
-@media (max-width: 768px) {
-  [data-sidebar="sidebar"][data-mobile="true"] {
-    background: white !important;
+/* 🔥 MOBILE-SPECIFIC TOUCH IMPROVEMENTS */
+@media (max-width: 1024px) {
+  /* Enhanced touch targets */
+  [data-sidebar="sidebar"][data-mobile="true"] [data-sidebar="menu-button"] {
+    min-height: 48px !important; /* Minimum touch target size */
+    padding: 0.75rem !important;
+    touch-action: manipulation !important;
+    -webkit-tap-highlight-color: transparent !important;
   }
+  
+  /* Better visual feedback on touch */
+  [data-sidebar="sidebar"][data-mobile="true"] [data-sidebar="menu-button"]:active {
+    background-color: hsl(var(--sidebar-accent)) !important;
+    transform: scale(0.98) !important;
+    transition: all 0.1s ease-in-out !important;
+  }
+  
+  /* Improve scrolling on mobile sidebar */
+  [data-sidebar="sidebar"][data-mobile="true"] [data-sidebar="content"] {
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+    scroll-behavior: smooth !important;
+  }
+  
+  /* 🔥 CRITICAL: Force expansion on any touch interaction */
+  [data-sidebar="sidebar"][data-mobile="true"]:active,
+  [data-sidebar="sidebar"][data-mobile="true"]:focus-within,
+  [data-sidebar="sidebar"][data-mobile="true"]:hover {
+    width: var(--sidebar-width) !important;
+  }
+  
+  /* 🔥 TOUCH-SPECIFIC: Expand on first touch, not just hover */
+  [data-sidebar="sidebar"][data-mobile="true"] {
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  }
+  
+  /* 🔥 MOBILE SEPARATOR: Hide desktop separator on mobile */
+  [data-sidebar="sidebar"][data-mobile="true"] .border-t.border-gray-300 {
+    display: none !important;
+  }
+}
+
+/* 🔥 DESKTOP-SPECIFIC ENHANCEMENTS */
+@media (min-width: 1025px) {
+  /* Ensure icons are always visible and properly sized in collapsed state */
+  .group[data-collapsible="icon"] [data-sidebar="menu-button"] svg {
+    opacity: 1 !important;
+    flex-shrink: 0 !important;
+  }
+
+  /* Center icons in collapsed sidebar */
+  .group[data-collapsible="icon"] [data-sidebar="menu-button"] {
+    justify-content: center !important;
+    padding: 0.75rem !important;
+    gap: 0 !important;
+  }
+
+  .group[data-collapsible="icon"]:hover [data-sidebar="menu-button"] {
+    justify-content: flex-start !important;
+    padding: 0.75rem !important;
+    gap: 0.75rem !important;
+  }
+}
+
+/* 🔥 GLOBAL TOUCH IMPROVEMENTS */
+/* Remove default touch highlights */
+* {
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+/* Improve touch interaction for all sidebar elements */
+[data-sidebar] {
+  touch-action: manipulation !important;
+}
+
+/* Better touch feedback for interactive elements */
+[data-sidebar="menu-button"]:active,
+[data-sidebar="trigger"]:active,
+button[data-sidebar]:active,
+a[data-sidebar]:active {
+  transform: scale(0.98) !important;
+  transition: transform 0.1s ease-in-out !important;
+}
+
+/* 🔥 ACCESSIBILITY IMPROVEMENTS */
+/* Ensure focus is visible */
+[data-sidebar="menu-button"]:focus-visible {
+  outline: 2px solid hsl(var(--ring)) !important;
+  outline-offset: 2px !important;
+}
+
+/* Improve keyboard navigation */
+[data-sidebar="menu-button"]:focus {
+  background-color: hsl(var(--sidebar-accent)) !important;
+  color: hsl(var(--sidebar-accent-foreground)) !important;
 }
 
 /* Custom markdown styles for better rendering */
@@ -681,3 +794,50 @@
 .article-content h5 { font-family: var(--h5-font-family) !important; }
 .article-content h6 { font-family: var(--h6-font-family) !important; }
 .article-content p { font-family: var(--p-font-family) !important; }
+
+/* 🔥 MINIMAL TOUCH IMPROVEMENTS - ADD TO END OF YOUR EXISTING index.css */
+
+/* Only add these rules to your existing index.css - don't replace anything */
+
+/* 🔥 MOBILE TOUCH IMPROVEMENTS ONLY */
+@media (max-width: 1024px) {
+  /* Better touch targets for mobile sidebar */
+  [data-sidebar="sidebar"][data-mobile="true"] [data-sidebar="menu-button"] {
+    min-height: 44px !important; /* Apple's recommended minimum touch target */
+    touch-action: manipulation !important;
+    -webkit-tap-highlight-color: transparent !important;
+  }
+  
+  /* Better visual feedback on touch */
+  [data-sidebar="sidebar"][data-mobile="true"] [data-sidebar="menu-button"]:active {
+    transform: scale(0.98) !important;
+    transition: transform 0.1s ease-in-out !important;
+  }
+  
+  /* Improve scrolling on mobile sidebar */
+  [data-sidebar="sidebar"][data-mobile="true"] [data-sidebar="content"] {
+    -webkit-overflow-scrolling: touch !important;
+    scroll-behavior: smooth !important;
+  }
+}
+
+/* 🔥 GLOBAL TOUCH IMPROVEMENTS */
+/* Remove default touch highlights for sidebar elements only */
+[data-sidebar] {
+  -webkit-tap-highlight-color: transparent !important;
+  touch-action: manipulation !important;
+}
+
+/* Better touch feedback for interactive sidebar elements */
+[data-sidebar="menu-button"]:active,
+[data-sidebar="trigger"]:active {
+  transform: scale(0.98) !important;
+  transition: transform 0.1s ease-in-out !important;
+}
+
+/* 🔥 ACCESSIBILITY IMPROVEMENTS */
+/* Ensure focus is visible for sidebar elements */
+[data-sidebar="menu-button"]:focus-visible {
+  outline: 2px solid hsl(var(--ring)) !important;
+  outline-offset: 2px !important;
+}

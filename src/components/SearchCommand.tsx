@@ -30,16 +30,14 @@ const SearchCommand = () => {
     queryFn: fetchArticles,
   });
 
-  // Filter articles based on search query
   const filteredArticles = searchQuery.trim()
     ? articles.filter(article =>
         article.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         article.excerpt?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         article.category?.toLowerCase().includes(searchQuery.toLowerCase())
-      ).slice(0, 5) // Limit to 5 results
+      ).slice(0, 5)
     : [];
 
-  // Handle click outside to close
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
@@ -53,7 +51,6 @@ const SearchCommand = () => {
     };
   }, []);
 
-  // Handle keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key === 'k') {
@@ -89,7 +86,6 @@ const SearchCommand = () => {
 
   return (
     <div ref={searchRef} className="relative w-64">
-      {/* 🔥 CAPSULE SEARCH INPUT */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 z-10" />
         <input
@@ -115,7 +111,6 @@ const SearchCommand = () => {
           "
         />
         
-        {/* Clear button */}
         {searchQuery && (
           <button
             onClick={handleClearSearch}
@@ -125,7 +120,6 @@ const SearchCommand = () => {
           </button>
         )}
         
-        {/* Keyboard shortcut hint */}
         {!isOpen && !searchQuery && (
           <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xs text-gray-400 bg-gray-100/80 px-2 py-1 rounded-lg backdrop-blur-sm">
             ⌘K
@@ -133,13 +127,11 @@ const SearchCommand = () => {
         )}
       </div>
 
-      {/* 🔥 SEARCH RESULTS DROPDOWN - HIGH Z-INDEX */}
+      {/* 🔥 FIX 7: Lower z-index for search dropdown */}
       {isOpen && (
         <>
-          {/* Backdrop */}
-          <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
+          <div className="fixed inset-0 z-30" onClick={() => setIsOpen(false)} />
           
-          {/* Results Container */}
           <div className="
             absolute top-full left-0 right-0 mt-2
             bg-white backdrop-blur-xl
@@ -147,10 +139,9 @@ const SearchCommand = () => {
             rounded-2xl
             shadow-2xl shadow-black/10
             max-h-96 overflow-y-auto
-            z-50
+            z-40
           ">
             {searchQuery.trim() === '' ? (
-              /* Empty state */
               <div className="p-6 text-center">
                 <Search className="w-8 h-8 text-gray-300 mx-auto mb-3" />
                 <p className="text-gray-500 text-sm">
@@ -161,7 +152,6 @@ const SearchCommand = () => {
                 </p>
               </div>
             ) : filteredArticles.length > 0 ? (
-              /* Results */
               <div className="py-2">
                 <div className="px-4 py-2 text-xs text-gray-500 font-medium border-b border-gray-100/50">
                   Articles ({filteredArticles.length})
@@ -206,7 +196,6 @@ const SearchCommand = () => {
                   </Link>
                 ))}
                 
-                {/* View all results link */}
                 <div className="px-4 py-3 border-t border-gray-100/50">
                   <Link
                     to={`/articles?search=${encodeURIComponent(searchQuery)}`}
@@ -218,7 +207,6 @@ const SearchCommand = () => {
                 </div>
               </div>
             ) : (
-              /* No results */
               <div className="p-6 text-center">
                 <Search className="w-8 h-8 text-gray-300 mx-auto mb-3" />
                 <p className="text-gray-500 text-sm">

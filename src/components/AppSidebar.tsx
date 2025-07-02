@@ -1,3 +1,4 @@
+
 import {
   Sidebar,
   SidebarContent,
@@ -23,7 +24,7 @@ export function AppSidebar() {
   const { user, isAdmin, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const { isMobile, setOpenMobile } = useSidebar();
+  const { isMobile, setOpenMobile, open } = useSidebar();
 
   const getCategoryIcon = (category) => {
     switch (category.toLowerCase()) {
@@ -63,7 +64,6 @@ export function AppSidebar() {
     { title: 'Contact', href: '/contact', icon: Mail },
   ];
 
-  // 🔧 FIXED: Removed problematic touch styles that interfere with sidebar trigger
   const buttonClasses = cn(
     !isMobile && "justify-center gap-0 group-hover:justify-start group-hover:gap-3"
   );
@@ -80,149 +80,174 @@ export function AppSidebar() {
       : "justify-center px-2 group-hover:justify-start group-hover:px-5"
   );
 
-  return (
-    <Sidebar 
-      collapsible="icon" 
-      className={cn(
-        "border-none", 
-        "text-blue-900",
-        "[&_[data-sidebar='sidebar']]:rounded-tr-3xl", 
-        "[&_[data-sidebar='sidebar']]:shadow-none",   
-        "[&_[data-sidebar='sidebar']]:bg-blue-50",    
-        // 🎯 MORE SPECIFIC: Target all SVGs with higher specificity
-        "[&_[data-sidebar='sidebar']_svg]:stroke-[1.2]", // Mobile-first approach
-        // 🎯 DESKTOP OVERRIDE: Only apply heavier stroke on larger screens
-        "lg:[&_[data-sidebar='sidebar']_svg]:stroke-[1.5]"
+return (
+    <>
+      {/* Mobile Overlay is correct */}
+      {isMobile && open && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-[60]" 
+          onClick={() => setOpenMobile(false)}
+          style={{ backdropFilter: 'blur(4px)' }}
+        />
       )}
-   >
-      <SidebarHeader className="p-3"> {/* 🎯 RESTORED: Back to p-4 for better mobile spacing */}
-        <Link 
-          to="/" 
-          onClick={handleLinkClick} 
-          className={cn(
-            headerClasses, 
-            "items-end",
-            // 🎯 MOBILE SPECIFIC: Better padding for mobile vs desktop
-            isMobile ? "px-4 py-2" : "p-2"
-          )}
-        >
-          <img 
-            src="/sidebar-icon.png"
-            alt="DentAI logo"
-            className="w-8 h-8 mt-1" // 🎯 Better positioning: use margin-top instead of transform
-            // 🚀 PERFORMANCE OPTIMIZATIONS (removed problematic touch styles)
-            loading="eager"
-            decoding="async"
-            fetchPriority="high"
-            sizes="32px"
-            onError={(e) => {
-              console.warn('Sidebar icon failed to load');
-            }}
-            onLoad={() => {
-              console.log('Sidebar icon loaded successfully');
-            }}
-          />
-          <span className={textClasses}>DentAI</span>
-        </Link>
-      </SidebarHeader>
-
-      <SidebarContent className="p-4">
-        <SidebarGroup>
-          <SidebarMenu className="space-y-1"> {/* 🎯 SPACING: Added space-y-2 for gap between menu items */}
-            {mainNav.map((item) => (
-              <SidebarMenuItem key={item.title}>
-                <SidebarMenuButton
-                  asChild
-                  isActive={location.pathname === item.href}
-                  className={buttonClasses}
-                >
-                  <Link to={item.href} onClick={handleLinkClick}>
-                    <item.icon className="w-8 h-8" /> 
-                    <span className={textClasses}>{item.title}</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            ))}
-          </SidebarMenu>
-        </SidebarGroup>
-
-        <SidebarGroup>
-          {!isMobile && (
-            <div className="mb-5 border-t border-gray-300 group-hover:hidden" />
-          )}
-          {/* 🎯 MOBILE/TABLET: Smaller gap between main nav and categories */}
-          {isMobile && (
-            <div className="mb-2 border-t border-gray-300" />
-          )}
-          <SidebarGroupLabel className={cn(
-            textClasses,
-            "text-sm font-medium hover:text-primary transition-colors cursor-pointer" // 🔗 ADDED: Clickable styling
-          )}
-          asChild // 🔗 ADDED: Allow SidebarGroupLabel to render as child component
+      
+      {/* 🔥 FIX 2: Sidebar with proper positioning and width constraints */}
+      <Sidebar 
+        collapsible="icon" 
+        className={cn(
+          "border-none text-blue-900",
+          "[&_[data-sidebar='sidebar']]:rounded-tr-3xl", 
+          "[&_[data-sidebar='sidebar']]:shadow-none",   
+          "[&_[data-sidebar='sidebar']]:bg-blue-50",    
+          "[&_[data-sidebar='sidebar']_svg]:stroke-[1.2]",
+          "lg:[&_[data-sidebar='sidebar']_svg]:stroke-[1.5]",
+          // 🔥 CRITICAL: Proper positioning for mobile vs desktop
+          isMobile 
+            ? "fixed top-0 left-0 h-full z-[70] w-80 max-w-[80vw]" 
+            : "sticky top-0 h-screen z-10"
+        )}
+        style={isMobile ? {
+          // 🔥 FIX 3: Explicit mobile styles to prevent expansion
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          height: '100vh',
+          width: '320px',
+          maxWidth: '80vw',
+          zIndex: 70
+        } : {
+          // 🔥 FIX 4: Desktop sticky positioning
+          position: 'sticky',
+          top: 0,
+          height: '100vh'
+        }}
+      >
+        <SidebarHeader className="p-3">
+          <Link 
+            to="/" 
+            onClick={handleLinkClick} 
+            className={cn(
+              headerClasses, 
+              "items-end",
+              isMobile ? "px-4 py-2" : "p-2"
+            )}
           >
-            <Link to="/categories" onClick={handleLinkClick}> {/* 🔗 ADDED: Link wrapper */}
-              Categories
-            </Link>
-          </SidebarGroupLabel>
-          <SidebarMenu className="space-y-1"> {/* 🎯 SPACING: Added space-y-2 for category menu items */}
-            {isLoadingCategories ? (
-              [...Array(3)].map((_, i) => <Skeleton key={i} className="h-8 w-full" />)
-            ) : (
-              categories?.map((category) => (
-                <SidebarMenuItem key={category}>
+            <img 
+              src="/sidebar-icon.png"
+              alt="DentAI logo"
+              className="w-8 h-8 mt-1"
+              loading="eager"
+              decoding="async"
+              fetchPriority="high"
+              sizes="32px"
+              onError={(e) => {
+                console.warn('Sidebar icon failed to load');
+              }}
+              onLoad={() => {
+                console.log('Sidebar icon loaded successfully');
+              }}
+            />
+            <span className={textClasses}>DentAI</span>
+          </Link>
+        </SidebarHeader>
+
+        <SidebarContent className="p-4 overflow-y-auto">
+          <SidebarGroup>
+            <SidebarMenu className="space-y-1">
+              {mainNav.map((item) => (
+                <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     asChild
-                    isActive={location.pathname === `/category/${category}`}
+                    isActive={location.pathname === item.href}
                     className={buttonClasses}
                   >
-                    <Link to={`/category/${category}`} onClick={handleLinkClick}>
-                      {getCategoryIcon(category)}
-                      <span className={textClasses}>{category}</span>
+                    <Link to={item.href} onClick={handleLinkClick}>
+                      <item.icon className="w-8 h-8" /> 
+                      <span className={textClasses}>{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-              ))
-            )}
-          </SidebarMenu>
-        </SidebarGroup>
-      </SidebarContent>
+              ))}
+            </SidebarMenu>
+          </SidebarGroup>
 
-      <SidebarFooter className="p-4 flex flex-col gap-3"> {/* 🎯 SPACING: Increased gap from gap-2 to gap-3 */}
-        {user ? (
-          <>
-            {isAdmin && (
+          <SidebarGroup>
+            {!isMobile && (
+              <div className="mb-5 border-t border-gray-300 group-hover:hidden" />
+            )}
+            {isMobile && (
+              <div className="mb-2 border-t border-gray-300" />
+            )}
+            <SidebarGroupLabel className={cn(
+              textClasses,
+              "text-sm font-medium hover:text-primary transition-colors cursor-pointer"
+            )}
+            asChild
+            >
+              <Link to="/categories" onClick={handleLinkClick}>
+                Categories
+              </Link>
+            </SidebarGroupLabel>
+            <SidebarMenu className="space-y-1">
+              {isLoadingCategories ? (
+                [...Array(3)].map((_, i) => <Skeleton key={i} className="h-8 w-full" />)
+              ) : (
+                categories?.map((category) => (
+                  <SidebarMenuItem key={category}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={location.pathname === `/category/${category}`}
+                      className={buttonClasses}
+                    >
+                      <Link to={`/category/${category}`} onClick={handleLinkClick}>
+                        {getCategoryIcon(category)}
+                        <span className={textClasses}>{category}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))
+              )}
+            </SidebarMenu>
+          </SidebarGroup>
+        </SidebarContent>
+
+        <SidebarFooter className="p-4 flex flex-col gap-3">
+          {user ? (
+            <>
+              {isAdmin && (
+                <SidebarMenuButton 
+                  asChild 
+                  className={cn("w-full", buttonClasses)}
+                >
+                  <Link to="/admin" onClick={handleLinkClick}>
+                    <User className="w-8 h-8" />
+                    <span className={textClasses}>Admin</span>
+                  </Link>
+                </SidebarMenuButton>
+              )}
               <SidebarMenuButton 
                 asChild 
                 className={cn("w-full", buttonClasses)}
               >
-                <Link to="/admin" onClick={handleLinkClick}>
-                  <User className="w-8 h-8" />
-                  <span className={textClasses}>Admin</span>
-                </Link>
+                <button onClick={() => { handleLogout(); handleLinkClick(); }} className="w-full">
+                  <LogOut className="w-8 h-8" />
+                  <span className={textClasses}>Logout</span>
+                </button>
               </SidebarMenuButton>
-            )}
+            </>
+          ) : (
             <SidebarMenuButton 
               asChild 
               className={cn("w-full", buttonClasses)}
             >
-              <button onClick={() => { handleLogout(); handleLinkClick(); }} className="w-full">
-                <LogOut className="w-8 h-8" />
-                <span className={textClasses}>Logout</span>
-              </button>
+              <Link to="/auth" onClick={handleLinkClick}>
+                <LogIn className="w-8 h-8" />
+                <span className={textClasses}>Login</span>
+              </Link>
             </SidebarMenuButton>
-          </>
-        ) : (
-          <SidebarMenuButton 
-            asChild 
-            className={cn("w-full", buttonClasses)}
-          >
-            <Link to="/auth" onClick={handleLinkClick}>
-              <LogIn className="w-8 h-8" />
-              <span className={textClasses}>Login</span>
-            </Link>
-          </SidebarMenuButton>
-        )}
-      </SidebarFooter>
-    </Sidebar>
+          )}
+        </SidebarFooter>
+      </Sidebar>
+    </>
   )
 }

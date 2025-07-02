@@ -14,9 +14,8 @@ const TopNavigation = () => {
   ];
 
   return (
-    // 🔥 WRAPPER: Full page padding for floating capsule effect
+    // 🔥 FIX 3: Remove z-index from wrapper, let content handle it naturally
     <div className="p-4 lg:p-6">
-      {/* 🔥 CAPSULE CONTAINER: The entire header as one rounded container */}
       <nav className="
         bg-white/80 backdrop-blur-xl 
         rounded-3xl 
@@ -26,10 +25,11 @@ const TopNavigation = () => {
         hover:shadow-2xl hover:shadow-black/10
         transition-all duration-500 ease-out
         hover:-translate-y-1
+        relative z-10
       ">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
-            {/* 🍔 CUSTOM HAMBURGER: Preserve your custom hamburger styling */}
+            {/* 🔥 FIX 4: Hamburger trigger - keep it simple */}
             <div className="block lg:hidden">
               <SidebarTrigger className="mt-1 hover:bg-gray-100/80 rounded-xl p-2 transition-all duration-300">
                 <Menu className="h-6 w-6 text-blue-900" />
@@ -37,13 +37,11 @@ const TopNavigation = () => {
               </SidebarTrigger>
             </div>
 
-            {/* 🎨 PRESERVE: Your dark blue branding */}
             <Link to="/" className="text-2xl font-bold text-blue-900 hover:text-blue-700 transition-colors duration-300">
               DentAI
             </Link>
           </div>
           
-          {/* Navigation Menu with enhanced hover effects */}
           <div className="hidden md:flex items-center space-x-2">
             {navItems.map((item) => (
               <Link
@@ -61,7 +59,6 @@ const TopNavigation = () => {
                 `}
               >
                 <span className="relative z-10">{item.title}</span>
-                {/* Hover capsule effect */}
                 <div className={`
                   absolute inset-0 rounded-2xl transition-all duration-300 transform
                   ${location.pathname === item.href 
@@ -73,21 +70,12 @@ const TopNavigation = () => {
             ))}
           </div>
 
-          {/* Actions with enhanced capsule styling */}
           <div className="flex items-center gap-2 md:gap-4">
-            {/* Desktop Search Bar with capsule styling */}
+            {/* 🔥 FIX 5: Replace broken search with working SearchCommand component */}
             <div className="hidden lg:block">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <input 
-                  type="text" 
-                  placeholder="Search..." 
-                  className="pl-10 pr-4 py-2 bg-gray-50/80 backdrop-blur-sm border border-gray-200/50 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:bg-white focus:border-blue-300 transition-all duration-300 w-64"
-                />
-              </div>
+              <SearchCommand />
             </div>
 
-            {/* Mobile Search Icon with capsule hover */}
             <div className="block lg:hidden">
               <Button variant="ghost" size="icon" className="rounded-2xl hover:bg-gray-100/80 transition-all duration-300" asChild>
                   <Link to="/articles">
@@ -97,14 +85,12 @@ const TopNavigation = () => {
               </Button>
             </div>
             
-            {/* Shopping Cart Icon with capsule styling */}
             <div className="relative">
               <div className="w-10 h-10 bg-blue-600 rounded-2xl flex items-center justify-center hover:bg-blue-700 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/25 hover:-translate-y-0.5 cursor-pointer">
                 <span className="text-white font-bold text-sm">0</span>
               </div>
             </div>
 
-            {/* Subscribe Button with enhanced capsule styling */}
             <Button className="
               bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-medium p-3 lg:px-6
               transition-all duration-300 

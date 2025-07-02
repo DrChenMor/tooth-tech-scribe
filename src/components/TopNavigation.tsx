@@ -14,8 +14,7 @@ const TopNavigation = () => {
   ];
 
   return (
-    // 🔥 FIX 3: Remove z-index from wrapper, let content handle it naturally
-    <div className="p-4 lg:p-6">
+    <div className="p-4 lg:p-4 xl:p-6">
       <nav className="
         bg-white/80 backdrop-blur-xl 
         rounded-3xl 
@@ -25,11 +24,11 @@ const TopNavigation = () => {
         hover:shadow-2xl hover:shadow-black/10
         transition-all duration-500 ease-out
         hover:-translate-y-1
-        relative z-10
+        relative z-[50]
       ">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
-            {/* 🔥 FIX 4: Hamburger trigger - keep it simple */}
+            {/* ✅ FIXED: Hamburger trigger now hides on tablet (lg) and up */}
             <div className="block lg:hidden">
               <SidebarTrigger className="mt-1 hover:bg-gray-100/80 rounded-xl p-2 transition-all duration-300">
                 <Menu className="h-6 w-6 text-blue-900" />
@@ -37,18 +36,26 @@ const TopNavigation = () => {
               </SidebarTrigger>
             </div>
 
-            <Link to="/" className="text-2xl font-bold text-blue-900 hover:text-blue-700 transition-colors duration-300">
+            {/* Show on mobile, HIDE on tablet (lg), and show again on true desktop (xl) */}
+            <Link 
+              to="/" 
+              className="
+                text-2xl font-bold text-blue-900 
+                hover:text-blue-700 transition-colors duration-300 
+                block lg:hidden xl:block
+              "
+            >
               DentAI
             </Link>
           </div>
           
-          <div className="hidden md:flex items-center space-x-2">
+          <div className="hidden md:flex xl:space-x-2">
             {navItems.map((item) => (
               <Link
                 key={item.title}
                 to={item.href}
                 className={`
-                  relative px-4 py-2 text-sm md:text-base lg:text-md font-medium 
+                  relative px-3 py-2 text-sm lg:text-base font-medium 
                   transition-all duration-300 rounded-2xl
                   hover:bg-blue-50/80 hover:text-blue-600
                   ${location.pathname === item.href
@@ -71,14 +78,15 @@ const TopNavigation = () => {
           </div>
 
           <div className="flex items-center gap-2 md:gap-4">
-            {/* 🔥 FIX 5: Replace broken search with working SearchCommand component */}
-            <div className="hidden lg:block">
+            {/* Show full search bar only on true desktop (xl) */}
+            <div className="hidden xl:block">
               <SearchCommand />
             </div>
 
-            <div className="block lg:hidden">
+            {/* Show search ICON on tablet (lg) and below */}
+            <div className="block xl:hidden">
               <Button variant="ghost" size="icon" className="rounded-2xl hover:bg-gray-100/80 transition-all duration-300" asChild>
-                  <Link to="/articles">
+                  <Link to="/articles"> 
                       <Search className="w-5 h-5 text-gray-600" />
                       <span className="sr-only">Search</span>
                   </Link>
@@ -92,14 +100,15 @@ const TopNavigation = () => {
             </div>
 
             <Button className="
-              bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-medium p-3 lg:px-6
+              bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-medium p-3 xl:px-6
               transition-all duration-300 
               hover:shadow-lg hover:shadow-blue-500/25 
               hover:-translate-y-0.5
               backdrop-blur-sm
             ">
-              <Mail className="w-4 h-4 lg:mr-2" />
-              <span className="hidden lg:inline">Subscribe</span>
+              <Mail className="w-4 h-4 xl:mr-2" />
+              {/* Show "Subscribe" text only on true desktop (xl) */}
+              <span className="hidden xl:inline">Subscribe</span>
             </Button>
           </div>
         </div>

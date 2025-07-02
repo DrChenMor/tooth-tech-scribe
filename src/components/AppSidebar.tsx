@@ -1,4 +1,3 @@
-
 import {
   Sidebar,
   SidebarContent,
@@ -82,44 +81,34 @@ export function AppSidebar() {
 
 return (
     <>
-      {/* Mobile Overlay is correct */}
+      {/* 🔥 FIX 1: Mobile Overlay with LOWER z-index than sidebar */}
       {isMobile && open && (
         <div 
-          className="fixed inset-0 bg-black/50 z-[60]" 
+          className="fixed inset-0 bg-black/50 z-[100]" 
           onClick={() => setOpenMobile(false)}
           style={{ backdropFilter: 'blur(4px)' }}
         />
       )}
       
-      {/* 🔥 FIX 2: Sidebar with proper positioning and width constraints */}
+      {/* 🔥 FIX 2: Sidebar with HIGHER z-index than overlay + proper touch */}
       <Sidebar 
         collapsible="icon" 
         className={cn(
           "border-none text-blue-900",
           "[&_[data-sidebar='sidebar']]:rounded-tr-3xl", 
-          "[&_[data-sidebar='sidebar']]:shadow-none",   
+          "[&_[data-sidebar='sidebar']]:shadow-xl",   
           "[&_[data-sidebar='sidebar']]:bg-blue-50",    
           "[&_[data-sidebar='sidebar']_svg]:stroke-[1.2]",
           "lg:[&_[data-sidebar='sidebar']_svg]:stroke-[1.5]",
-          // 🔥 CRITICAL: Proper positioning for mobile vs desktop
+          // 🔥 FIX 3: Higher z-index for sidebar than overlay + touch events
           isMobile 
-            ? "fixed top-0 left-0 h-full z-[70] w-80 max-w-[80vw]" 
-            : "sticky top-0 h-screen z-10"
+            ? "fixed top-0 left-0 h-full z-[110] w-80 max-w-[80vw] pointer-events-auto" 
+            : "sticky top-0 h-screen z-[60]"
         )}
-        style={isMobile ? {
-          // 🔥 FIX 3: Explicit mobile styles to prevent expansion
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          height: '100vh',
-          width: '320px',
-          maxWidth: '80vw',
-          zIndex: 70
-        } : {
-          // 🔥 FIX 4: Desktop sticky positioning
-          position: 'sticky',
-          top: 0,
-          height: '100vh'
+        style={{
+          // 🔥 FIX 4: Ensure touch events work on mobile/tablet
+          pointerEvents: 'auto',
+          touchAction: 'manipulation'
         }}
       >
         <SidebarHeader className="p-3">

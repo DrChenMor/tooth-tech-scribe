@@ -14,7 +14,8 @@ const TopNavigation = () => {
   ];
 
   return (
-    <div className="p-4 lg:p-4 xl:p-6">
+    // The padding remains the same as it's a good general rule.
+    <div className="p-4 lg:p-6">
       <nav className="
         bg-white/80 backdrop-blur-xl 
         rounded-3xl 
@@ -28,7 +29,7 @@ const TopNavigation = () => {
       ">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
-            {/* ✅ FIXED: Hamburger trigger now hides on tablet (lg) and up */}
+            {/* This remains lg:hidden because it's tied to the sidebar's appearance */}
             <div className="block lg:hidden">
               <SidebarTrigger className="mt-1 hover:bg-gray-100/80 rounded-xl p-2 transition-all duration-300">
                 <Menu className="h-6 w-6 text-blue-900" />
@@ -36,20 +37,21 @@ const TopNavigation = () => {
               </SidebarTrigger>
             </div>
 
-            {/* Show on mobile, HIDE on tablet (lg), and show again on true desktop (xl) */}
+            {/* ✅ FIXED: Hide on tablet (md), show on desktop (lg) */}
             <Link 
               to="/" 
               className="
                 text-2xl font-bold text-blue-900 
                 hover:text-blue-700 transition-colors duration-300 
-                block lg:hidden xl:block
+                block md:hidden lg:block
               "
             >
               DentAI
             </Link>
           </div>
           
-          <div className="hidden md:flex xl:space-x-2">
+          {/* ✅ FIXED: Show nav links on tablet (md) and up */}
+          <div className="hidden md:flex md:space-x-2">
             {navItems.map((item) => (
               <Link
                 key={item.title}
@@ -78,13 +80,13 @@ const TopNavigation = () => {
           </div>
 
           <div className="flex items-center gap-2 md:gap-4">
-            {/* Show full search bar only on true desktop (xl) */}
-            <div className="hidden xl:block">
+            {/* ✅ FIXED: Show full search bar on desktop (lg) and up */}
+            <div className="hidden lg:block">
               <SearchCommand />
             </div>
 
-            {/* Show search ICON on tablet (lg) and below */}
-            <div className="block xl:hidden">
+            {/* ✅ FIXED: Show search ICON on tablet (md) and mobile */}
+            <div className="block lg:hidden">
               <Button variant="ghost" size="icon" className="rounded-2xl hover:bg-gray-100/80 transition-all duration-300" asChild>
                   <Link to="/articles"> 
                       <Search className="w-5 h-5 text-gray-600" />
@@ -100,15 +102,15 @@ const TopNavigation = () => {
             </div>
 
             <Button className="
-              bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-medium p-3 xl:px-6
+              bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-medium p-3 lg:px-6
               transition-all duration-300 
               hover:shadow-lg hover:shadow-blue-500/25 
               hover:-translate-y-0.5
               backdrop-blur-sm
             ">
-              <Mail className="w-4 h-4 xl:mr-2" />
-              {/* Show "Subscribe" text only on true desktop (xl) */}
-              <span className="hidden xl:inline">Subscribe</span>
+              <Mail className="w-4 h-4 lg:mr-2" />
+              {/* ✅ FIXED: Show "Subscribe" text on desktop (lg) and up */}
+              <span className="hidden lg:inline">Subscribe</span>
             </Button>
           </div>
         </div>

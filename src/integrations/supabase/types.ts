@@ -348,6 +348,128 @@ export type Database = {
         }
         Relationships: []
       }
+      content_queue: {
+        Row: {
+          content: string | null
+          created_at: string
+          discovered_at: string
+          id: string
+          keywords_used: Json | null
+          metadata: Json | null
+          priority_score: number | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          source_id: string | null
+          source_type: string
+          source_url: string
+          status: Database["public"]["Enums"]["content_queue_status"]
+          summary: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string
+          discovered_at?: string
+          id?: string
+          keywords_used?: Json | null
+          metadata?: Json | null
+          priority_score?: number | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source_id?: string | null
+          source_type: string
+          source_url: string
+          status?: Database["public"]["Enums"]["content_queue_status"]
+          summary?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string | null
+          created_at?: string
+          discovered_at?: string
+          id?: string
+          keywords_used?: Json | null
+          metadata?: Json | null
+          priority_score?: number | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source_id?: string | null
+          source_type?: string
+          source_url?: string
+          status?: Database["public"]["Enums"]["content_queue_status"]
+          summary?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_queue_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "content_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      content_sources: {
+        Row: {
+          api_endpoint: string
+          config: Json
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          api_endpoint: string
+          config?: Json
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          api_endpoint?: string
+          config?: Json
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      global_theme: {
+        Row: {
+          created_at: string | null
+          id: number
+          is_active: boolean | null
+          theme_data: Json
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: number
+          is_active?: boolean | null
+          theme_data: Json
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: number
+          is_active?: boolean | null
+          theme_data?: Json
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -403,6 +525,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      system_config: {
+        Row: {
+          created_at: string | null
+          default_author: string
+          default_category: string
+          id: number
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          default_author?: string
+          default_category?: string
+          id?: number
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          default_author?: string
+          default_category?: string
+          id?: number
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      system_settings: {
+        Row: {
+          id: string
+          key: string
+          updated_at: string | null
+          updated_by: string | null
+          value: Json
+        }
+        Insert: {
+          id?: string
+          key: string
+          updated_at?: string | null
+          updated_by?: string | null
+          value?: Json
+        }
+        Update: {
+          id?: string
+          key?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          value?: Json
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {
@@ -527,6 +697,7 @@ export type Database = {
       admin_feedback_type: "good" | "irrelevant" | "wrong" | "excellent"
       app_role: "admin" | "user"
       article_status: "draft" | "published" | "archived"
+      content_queue_status: "pending" | "approved" | "rejected" | "processed"
       suggestion_status: "pending" | "approved" | "rejected" | "implemented"
     }
     CompositeTypes: {
@@ -647,6 +818,7 @@ export const Constants = {
       admin_feedback_type: ["good", "irrelevant", "wrong", "excellent"],
       app_role: ["admin", "user"],
       article_status: ["draft", "published", "archived"],
+      content_queue_status: ["pending", "approved", "rejected", "processed"],
       suggestion_status: ["pending", "approved", "rejected", "implemented"],
     },
   },

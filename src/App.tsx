@@ -29,6 +29,7 @@ import AutomatedWorkflowsPage from './pages/AutomatedWorkflowsPage';
 import AnalyticsPage from './pages/AnalyticsPage';
 import AIAgentManagementPage from './pages/AIAgentManagementPage';
 import ArticlesManagementPage from './pages/ArticlesManagementPage';
+import ContentQueuePage from './pages/ContentQueuePage';
 import ScrollToTop from './components/ScrollToTop'; // Add this import
 import { useGlobalTheme } from './hooks/useGlobalTheme';
 
@@ -82,6 +83,7 @@ function App() {
                 <Route path="/admin/automated-workflows" element={<AutomatedWorkflowsPage />} />
                 <Route path="/admin/ai-agents" element={<AIAgentManagementPage />} />
                 <Route path="/admin/articles" element={<ArticlesManagementPage />} />
+                <Route path="/admin/content-queue" element={<ContentQueuePage />} />
               </Route>
               
               <Route path="*" element={<NotFound />} />

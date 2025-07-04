@@ -372,12 +372,25 @@ const NodeConfiguration = ({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Sources (GNews + Guardian + Hacker News)</SelectItem>
+                <SelectItem value="all">All Sources</SelectItem>
+                <SelectItem value="pubmed">PubMed (Medical Research)</SelectItem>
+                <SelectItem value="europepmc">Europe PMC (Life Sciences)</SelectItem>
                 <SelectItem value="gnews">GNews (World News)</SelectItem>
                 <SelectItem value="guardian">The Guardian (Quality Journalism)</SelectItem>
                 <SelectItem value="hackernews">Hacker News (Tech News)</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Save to Content Queue</Label>
+            <Switch
+              key={`saveToQueue-${node.id}`}
+              checked={localConfig.saveToQueue !== false}
+              onCheckedChange={(checked) => handleConfigChange('saveToQueue', checked)}
+            />
+            <p className="text-xs text-muted-foreground">
+              Save discovered content to editorial review queue
+            </p>
           </div>
           <div className="space-y-2">
             <Label>Time Range</Label>

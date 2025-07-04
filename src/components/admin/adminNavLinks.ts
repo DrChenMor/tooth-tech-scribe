@@ -7,7 +7,8 @@ import {
   BarChart3, 
   Zap,
   Award,
-  Workflow
+  Workflow,
+  Clock
 } from 'lucide-react';
 
 export const adminNavLinks = [
@@ -20,6 +21,11 @@ export const adminNavLinks = [
     title: 'Articles',
     url: '/admin/articles',
     icon: FileText,
+  },
+  {
+    title: 'Content Queue',
+    url: '/admin/content-queue',
+    icon: Clock,
   },
   {
     title: 'AI Co-Pilot',

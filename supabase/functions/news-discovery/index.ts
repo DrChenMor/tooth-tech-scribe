@@ -1,8 +1,112 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
+
+// Initialize Supabase client
+const supabaseUrl = Deno.env.get('SUPABASE_URL')!
+const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+const supabase = createClient(supabaseUrl, supabaseServiceKey)
+
+// PubMed API integration
+async function searchPubMed(keywords: string, maxResults: number) {
+  try {
+    console.log(`Searching PubMed for: ${keywords}`);
+    
+    // First, search for IDs
+    const searchUrl = `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&term=${encodeURIComponent(keywords)}&retmax=${maxResults}&retmode=json&sort=date`;
+    const searchResponse = await fetch(searchUrl);
+    
+    if (!searchResponse.ok) {
+      console.error(`PubMed search error: ${searchResponse.status}`);
+      return [];
+    }
+    
+    const searchData = await searchResponse.json();
+    const pmids = searchData.esearchresult?.idlist || [];
+    
+    if (pmids.length === 0) {
+      console.log('No PubMed articles found');
+      return [];
+    }
+    
+    // Fetch article details
+    const detailUrl = `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pubmed&id=${pmids.join(',')}&retmode=json`;
+    const detailResponse = await fetch(detailUrl);
+    
+    if (!detailResponse.ok) {
+      console.error(`PubMed detail error: ${detailResponse.status}`);
+      return [];
+    }
+    
+    const detailData = await detailResponse.json();
+    const articles = [];
+    
+    for (const pmid of pmids) {
+      const result = detailData.result?.[pmid];
+      if (result) {
+        articles.push({
+          title: result.title || 'Untitled',
+          url: `https://pubmed.ncbi.nlm.nih.gov/${pmid}/`,
+          source: 'PubMed',
+          publishedAt: result.pubdate || new Date().toISOString(),
+          description: result.title || '',
+          type: 'research',
+          authors: result.authors || [],
+          pmid: pmid
+        });
+      }
+    }
+    
+    console.log(`PubMed found ${articles.length} articles`);
+    return articles;
+  } catch (error) {
+    console.error('PubMed search error:', error);
+    return [];
+  }
+}
+
+// Europe PMC API integration
+async function searchEuropePMC(keywords: string, maxResults: number) {
+  try {
+    console.log(`Searching Europe PMC for: ${keywords}`);
+    
+    const searchUrl = `https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=${encodeURIComponent(keywords)}&format=json&pageSize=${maxResults}&sort=CITED&resultType=lite`;
+    const response = await fetch(searchUrl);
+    
+    if (!response.ok) {
+      console.error(`Europe PMC error: ${response.status}`);
+      return [];
+    }
+    
+    const data = await response.json();
+    const articles = [];
+    
+    if (data.resultList?.result && Array.isArray(data.resultList.result)) {
+      for (const result of data.resultList.result) {
+        articles.push({
+          title: result.title || 'Untitled',
+          url: `https://europepmc.org/article/${result.source}/${result.id}`,
+          source: 'Europe PMC',
+          publishedAt: result.firstPublicationDate || new Date().toISOString(),
+          description: result.title || '',
+          type: 'research',
+          authors: result.authorString || '',
+          citedByCount: result.citedByCount || 0,
+          pmid: result.pmid
+        });
+      }
+    }
+    
+    console.log(`Europe PMC found ${articles.length} articles`);
+    return articles;
+  } catch (error) {
+    console.error('Europe PMC search error:', error);
+    return [];
+  }
 }
 
 // GNews API integration
@@ -129,36 +233,153 @@ async function searchHackerNews(keywords: string, maxResults: number) {
   }
 }
 
+// Content deduplication and scoring
+function deduplicateAndScore(articles: any[], keywords: string[]) {
+  const uniqueArticles = new Map();
+  
+  for (const article of articles) {
+    const key = article.url || article.title;
+    if (!uniqueArticles.has(key)) {
+      // Calculate priority score based on various factors
+      let score = 0;
+      
+      // Keyword relevance in title
+      const titleLower = article.title.toLowerCase();
+      const keywordMatches = keywords.filter(keyword => 
+        titleLower.includes(keyword.toLowerCase())
+      ).length;
+      score += keywordMatches * 10;
+      
+      // Source reliability weight
+      const sourceWeights = {
+        'PubMed': 20,
+        'Europe PMC': 18,
+        'The Guardian': 15,
+        'Hacker News': 12,
+        'GNews': 10
+      };
+      score += sourceWeights[article.source] || 5;
+      
+      // Citation count for research articles
+      if (article.citedByCount) {
+        score += Math.min(article.citedByCount / 10, 10);
+      }
+      
+      // Comments/engagement for news
+      if (article.comments) {
+        score += Math.min(article.comments / 5, 5);
+      }
+      
+      // Recency bonus (newer articles get higher score)
+      const daysOld = (Date.now() - new Date(article.publishedAt).getTime()) / (1000 * 60 * 60 * 24);
+      score += Math.max(0, 10 - daysOld);
+      
+      article.priority_score = score;
+      uniqueArticles.set(key, article);
+    }
+  }
+  
+  return Array.from(uniqueArticles.values());
+}
+
+// Save to content queue
+async function saveToContentQueue(articles: any[], keywords: string[], selectedSources: string[]) {
+  const queueItems = [];
+  
+  for (const article of articles) {
+    try {
+      const { error } = await supabase
+        .from('content_queue')
+        .insert({
+          source_url: article.url,
+          title: article.title,
+          summary: article.description,
+          content: null, // Will be filled by web scraper if needed
+          source_type: article.type,
+          keywords_used: keywords,
+          priority_score: article.priority_score,
+          status: 'pending',
+          metadata: {
+            source_name: article.source,
+            published_at: article.publishedAt,
+            authors: article.authors,
+            image: article.image,
+            pmid: article.pmid,
+            cited_by_count: article.citedByCount,
+            comments: article.comments,
+            score: article.score
+          }
+        });
+      
+      if (!error) {
+        queueItems.push(article);
+      } else {
+        console.error('Error saving to content queue:', error);
+      }
+    } catch (err) {
+      console.error('Content queue save error:', err);
+    }
+  }
+  
+  console.log(`💾 Saved ${queueItems.length} articles to content queue`);
+  return queueItems;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    const { keywords, source = 'all', timeRange = 'day', maxResults = 10 } = await req.json()
+    const { 
+      keywords, 
+      sources = ['all'], // Now accepts array of sources
+      timeRange = 'day', 
+      maxResults = 10,
+      saveToQueue = true // Option to save to content queue
+    } = await req.json()
     
     if (!keywords) {
       throw new Error('Keywords are required')
     }
 
-    console.log(`🔍 News Discovery: Searching for "${keywords}" from ${source} sources`);
+    const keywordArray = Array.isArray(keywords) ? keywords : [keywords];
+    const keywordString = keywordArray.join(' ');
+    const sourcesArray = Array.isArray(sources) ? sources : [sources];
+
+    console.log(`🔍 News Discovery: Searching for "${keywordString}" from sources: ${sourcesArray.join(', ')}`);
     
     let allArticles = [];
+    const searchPromises = [];
 
-    // Search different sources based on user preference
-    if (source === 'all' || source === 'gnews') {
-      const gNewsArticles = await searchGNews(keywords, Math.ceil(maxResults / 3));
-      allArticles.push(...gNewsArticles);
+    // Search all selected sources in parallel
+    for (const source of sourcesArray) {
+      const resultsPerSource = Math.ceil(maxResults / sourcesArray.length);
+      
+      if (source === 'all' || source === 'pubmed') {
+        searchPromises.push(searchPubMed(keywordString, resultsPerSource));
+      }
+      if (source === 'all' || source === 'europepmc') {
+        searchPromises.push(searchEuropePMC(keywordString, resultsPerSource));
+      }
+      if (source === 'all' || source === 'gnews') {
+        searchPromises.push(searchGNews(keywordString, resultsPerSource));
+      }
+      if (source === 'all' || source === 'guardian') {
+        searchPromises.push(searchGuardian(keywordString, resultsPerSource));
+      }
+      if (source === 'all' || source === 'hackernews') {
+        searchPromises.push(searchHackerNews(keywordString, resultsPerSource));
+      }
     }
 
-    if (source === 'all' || source === 'guardian') {
-      const guardianArticles = await searchGuardian(keywords, Math.ceil(maxResults / 3));
-      allArticles.push(...guardianArticles);
-    }
-
-    if (source === 'all' || source === 'hackernews') {
-      const hnArticles = await searchHackerNews(keywords, Math.ceil(maxResults / 3));
-      allArticles.push(...hnArticles);
+    // Execute all searches in parallel
+    const searchResults = await Promise.allSettled(searchPromises);
+    
+    for (const result of searchResults) {
+      if (result.status === 'fulfilled') {
+        allArticles.push(...result.value);
+      }
     }
 
     // Filter by time range
@@ -180,18 +401,32 @@ serve(async (req) => {
       });
     }
 
-    // Sort by published date and limit results
-    const sortedArticles = filteredArticles
-      .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
+    // Deduplicate and score articles
+    const uniqueArticles = deduplicateAndScore(filteredArticles, keywordArray);
+
+    // Sort by priority score and limit results
+    const sortedArticles = uniqueArticles
+      .sort((a, b) => (b.priority_score || 0) - (a.priority_score || 0))
       .slice(0, maxResults);
 
-    console.log(`✅ News Discovery: Found ${sortedArticles.length} total articles`);
+    console.log(`✅ News Discovery: Found ${sortedArticles.length} unique articles from ${allArticles.length} total`);
+
+    // Save to content queue if requested
+    let savedItems = [];
+    if (saveToQueue && sortedArticles.length > 0) {
+      savedItems = await saveToContentQueue(sortedArticles, keywordArray, sourcesArray);
+    }
+
+    const allSourceNames = ['PubMed', 'Europe PMC', 'GNews', 'Guardian', 'Hacker News'];
+    const searchedSources = sourcesArray.includes('all') ? allSourceNames : sourcesArray;
 
     return new Response(
       JSON.stringify({ 
         articles: sortedArticles,
-        sources_searched: source === 'all' ? ['GNews', 'Guardian', 'Hacker News'] : [source],
-        total_found: sortedArticles.length
+        sources_searched: searchedSources,
+        total_found: sortedArticles.length,
+        saved_to_queue: savedItems.length,
+        keywords_used: keywordArray
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )

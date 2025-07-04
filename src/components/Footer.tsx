@@ -32,7 +32,7 @@ const BrandSection = () => (
   </div>
 );
 
-const LinkSection = ({ title, links, noTitle = false }) => (
+const LinkSection = ({ title, links, noTitle = false }: { title?: string; links: any; noTitle?: boolean }) => (
   <div className="space-y-4">
     {!noTitle && <h3 className="text-lg font-semibold text-blue-900">{title}</h3>}
     <div className="space-y-3">

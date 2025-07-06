@@ -50,7 +50,7 @@
     /* 🔥 GRANULAR FONT CONTROL: Individual Font Families */
     --h1-font-family: "Playfair Display", serif;
     --h2-font-family: "Playfair Display", serif;
-    --h3-font-family: "Playfair Display", serif;
+    --h3-font-family: "Source Sans Pro", sans-serif;
     --h4-font-family: "Source Sans Pro", sans-serif;
     --h5-font-family: "Source Sans Pro", sans-serif;
     --h6-font-family: "Source Sans Pro", sans-serif;
@@ -69,10 +69,10 @@
     --h5-font-size: 1.125rem;
     --h6-font-size: 1rem;
     --p-font-size: 1rem;
-    --small-font-size: 0.875rem;
+    --small-font-size: 0.975rem;
     --large-font-size: 1.125rem;
     
-    /* Font Weights */
+    /* Font ab */
     --h1-font-weight: 700;
     --h2-font-weight: 500;
     --h3-font-weight: 500;
@@ -101,7 +101,6 @@
   /* 🔥 INDIVIDUAL HEADING TARGETING */
   h1, .h1-style {
     font-family: var(--h1-font-family) !important;
-    font-size: var(--h1-font-size) !important;
     font-weight: var(--h1-font-weight) !important;
     line-height: 1.2 !important;
     margin-bottom: 1rem !important;
@@ -150,7 +149,6 @@
   /* 🔥 PARAGRAPH AND BODY TEXT */
   p, .p-style {
     font-family: var(--p-font-family) !important;
-    font-size: var(--p-font-size) !important;
     font-weight: var(--p-font-weight) !important;
     line-height: 1.6 !important;
     margin-bottom: 1rem !important;
@@ -204,32 +202,10 @@
     font-weight: var(--h3-font-weight) !important;
   }
 
-  html body h4,
-  html body .text-xl {
-    font-family: var(--h4-font-family) !important;
-    font-size: var(--h4-font-size) !important;
-    font-weight: var(--h4-font-weight) !important;
-  }
-
-  html body h5,
-  html body .text-lg {
-    font-family: var(--h5-font-family) !important;
-    font-size: var(--h5-font-size) !important;
-    font-weight: var(--h5-font-weight) !important;
-  }
-
-  html body h6,
-  html body .text-base {
-    font-family: var(--h6-font-family) !important;
-    font-size: var(--h6-font-size) !important;
-    font-weight: var(--h6-font-weight) !important;
-  }
-
   html body p,
   html body span:not(.icon):not([class*="lucide"]):not([data-lucide]),
   html body div:not([class*="text-"]):not([role]):not([class*="lucide"]) {
     font-family: var(--p-font-family) !important;
-    font-size: var(--p-font-size) !important;
     font-weight: var(--p-font-weight) !important;
   }
 
@@ -287,7 +263,6 @@
   }
   .prose p, .wmde-markdown p { 
     font-family: var(--p-font-family) !important;
-    font-size: var(--p-font-size) !important;
     font-weight: var(--p-font-weight) !important;
   }
 
@@ -315,23 +290,23 @@
 @media (max-width: 768px) {
   :root {
     --h1-font-size: 1.875rem; /* Smaller on mobile */
-    --h2-font-size: 1.5rem;
-    --h3-font-size: 1.25rem;
-    --h4-font-size: 1.125rem;
-    --h5-font-size: 1rem;
-    --h6-font-size: 0.875rem;
-    --p-font-size: 0.875rem;
+    --h2-font-size: 1.625rem;
+    --h3-font-size: 1.5rem;
+    --h4-font-size: 1.375rem;
+    --h5-font-size: 1.375rem;
+    --h6-font-size: 1.25rem;
+    --p-font-size: 1.25rem;
   }
 }
 
 @media (max-width: 480px) {
   :root {
-    --h1-font-size: 1.5rem; /* Even smaller on very small screens */
-    --h2-font-size: 1.25rem;
-    --h3-font-size: 1.125rem;
-    --h4-font-size: 1rem;
-    --h5-font-size: 0.875rem;
-    --h6-font-size: 0.875rem;
+    --h1-font-size: 1.875rem; /* Even smaller on very small screens */
+    --h2-font-size: 1.625rem;
+    --h3-font-size: 1.5rem;
+    --h4-font-size: 1.375rem;
+    --h5-font-size: 1.375rem;
+    --h6-font-size: 1.25rem;
   }
 }
 

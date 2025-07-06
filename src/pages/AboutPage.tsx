@@ -70,52 +70,45 @@ const AboutPage = () => {
             </div>
           </div>
 
-          {/* Editorial Team Section */}
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold">Editorial Team</h2>
+
+        {/* === Editorial Team Section === */}
+        <section className="py-6 bg-slate-50">
+          <div className="container mx-auto px-4">
+            <div className="text-center mb-16">
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900">Meet the Editorial Team</h2>
+              <p className="text-lg text-muted-foreground mt-4 max-w-2xl mx-auto">
+                Our experts ensure every article is accurate, insightful, and relevant.
+              </p>
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+              {teamMembers.map((member) => (
+                <Card key={member.name} className="border-0 text-center rounded-2xl overflow-hidden shadow-sm transition-all duration-300 hover:shadow-xl hover:-translate-y-2 group">
+                  <CardContent className="p-0">
+                    {/* Colorful Background Area */}
+                    <div className={`relative h-40 flex items-center justify-center transition-colors duration-300 ${member.color}`}>
+                       <Avatar className="w-28 h-28 border-4 border-white shadow-lg transform transition-transform duration-300 group-hover:scale-110">
+                        <AvatarImage src={member.image} alt={member.name} />
+                        <AvatarFallback className="text-3xl font-semibold bg-gray-200">
+                          {member.name
+                            .split(" ")
+                            .map((n) => n[0])
+                            .join("")
+                            .toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                    </div>
+                    {/* White Content Area */}
+                    <div className="bg-white p-6">
+                      <h3 className="font-light text-xl text-gray-900 mb-1">{member.name}</h3>
+                      <p className="text-primary font-medium text-sm">{member.role}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {teamMembers.slice(0, 3).map((member, index) => (
-              <Card key={member.name} className="border-0 shadow-none bg-transparent">
-                <CardContent className="p-0">
-                  <div className={`${member.color} rounded-lg p-8 mb-4 flex items-center justify-center`}>
-                    <Avatar className="w-24 h-24">
-                      <AvatarImage src={member.image} alt={member.name} />
-                      <AvatarFallback className="text-xl font-semibold">
-                        {member.name.split(' ').map(n => n[0]).join('')}
-                      </AvatarFallback>
-                    </Avatar>
-                  </div>
-                  <div className="text-center">
-                    <h3 className="font-semibold text-lg mb-1">{member.name}</h3>
-                    <p className="text-muted-foreground text-sm">{member.role}</p>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8 max-w-2xl mx-auto">
-            {teamMembers.slice(3).map((member, index) => (
-              <Card key={member.name} className="border-0 shadow-none bg-transparent">
-                <CardContent className="p-0">
-                  <div className={`${member.color} rounded-lg p-8 mb-4 flex items-center justify-center`}>
-                    <Avatar className="w-24 h-24">
-                      <AvatarImage src={member.image} alt={member.name} />
-                      <AvatarFallback className="text-xl font-semibold">
-                        {member.name.split(' ').map(n => n[0]).join('')}
-                      </AvatarFallback>
-                    </Avatar>
-                  </div>
-                  <div className="text-center">
-                    <h3 className="font-semibold text-lg mb-1">{member.name}</h3>
-                    <p className="text-muted-foreground text-sm">{member.role}</p>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+        </section>
         </div>
       </main>
       <Footer />

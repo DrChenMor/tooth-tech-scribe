@@ -1,35 +1,31 @@
 
-// Mock service for workflow automation - until database tables are created
-// This provides the same interface but uses mock data instead of database calls
+import { supabase } from '@/integrations/supabase/client';
+import { WorkflowNode } from '@/types/WorkflowTypes';
+import { executeWorkflow } from './workflowExecution';
+import type { Database } from '@/integrations/supabase/types';
 
 export interface WorkflowRule {
   id: string;
   name: string;
-  description: string;
-  trigger_type: 'schedule' | 'event' | 'condition';
-  trigger_config: Record<string, any>;
-  conditions: Array<{
-    field: string;
-    operator: 'eq' | 'gt' | 'lt' | 'gte' | 'lte' | 'contains';
-    value: any;
-  }>;
-  actions: Array<{
-    type: 'create_agent' | 'send_notification' | 'update_config' | 'run_analysis';    config: Record<string, any>;
-  }>;
+  description: string | null;
   enabled: boolean;
+  priority: number;
+  conditions: any[];
+  actions: any[];
   created_at: string;
   updated_at: string;
-  last_executed?: string;
   execution_count: number;
+  success_rate: number;
 }
 
 export interface WorkflowExecution {
   id: string;
-  rule_id: string;
+  workflow_rule_id: string;
+  suggestion_id: string;
   started_at: string;
   completed_at?: string;
-  status: 'running' | 'completed' | 'failed';
-  result?: Record<string, any>;
+  status: 'pending' | 'running' | 'completed' | 'failed';
+  result?: any;
   error_message?: string;
 }
 
@@ -44,25 +40,24 @@ export interface ExternalIntegration {
   error_count: number;
 }
 
-// Mock data storage
-const mockRules: WorkflowRule[] = [
+// Default workflow rules for content processing
+const defaultRules: WorkflowRule[] = [
   {
-    id: '1',
-    name: 'Auto-Create Performance Agent',
-    description: 'Creates a new performance monitoring agent when suggestion volume is high',
-    trigger_type: 'condition',
-    trigger_config: { threshold: 100, timeframe: '1h' },
+    id: 'default-content-processing',
+    name: 'Auto Content Processing',
+    description: 'Automatically processes approved content queue items',
+    enabled: true,
+    priority: 1,
     conditions: [
-      { field: 'suggestion_count', operator: 'gt', value: 100 }
+      { field: 'status', operator: 'eq', value: 'approved' }
     ],
     actions: [
-      { type: 'create_agent', config: { type: 'performance-monitor', priority: 'high' } }
+      { type: 'execute_workflow', config: { workflow_type: 'content_processing' } }
     ],
-    enabled: true,
-    created_at: '2024-01-01T00:00:00Z',
-    updated_at: '2024-01-15T10:30:00Z',
-    last_executed: '2024-01-15T10:30:00Z',
-    execution_count: 15
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    execution_count: 0,
+    success_rate: 0
   }
 ];
 
@@ -81,104 +76,241 @@ const mockIntegrations: ExternalIntegration[] = [
 
 // Workflow Rules Management
 export async function getWorkflowRules(): Promise<WorkflowRule[]> {
-  // Return mock data instead of database call
-  return Promise.resolve([...mockRules]);
-}
-
-export async function createWorkflowRule(rule: Omit<WorkflowRule, 'id' | 'created_at' | 'updated_at' | 'execution_count'>): Promise<WorkflowRule> {
-  const newRule: WorkflowRule = {
-    ...rule,
-    id: Date.now().toString(),
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-    execution_count: 0
-  };
-  
-  mockRules.push(newRule);
-  return Promise.resolve(newRule);
-}
-
-export async function updateWorkflowRule(id: string, updates: Partial<WorkflowRule>): Promise<WorkflowRule> {
-  const ruleIndex = mockRules.findIndex(r => r.id === id);
-  if (ruleIndex === -1) throw new Error('Rule not found');
-  
-  mockRules[ruleIndex] = {
-    ...mockRules[ruleIndex],
-    ...updates,
-    updated_at: new Date().toISOString()
-  };
-  
-  return Promise.resolve(mockRules[ruleIndex]);
-}
-
-export async function deleteWorkflowRule(id: string): Promise<void> {
-  const ruleIndex = mockRules.findIndex(r => r.id === id);
-  if (ruleIndex === -1) throw new Error('Rule not found');
-  
-  mockRules.splice(ruleIndex, 1);
-  return Promise.resolve();
-}
-
-export async function toggleWorkflowRule(id: string, enabled: boolean): Promise<void> {
-  const rule = mockRules.find(r => r.id === id);
-  if (!rule) throw new Error('Rule not found');
-  
-  rule.enabled = enabled;
-  rule.updated_at = new Date().toISOString();
-  return Promise.resolve();
-}
-
-// Workflow Execution
-export async function executeWorkflowRule(ruleId: string): Promise<WorkflowExecution> {
-  const rule = mockRules.find(r => r.id === ruleId);
-  if (!rule) throw new Error('Rule not found');
-
-  const execution: WorkflowExecution = {
-    id: Date.now().toString(),
-    rule_id: ruleId,
-    started_at: new Date().toISOString(),
-    status: 'running'
-  };
-
-  // Simulate workflow execution
   try {
-    const result = await processWorkflowActions(rule.actions);
+    const { data, error } = await supabase
+      .from('workflow_rules')
+      .select('*')
+      .order('priority', { ascending: false });
     
-    // Update execution as completed
-    execution.completed_at = new Date().toISOString();
-    execution.status = 'completed';
-    execution.result = result;
-
-    // Increment execution count
-    rule.execution_count += 1;
-    rule.last_executed = new Date().toISOString();
-
-    return execution;
+    if (error) throw error;
+    return (data || []).map(rule => ({
+      ...rule,
+      conditions: Array.isArray(rule.conditions) ? rule.conditions : [],
+      actions: Array.isArray(rule.actions) ? rule.actions : []
+    })) as WorkflowRule[];
   } catch (error) {
-    // Update execution as failed
-    execution.completed_at = new Date().toISOString();
-    execution.status = 'failed';
-    execution.error_message = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Error fetching workflow rules:', error);
+    return [];
+  }
+}
+
+export async function createWorkflowRule(rule: Omit<WorkflowRule, 'id' | 'created_at' | 'updated_at' | 'execution_count' | 'success_rate'>): Promise<WorkflowRule> {
+  try {
+    const { data, error } = await supabase
+      .from('workflow_rules')
+      .insert({
+        name: rule.name,
+        description: rule.description,
+        enabled: rule.enabled,
+        priority: rule.priority,
+        conditions: rule.conditions,
+        actions: rule.actions
+      })
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data as WorkflowRule;
+  } catch (error) {
+    console.error('Error creating workflow rule:', error);
     throw error;
   }
 }
 
-async function processWorkflowActions(actions: WorkflowRule['actions']): Promise<Record<string, any>> {
+export async function updateWorkflowRule(id: string, updates: Partial<WorkflowRule>): Promise<WorkflowRule> {
+  try {
+    const { data, error } = await supabase
+      .from('workflow_rules')
+      .update({
+        name: updates.name,
+        description: updates.description,
+        enabled: updates.enabled,
+        priority: updates.priority,
+        conditions: updates.conditions,
+        actions: updates.actions,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data as WorkflowRule;
+  } catch (error) {
+    console.error('Error updating workflow rule:', error);
+    throw error;
+  }
+}
+
+export async function deleteWorkflowRule(id: string): Promise<void> {
+  try {
+    const { error } = await supabase
+      .from('workflow_rules')
+      .delete()
+      .eq('id', id);
+    
+    if (error) throw error;
+  } catch (error) {
+    console.error('Error deleting workflow rule:', error);
+    throw error;
+  }
+}
+
+export async function toggleWorkflowRule(id: string, enabled: boolean): Promise<void> {
+  try {
+    const { error } = await supabase
+      .from('workflow_rules')
+      .update({ 
+        enabled,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id);
+    
+    if (error) throw error;
+  } catch (error) {
+    console.error('Error toggling workflow rule:', error);
+    throw error;
+  }
+}
+
+// Workflow Execution with multiple results handling
+export async function executeWorkflowRule(ruleId: string, nodes: WorkflowNode[], triggerData?: any): Promise<WorkflowExecution[]> {
+  console.log(`🚀 Executing workflow rule ${ruleId}`);
+  
+  try {
+    // Execute the workflow with proper multiple results handling
+    const executions = await executeWorkflow(ruleId, nodes, triggerData);
+    
+    // Update rule execution count
+    const { data: currentRule } = await supabase
+      .from('workflow_rules')
+      .select('execution_count')
+      .eq('id', ruleId)
+      .single();
+    
+    if (currentRule) {
+      await supabase
+        .from('workflow_rules')
+        .update({ 
+          execution_count: (currentRule.execution_count || 0) + 1
+        })
+        .eq('id', ruleId);
+    }
+    
+    console.log(`✅ Workflow rule executed successfully with ${executions.length} execution(s)`);
+    return executions;
+    
+  } catch (error) {
+    console.error('Workflow rule execution failed:', error);
+    throw error;
+  }
+}
+
+// Trigger workflow based on content queue events
+export async function triggerContentQueueWorkflow(contentQueueItem: any): Promise<void> {
+  console.log('🎯 Triggering content queue workflow for item:', contentQueueItem.id);
+  
+  try {
+    // Find workflow rules that should be triggered by content queue events
+    const { data: rules, error } = await supabase
+      .from('workflow_rules')
+      .select('*')
+      .eq('enabled', true);
+    
+    if (error) throw error;
+    
+    for (const rule of rules || []) {
+      // Check if rule conditions match the content queue item
+      const conditions = Array.isArray(rule.conditions) ? rule.conditions : [];
+      const shouldTrigger = evaluateRuleConditions(conditions, contentQueueItem);
+      
+      if (shouldTrigger) {
+        console.log(`🔥 Triggering workflow rule: ${rule.name}`);
+        
+        // Create a simple workflow with processing nodes
+        const workflowNodes: WorkflowNode[] = [
+          {
+            id: 'trigger',
+            type: 'trigger',
+            label: 'Content Queue Trigger',
+            position: { x: 0, y: 0 },
+            config: {},
+            connected: ['processor'],
+            data: contentQueueItem
+          },
+          {
+            id: 'processor',
+            type: 'ai-processor',
+            label: 'AI Content Processor',
+            position: { x: 300, y: 0 },
+            config: {
+              prompt: 'Create a comprehensive article from this content',
+              tone: 'professional',
+              length: 'long'
+            },
+            connected: ['publisher'],
+            data: {}
+          },
+          {
+            id: 'publisher',
+            type: 'publisher',
+            label: 'Article Publisher',
+            position: { x: 600, y: 0 },
+            config: {
+              category: contentQueueItem.source_type,
+              autoPublish: false
+            },
+            connected: [],
+            data: {}
+          }
+        ];
+        
+        await executeWorkflowRule(rule.id, workflowNodes, contentQueueItem);
+      }
+    }
+  } catch (error) {
+    console.error('Error triggering content queue workflow:', error);
+  }
+}
+
+function evaluateRuleConditions(conditions: any[], item: any): boolean {
+  if (!conditions.length) return true;
+  
+  return conditions.every(condition => {
+    const fieldValue = item[condition.field];
+    
+    switch (condition.operator) {
+      case 'eq':
+        return fieldValue === condition.value;
+      case 'gt':
+        return fieldValue > condition.value;
+      case 'lt':
+        return fieldValue < condition.value;
+      case 'gte':
+        return fieldValue >= condition.value;
+      case 'lte':
+        return fieldValue <= condition.value;
+      case 'contains':
+        return String(fieldValue).toLowerCase().includes(String(condition.value).toLowerCase());
+      default:
+        return false;
+    }
+  });
+}
+
+async function processWorkflowActions(actions: any[]): Promise<Record<string, any>> {
   const results: Record<string, any> = {};
 
   for (const action of actions) {
     switch (action.type) {
-      case 'create_agent':
-        results[action.type] = await createAgentAction(action.config);
+      case 'execute_workflow':
+        results[action.type] = await executeWorkflowAction(action.config);
         break;
       case 'send_notification':
         results[action.type] = await sendNotificationAction(action.config);
         break;
-      case 'update_config':
-        results[action.type] = await updateConfigAction(action.config);
-        break;
-      case 'run_analysis':
-        results[action.type] = await runAnalysisAction(action.config);
+      case 'update_queue_status':
+        results[action.type] = await updateQueueStatusAction(action.config);
         break;
     }
   }
@@ -186,10 +318,14 @@ async function processWorkflowActions(actions: WorkflowRule['actions']): Promise
   return results;
 }
 
-async function createAgentAction(config: Record<string, any>): Promise<any> {
-  // Implementation for creating an agent
-  console.log('Creating agent with config:', config);
-  return { success: true, agent_id: 'new-agent-id' };
+async function executeWorkflowAction(config: Record<string, any>): Promise<any> {
+  console.log('Executing workflow action with config:', config);
+  return { success: true, workflow_id: 'workflow-' + Date.now() };
+}
+
+async function updateQueueStatusAction(config: Record<string, any>): Promise<any> {
+  console.log('Updating queue status with config:', config);
+  return { success: true, updated_items: config.items || [] };
 }
 
 async function sendNotificationAction(config: Record<string, any>): Promise<any> {
@@ -198,17 +334,6 @@ async function sendNotificationAction(config: Record<string, any>): Promise<any>
   return { success: true, message: 'Notification sent' };
 }
 
-async function updateConfigAction(config: Record<string, any>): Promise<any> {
-  // Implementation for updating configuration
-  console.log('Updating config:', config);
-  return { success: true, updated_fields: Object.keys(config) };
-}
-
-async function runAnalysisAction(config: Record<string, any>): Promise<any> {
-  // Implementation for running analysis
-  console.log('Running analysis with config:', config);
-  return { success: true, analysis_id: 'analysis-' + Date.now() };
-}
 
 // External Integrations
 export async function getIntegrations(): Promise<ExternalIntegration[]> {
@@ -311,21 +436,26 @@ async function testZapier(config: Record<string, any>): Promise<{ success: boole
 
 // Workflow Execution History
 export async function getWorkflowExecutions(ruleId?: string): Promise<WorkflowExecution[]> {
-  // Mock execution history
-  const mockExecutions: WorkflowExecution[] = [
-    {
-      id: '1',
-      rule_id: '1',
-      started_at: '2024-01-15T10:30:00Z',
-      completed_at: '2024-01-15T10:31:00Z',
-      status: 'completed',
-      result: { success: true, agent_id: 'agent-123' }
+  try {
+    let query = supabase
+      .from('workflow_executions')
+      .select('*')
+      .order('started_at', { ascending: false });
+    
+    if (ruleId) {
+      query = query.eq('workflow_rule_id', ruleId);
     }
-  ];
-
-  if (ruleId) {
-    return Promise.resolve(mockExecutions.filter(e => e.rule_id === ruleId));
+    
+    const { data, error } = await query.limit(100);
+    
+    if (error) throw error;
+    return (data || []).map(execution => ({
+      ...execution,
+      workflow_rule_id: execution.workflow_rule_id,
+      suggestion_id: execution.suggestion_id
+    })) as WorkflowExecution[];
+  } catch (error) {
+    console.error('Error fetching workflow executions:', error);
+    return [];
   }
-
-  return Promise.resolve(mockExecutions);
 }

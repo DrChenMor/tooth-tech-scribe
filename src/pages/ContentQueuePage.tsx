@@ -86,11 +86,27 @@ const ContentQueuePage = () => {
         .in('id', itemIds);
       
       if (error) throw error;
+
+      // If approved, trigger workflow for each item
+      if (status === 'approved') {
+        const { data: items } = await supabase
+          .from('content_queue')
+          .select('*')
+          .in('id', itemIds);
+        
+        if (items) {
+          const { triggerContentQueueWorkflow } = await import('@/services/workflowAutomation');
+          for (const item of items) {
+            await triggerContentQueueWorkflow(item);
+          }
+        }
+      }
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['content-queue'] });
       setSelectedItems([]);
-      toast({ title: 'Status updated successfully' });
+      const statusText = variables.status === 'approved' ? 'approved and workflow triggered' : 'updated';
+      toast({ title: `Status ${statusText} successfully` });
     },
     onError: () => {
       toast({ title: 'Error updating status', variant: 'destructive' });

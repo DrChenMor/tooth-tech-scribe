@@ -902,3 +902,20 @@ nav {
   pointer-events: auto !important;
   touch-action: manipulation !important;
 }
+
+/* 🔧 ADD THIS TO THE END OF src/index.css */
+
+/* More space on tablet and mobile only */
+@media (max-width: 1024px) {
+  .container {
+    padding-left: 1.5rem !important;
+    padding-right: 1.5rem !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding-left: 1.25rem !important;
+    padding-right: 1.25rem !important;
+  }
+}

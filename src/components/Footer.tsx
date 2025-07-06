@@ -17,7 +17,7 @@ const BrandSection = () => (
       <div className="w-10 h-10 bg-blue-600/90 backdrop-blur-sm rounded-2xl flex items-center justify-center shrink-0 hover:bg-blue-700/90 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/25 hover:-translate-y-0.5">
         <Smile className="text-white" size={20} />
       </div>
-      <span className="text-xl font-bold text-blue-900">Dental AI Insights</span>
+      <span className="text-xl font-bold text-blue-900">DentaAI Insights</span>
     </div>
     <p className="text-sm leading-relaxed text-gray-600">
       Your trusted source for the latest in AI-powered dental technology, research breakthroughs, and industry insights.
@@ -124,7 +124,7 @@ const Footer = () => {
           <div className="container mx-auto">
             <div className="flex flex-col md:flex-row justify-between items-center gap-4">
               <div className="flex flex-col md:flex-row items-center gap-x-6 gap-y-2 text-sm">
-                <p className="text-gray-600 text-center md:text-left">© {new Date().getFullYear()} DentaAI Insights. All rights reserved.</p>
+<span className="text-gray-600 text-sm leading-none">© 2025 DentaAI Insights. All rights reserved.</span>
                 <div className="flex space-x-4">
                   <a href="#" className="text-gray-500 hover:text-blue-600 transition-colors duration-300 px-3 py-1 rounded-xl hover:bg-blue-50/50">Privacy Policy</a>
                   <a href="#" className="text-gray-500 hover:text-blue-600 transition-colors duration-300 px-3 py-1 rounded-xl hover:bg-blue-50/50">Terms of Service</a>

@@ -139,11 +139,16 @@ const ArticlePage = () => {
                   <span>{format(new Date(article.published_date), 'MMMM d, yyyy')}</span>
                 </div>
                 {article.category && (
-                  <Badge variant="outline" className="flex items-center">
-                    <Tag size={14} className="mr-1.5" />
-                    {article.category}
-                  </Badge>
-                )}
+  <Link to={`/category/${encodeURIComponent(article.category)}`}>
+    <Badge
+      variant="outline"
+      className="flex items-center hover:bg-primary hover:text-white transition-colors cursor-pointer my-1 py-1"
+    >
+      <Tag size={14} className="mr-1.5" />
+      {article.category}
+    </Badge>
+  </Link>
+)}
               </div>
             </div>
             <img 

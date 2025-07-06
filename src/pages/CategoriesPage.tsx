@@ -1,10 +1,42 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Link } from 'react-router-dom';
 import Footer from '@/components/Footer';
 import { Card } from '@/components/ui/card';
+
+// 🆕 NEW: Function to try multiple image formats
+const getImageWithFallbacks = (categoryName: string, fallbackImage: string): string => {
+  const supabaseUrl = 'https://nuhjsrmkkqtecfkjrcox.supabase.co';
+  const slug = categoryName.toLowerCase().replace(/[^a-z0-9]/g, '-');
+  
+  // List of formats to try in order of preference
+  const formats = ['png', 'jpg', 'jpeg', 'webp'];
+  
+  // Create a CSS background-image with multiple fallbacks
+  const imageUrls = formats.map(format => 
+    `url("${supabaseUrl}/storage/v1/object/public/article-images/category-${slug}.${format}")`
+  );
+  
+  // Add the final fallback (Unsplash)
+  imageUrls.push(`url("${fallbackImage}")`);
+  
+  return imageUrls.join(', ');
+};
+
+// 🔧 UPDATED: Fallback images if Supabase images don't exist
+const getFallbackImage = (index: number): string => {
+  const fallbackImages = [
+    'https://images.unsplash.com/photo-1606811841689-23dfddce3e95?w=400&h=250&fit=crop', // General/Medical
+    'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400&h=250&fit=crop', // Industry/Business
+    'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=400&h=250&fit=crop', // Tools/Equipment
+    'https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=400&h=250&fit=crop', // Tech/Digital
+    'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=250&fit=crop', // AI/Innovation
+    'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=400&h=250&fit=crop', // News/Research
+    'https://images.unsplash.com/photo-1551601651-2a8555f1a136?w=400&h=250&fit=crop', // Default for new categories
+  ];
+  return fallbackImages[index % fallbackImages.length];
+};
 
 const fetchCategoriesWithCounts = async () => {
   const { data, error } = await supabase
@@ -38,15 +70,6 @@ const CategoriesPage = () => {
     queryKey: ['categories-with-counts'],
     queryFn: fetchCategoriesWithCounts,
   });
-
-  const categoryColors = [
-    'bg-gradient-to-br from-yellow-400 to-orange-400',
-    'bg-gradient-to-br from-purple-500 to-pink-500',
-    'bg-gradient-to-br from-pink-400 to-red-400',
-    'bg-gradient-to-br from-green-500 to-teal-500',
-    'bg-gradient-to-br from-blue-500 to-indigo-500',
-    'bg-gradient-to-br from-indigo-500 to-purple-500',
-  ];
 
   if (isLoading) {
     return (
@@ -94,38 +117,54 @@ const CategoriesPage = () => {
           {/* Categories Grid */}
           {categories && categories.length > 0 ? (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 pb-12">
-              {categories.map((category, index) => (
-                <Link
-                  key={category.name}
-                  to={`/category/${encodeURIComponent(category.name)}`}
-                  className="group"
-                >
-                  <Card className={`${categoryColors[index % categoryColors.length]} p-8 h-64 flex flex-col justify-between text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 cursor-pointer relative overflow-hidden`}>
-                    {/* Category name badge */}
-                    <div className="bg-white/20 backdrop-blur-sm rounded-full px-4 py-2 w-fit">
-                      <span className="text-white font-medium text-sm">
-                        {category.name}
-                      </span>
-                    </div>
-                    
-                    {/* Bottom section with article count */}
-                    <div className="flex items-end justify-between">
-                      <div>
-                        <p className="text-white/80 text-sm mb-1">
-                          {category.count} article{category.count !== 1 ? 's' : ''}
-                        </p>
+              {categories.map((category, index) => {
+                // 🔧 UPDATED: Smart image selection with multiple format support
+                const fallbackImage = getFallbackImage(index);
+                
+                return (
+                  <Link
+                    key={category.name}
+                    to={`/category/${encodeURIComponent(category.name)}`}
+                    className="group"
+                  >
+                    <Card className="p-0 h-64 border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 cursor-pointer relative overflow-hidden">
+                      {/* 🔧 UPDATED: Smart background image with multiple format detection */}
+                      <div 
+                        className="absolute inset-0 bg-cover bg-center"
+                        style={{ 
+                          backgroundImage: getImageWithFallbacks(category.name, fallbackImage),
+                        }}
+                      />
+                      <div className="absolute inset-0 bg-black/5" /> {/* Dark overlay for text readability */}
+                      <div className="relative z-10 p-8 h-full flex flex-col justify-between text-white">
+                        
+                        {/* Category name badge */}
+                        <div className="bg-white/20 backdrop-blur-sm rounded-full px-4 py-2 w-fit">
+                          <span className="text-white font-medium text-sm">
+                            {category.name}
+                          </span>
+                        </div>
+                        
+                        {/* Bottom section with article count */}
+                        <div className="flex items-end justify-between">
+                          <div>
+                            <p className="text-white/80 text-sm mb-1">
+                              {category.count} article{category.count !== 1 ? 's' : ''}
+                            </p>
+                          </div>
+                          
+                          {/* Arrow icon */}
+                          <div className="bg-black/20 rounded-full p-2 group-hover:bg-black/30 transition-colors">
+                            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </div>
+                        </div>
                       </div>
-                      
-                      {/* Arrow icon */}
-                      <div className="bg-black/20 rounded-full p-2 group-hover:bg-black/30 transition-colors">
-                        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
-                      </div>
-                    </div>
-                  </Card>
-                </Link>
-              ))}
+                    </Card>
+                  </Link>
+                );
+              })}
             </div>
           ) : (
             <div className="text-center py-16">

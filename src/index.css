@@ -919,3 +919,9 @@ nav {
     padding-right: 1.25rem !important;
   }
 }
+
+/* 🔧 ADD THIS: More space on ALL screen sizes (including desktop) */
+.container {
+  padding-left: 2rem !important;
+  padding-right: 2rem !important;
+}

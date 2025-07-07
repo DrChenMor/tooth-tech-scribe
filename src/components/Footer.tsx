@@ -14,17 +14,15 @@ import {
 const BrandSection = () => (
   <div className="space-y-4">
     <div className="flex items-center gap-2">
-      <div className="w-10 h-10 bg-blue-600/90 backdrop-blur-sm rounded-2xl flex items-center justify-center shrink-0 hover:bg-blue-700/90 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/25 hover:-translate-y-0.5">
-        <Smile className="text-white" size={20} />
-      </div>
-      <span className="text-xl font-bold text-blue-900">DentaAI Insights</span>
+
+      <span className="text-xl font-bold text-blue-900">DentaAI</span>
     </div>
     <p className="text-sm leading-relaxed text-gray-600">
       Your trusted source for the latest in AI-powered dental technology, research breakthroughs, and industry insights.
     </p>
     <div className="flex space-x-3">
-      {[Twitter, Linkedin, Github, Mail].map((Icon, index) => (
-        <a key={index} href="#" className="w-10 h-10 bg-gray-100/80 backdrop-blur-sm rounded-xl flex items-center justify-center hover:bg-blue-50/90 hover:text-blue-600 transition-all duration-300 cursor-pointer hover:shadow-md hover:-translate-y-0.5">
+      {[Linkedin, Mail].map((Icon, index) => (
+        <a key={index} href="#" className="w-10 h-10 bg-gray-100/80 backdrop-blur-sm rounded-xl flex items-center justify-center hover:bg-blue-50/90 hover:bbg-primary transition-all duration-300 cursor-pointer hover:shadow-md hover:-translate-y-0.5">
           <Icon size={16} />
         </a>
       ))}
@@ -53,7 +51,7 @@ const NewsletterSection = () => (
     </p>
     <div className="space-y-3">
       <Input type="email" placeholder="Enter your email" className="bg-white/90 backdrop-blur-sm border border-gray-200/60 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:bg-white focus:border-blue-300/60 focus:shadow-lg focus:shadow-blue-500/10 transition-all duration-300 placeholder:text-gray-400" />
-      <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-medium transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/25 hover:-translate-y-0.5 backdrop-blur-sm">
+      <Button className="w-full bbg-primary hover:bg-primary hover:bg-blue-900 text-white rounded-2xl font-medium transition-all duration-300 hover:shadow-lg hover:shadow-blue-700/25 hover:-translate-y-0.5 backdrop-blur-sm">
         Subscribe
       </Button>
     </div>

@@ -95,14 +95,9 @@ const TopNavigation = () => {
               </Button>
             </div>
             
-            <div className="relative">
-              <div className="w-10 h-10 bg-blue-600 rounded-2xl flex items-center justify-center hover:bg-blue-700 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/25 hover:-translate-y-0.5 cursor-pointer">
-                <span className="text-white font-bold text-sm">0</span>
-              </div>
-            </div>
 
             <Button className="
-              bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-medium p-3 lg:px-6
+              bbg-primary hover:bg-primary text-white rounded-2xl font-medium p-3 lg:px-6
               transition-all duration-300 
               hover:shadow-lg hover:shadow-blue-500/25 
               hover:-translate-y-0.5

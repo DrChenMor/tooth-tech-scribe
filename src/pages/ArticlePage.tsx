@@ -181,7 +181,7 @@ const ArticlePage = () => {
             </div>
             
             <div className="mt-12 text-center">
-              <Link to="/" className="text-primary font-semibold hover:underline">
+              <Link to="/articles" className="text-primary font-semibold hover:underline">
                 ← Back to all articles
               </Link>
             </div>

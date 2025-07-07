@@ -1,4 +1,3 @@
-
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -6,9 +5,29 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { Skeleton } from "@/components/ui/skeleton";
+
+// ✅ NEW: Adapted your smart fallback logic for a single, specific image
+const getHeroImageWithFallbacks = (imageName: string): string => {
+  // Replace with your actual Supabase URL and bucket name
+  const supabaseUrl = 'https://nuhjsrmkkqtecfkjrcox.supabase.co'; 
+  const bucketName = 'article-images'; // ⚠️ IMPORTANT: REPLACE THIS
+
+  const formats = ['jpg', 'jpeg', 'png', 'webp'];
+  
+  const imageUrls = formats.map(format => 
+    `url("${supabaseUrl}/storage/v1/object/public/${bucketName}/${imageName}.${format}")`
+  );
+  
+  // You can add a final Unsplash/placeholder fallback if you want
+  // imageUrls.push(`url("https://images.unsplash.com/your-fallback-image")`);
+  
+  return imageUrls.join(', ');
+};
 
 const AboutPage = () => {
-  const { data: reporters, isLoading } = useQuery({
+  // Query for reporters (existing code)
+  const { data: reporters, isLoading: isLoadingReporters } = useQuery({
     queryKey: ['active-reporters'],
     queryFn: async () => {
       const { data, error } = await (supabase as any)
@@ -21,40 +40,24 @@ const AboutPage = () => {
     },
   });
 
-  // Fallback team members if no reporters in database
   const fallbackTeamMembers = [
     {
-      name: "Dr. Sarah Johnson",
-      role: "Dental AI Researcher",
-      image: "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=400&h=400&fit=crop&crop=face",
-      color: "bg-blue-100"
-    },
-    {
-      name: "Dr. Michael Chen", 
-      role: "Clinical Director",
-      image: "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=400&h=400&fit=crop&crop=face",
-      color: "bg-green-100"
-    },
-    {
-      name: "Dr. Emily Rodriguez",
-      role: "Technology Lead", 
-      image: "https://images.unsplash.com/photo-1594824716093-836d4c8c1bf5?w=400&h=400&fit=crop&crop=face",
-      color: "bg-red-100"
-    },
-    {
-      name: "Dr. James Wilson",
-      role: "Research Scientist",
+      name: "Dr. Chen Mor",
+      role: "Editor-in-Chief",
       image: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop&crop=face", 
       color: "bg-purple-100"
     }
   ];
 
-  const teamMembers = reporters?.length > 0 ? reporters.map((reporter, index) => ({
+  const teamMembers = !isLoadingReporters && reporters?.length > 0 ? reporters.map((reporter, index) => ({
     name: reporter.name,
     role: reporter.specialties?.[0] || "Content Specialist",
     image: reporter.avatar_url,
     color: ["bg-blue-100", "bg-green-100", "bg-red-100", "bg-purple-100"][index % 4]
   })) : fallbackTeamMembers;
+
+  // ✅ Get the background image string
+  const heroBackgroundImage = getHeroImageWithFallbacks('about-us-hero');
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -68,26 +71,26 @@ const AboutPage = () => {
 
           {/* Main Content Section */}
           <div className="grid md:grid-cols-2 gap-12 items-center mb-24">
-            <div className="relative">
-              <div className="w-full h-80 bg-pink-100 rounded-lg flex items-center justify-center overflow-hidden">
-                <div className="w-48 h-48 bg-pink-200 rounded-full flex items-center justify-center">
-                  <div className="w-32 h-32 bg-pink-300 rounded-full flex items-center justify-center">
-                    <div className="w-24 h-24 bg-gradient-to-br from-pink-400 to-pink-500 rounded-full shadow-inner"></div>
-                  </div>
-                </div>
-              </div>
+            
+            {/* ✅ STEP 2: APPLY THE BACKGROUND IMAGE STYLE */}
+            <div 
+              className="relative w-full h-96 rounded-lg bg-cover bg-center bg-pink-100" // bg-pink-100 acts as a fallback color
+              style={{ backgroundImage: heroBackgroundImage }}
+            >
+              {/* This div is now just for a subtle overlay if needed, or can be removed */}
+              <div className="absolute inset-0 bg-black/10 rounded-lg"></div>
             </div>
             
             <div className="space-y-6">
               <p className="text-lg text-muted-foreground leading-relaxed">
-                We are a passionate team of writers, creators, and experts dedicated to bringing you the best content in Lifestyle, Business, Travel, Finance, and Technology. Our mission is to empower our readers with practical advice, fresh perspectives, and thought-provoking ideas that make a difference in everyday life.
+                At DentAI, we explore the dynamic intersection of dentistry and artificial intelligence. Our team is composed of passionate dental professionals and technology experts committed to delivering the most current and relevant content in the field.
               </p>
               
               <p className="text-lg text-muted-foreground leading-relaxed">
-                Whether you're looking for tips to elevate your lifestyle, strategies to grow your business, travel inspiration, financial wisdom, or the latest tech trends, we have something for you. We believe in creating content that is not only informative but also engaging and easy to digest.
+              Our mission is to empower you with practical insights and clear analysis of cutting-edge research and tools. Whether you're a practitioner, student, or enthusiast, we provide the essential knowledge to navigate and thrive in the future of dentistry.
               </p>
               
-              <Button asChild size="lg">
+              <Button asChild size="lg" className="group">
                 <Link to="/contact">Get in touch →</Link>
               </Button>
             </div>
@@ -95,7 +98,7 @@ const AboutPage = () => {
 
 
         {/* === Editorial Team Section === */}
-        <section className="py-6 bg-slate-50">
+        <section className="py-12 bg-slate-50 rounded-3xl">
           <div className="container mx-auto px-4">
             <div className="text-center mb-16">
               <h2 className="text-3xl md:text-4xl font-bold text-gray-900">Meet the Editorial Team</h2>
@@ -104,31 +107,42 @@ const AboutPage = () => {
               </p>
             </div>
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-              {teamMembers.map((member) => (
-                <Card key={member.name} className="border-0 text-center rounded-2xl overflow-hidden shadow-sm transition-all duration-300 hover:shadow-xl hover:-translate-y-2 group">
-                  <CardContent className="p-0">
-                    {/* Colorful Background Area */}
-                    <div className={`relative h-40 flex items-center justify-center transition-colors duration-300 ${member.color}`}>
-                       <Avatar className="w-28 h-28 border-4 border-white shadow-lg transform transition-transform duration-300 group-hover:scale-110">
-                        <AvatarImage src={member.image} alt={member.name} />
-                        <AvatarFallback className="text-3xl font-semibold bg-gray-200">
-                          {member.name
-                            .split(" ")
-                            .map((n) => n[0])
-                            .join("")
-                            .toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
+            {/* ✅ THIS IS THE KEY CHANGE: Using Flexbox for centering */}
+            <div className="flex flex-wrap justify-center gap-8">
+              {isLoadingReporters ? (
+                // Show skeletons while loading data
+                [...Array(4)].map((_, i) => (
+                  <div key={i} className="w-full sm:w-64">
+                    <Skeleton className="h-40 w-full rounded-t-2xl" />
+                    <div className="bg-white p-6 rounded-b-2xl">
+                      <Skeleton className="h-6 w-3/4 mb-2" />
+                      <Skeleton className="h-4 w-1/2" />
                     </div>
-                    {/* White Content Area */}
-                    <div className="bg-white p-6">
-                      <h3 className="font-light text-xl text-gray-900 mb-1">{member.name}</h3>
-                      <p className="text-primary font-medium text-sm">{member.role}</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                  </div>
+                ))
+              ) : (
+                // Render team members once loaded
+                teamMembers.map((member) => (
+                  <div key={member.name} className="w-full sm:w-64 lg:w-72">
+                    <Card className="border-0 text-center rounded-2xl overflow-hidden shadow-sm transition-all duration-300 hover:shadow-xl hover:-translate-y-2 group">
+                      <CardContent className="p-0">
+                        <div className={`relative h-40 flex items-center justify-center transition-colors duration-300 ${member.color}`}>
+                          <Avatar className="w-28 h-28 border-4 border-white shadow-lg transform transition-transform duration-300 group-hover:scale-110">
+                            <AvatarImage src={member.image} alt={member.name} />
+                            <AvatarFallback className="text-3xl font-semibold bg-gray-200">
+                              {member.name.split(" ").map((n) => n[0]).join("").toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                        </div>
+                        <div className="bg-white p-6">
+                          <h3 className="font-semibold text-xl text-gray-900 mb-1">{member.name}</h3>
+                          <p className="text-primary font-medium text-sm">{member.role}</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </section>

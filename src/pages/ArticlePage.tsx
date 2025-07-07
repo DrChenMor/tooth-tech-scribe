@@ -125,22 +125,27 @@ const ArticlePage = () => {
                   <span className="font-semibold text-gray-800">{article.reporter?.name || article.author_name}</span>
                 </div>
                 
+                {article.reporter?.specialties && article.reporter.specialties.length > 0 && (
+                  <>
                     <div className="flex gap-1.5">
                         {article.reporter.specialties.slice(0, 2).map((specialty, index) => (
                           <Badge key={index} variant="secondary">{specialty}</Badge>
                         ))}
                     </div>
 
-                {article.reporter?.specialties && article.reporter.specialties.length > 0 && (
-                  <>
                     <span className="hidden sm:block text-gray-300">|</span>
                     <div className="flex items-center gap-2">
-                <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4" />
-                  <span>{format(new Date(article.published_date), 'MMMM d, yyyy')}</span>
-                </div>
+                      <Calendar className="w-4 h-4" />
+                      <span>{format(new Date(article.published_date), 'MMMM d, yyyy')}</span>
                     </div>
                   </>
+                )}
+
+                {(!article.reporter?.specialties || article.reporter.specialties.length === 0) && (
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4" />
+                    <span>{format(new Date(article.published_date), 'MMMM d, yyyy')}</span>
+                  </div>
                 )}
               </div>
             </header>

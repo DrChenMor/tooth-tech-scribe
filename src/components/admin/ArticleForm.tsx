@@ -10,6 +10,8 @@ import "@uiw/react-md-editor/markdown-editor.css";
 import "@uiw/react-markdown-preview/markdown.css";
 import MDEditor from "@uiw/react-md-editor";
 import ImageUpload from "./ImageUpload";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ArticleFormProps {
   form: ReturnType<typeof useForm<ArticleFormValues>>;
@@ -19,6 +21,20 @@ interface ArticleFormProps {
 }
 
 const ArticleForm = ({ form, onSubmit, isPending, isEditMode }: ArticleFormProps) => {
+  // Fetch reporters for selection
+  const { data: reporters } = useQuery({
+    queryKey: ['reporters'],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('reporters')
+        .select('id, name, is_active')
+        .eq('is_active', true)
+        .order('name');
+      if (error) throw error;
+      return data;
+    },
+  });
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
@@ -56,6 +72,44 @@ const ArticleForm = ({ form, onSubmit, isPending, isEditMode }: ArticleFormProps
               <FormLabel>Category</FormLabel>
               <FormControl>
                 <Input placeholder="e.g. Technology" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="reporter_id"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Reporter</FormLabel>
+              <Select onValueChange={field.onChange} value={field.value || ""}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a reporter (optional)" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="">No specific reporter</SelectItem>
+                  {reporters?.map((reporter) => (
+                    <SelectItem key={reporter.id} value={reporter.id}>
+                      {reporter.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="author_name_override"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Author Name Override</FormLabel>
+              <FormControl>
+                <Input placeholder="Override author name (leave empty to use reporter or default)" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>

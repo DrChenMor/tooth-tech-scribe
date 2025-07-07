@@ -4,9 +4,25 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 const AboutPage = () => {
-  const teamMembers = [
+  const { data: reporters, isLoading } = useQuery({
+    queryKey: ['active-reporters'],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('reporters')
+        .select('*')
+        .eq('is_active', true)
+        .order('name');
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Fallback team members if no reporters in database
+  const fallbackTeamMembers = [
     {
       name: "Dr. Sarah Johnson",
       role: "Dental AI Researcher",
@@ -32,6 +48,13 @@ const AboutPage = () => {
       color: "bg-purple-100"
     }
   ];
+
+  const teamMembers = reporters?.length > 0 ? reporters.map((reporter, index) => ({
+    name: reporter.name,
+    role: reporter.specialties?.[0] || "Content Specialist",
+    image: reporter.avatar_url,
+    color: ["bg-blue-100", "bg-green-100", "bg-red-100", "bg-purple-100"][index % 4]
+  })) : fallbackTeamMembers;
 
   return (
     <div className="flex flex-col min-h-screen">

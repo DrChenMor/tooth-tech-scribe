@@ -36,7 +36,8 @@ export const upsertArticle = async ({ id, values, author }: { id?: number; value
     excerpt: values.excerpt ?? null,
     content: values.content ?? null,
     category: values.category ?? null,
-    author_name: author.name,
+    reporter_id: values.reporter_id || null,
+    author_name: values.author_name_override || author.name,
     author_avatar_url: author.avatar_url,
   };
   

@@ -777,10 +777,27 @@ const NodeConfiguration = ({
             />
           </div>
           <div className="space-y-2">
+            <Label>Reporter Selection</Label>
+            <Select
+              key={`reporterId-${node.id}`}
+              value={localConfig.reporterId || ''}
+              onValueChange={(value) => handleConfigChange('reporterId', value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select a reporter (optional)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">No specific reporter</SelectItem>
+                {/* Note: In a real implementation, you'd fetch reporters here */}
+                <SelectItem value="ai-generated">AI Generated Content</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
             <Label>Author Name Override</Label>
             <Input
               key={`authorName-${node.id}`}
-              placeholder="Leave empty for default AI author"
+              placeholder="Leave empty for default AI author or reporter name"
               value={localConfig.authorName || ''}
               onChange={(e) => handleConfigChange('authorName', e.target.value)}
             />

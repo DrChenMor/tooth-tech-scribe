@@ -9,6 +9,8 @@ export const articleSchema = z.object({
   category: z.string().optional(),
   image_url: z.any().optional(),
   status: z.enum(["draft", "published", "archived"]),
+  reporter_id: z.string().optional(),
+  author_name_override: z.string().optional(),
 });
 
 export type ArticleFormValues = z.infer<typeof articleSchema>;

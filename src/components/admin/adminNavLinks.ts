@@ -8,7 +8,8 @@ import {
   Zap,
   Award,
   Workflow,
-  Clock
+  Clock,
+  User
 } from 'lucide-react';
 
 export const adminNavLinks = [
@@ -22,6 +23,13 @@ export const adminNavLinks = [
     url: '/admin/articles',
     icon: FileText,
   },
+
+  {
+    title: 'Reporters',        // 🔧 ADD THIS ENTIRE OBJECT
+    url: '/admin/reporters',   // 🔧 ADD THIS
+    icon: User,               // 🔧 ADD THIS
+  }, 
+       
   {
     title: 'Content Queue',
     url: '/admin/content-queue',

@@ -1,9 +1,7 @@
-// FIX 5: Update ArticlePage.tsx to handle RTL languages properly
-
 import { useParams, Link } from 'react-router-dom';
 import NotFound from './NotFound';
 import Footer from '@/components/Footer';
-import { Calendar, User, Tag } from 'lucide-react';
+import { Calendar, Tag } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Article } from '@/types';
@@ -13,11 +11,15 @@ import MDEditor from '@uiw/react-md-editor';
 import "@uiw/react-markdown-preview/markdown.css";
 import "@uiw/react-md-editor/markdown-editor.css";
 import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 const fetchArticleBySlug = async (slug: string): Promise<Article | null> => {
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from('articles')
-    .select('*')
+    .select(`
+      *,
+      reporter:reporters(id, name, bio, avatar_url, specialties)
+    `)
     .eq('slug', slug)
     .single();
 
@@ -28,22 +30,15 @@ const fetchArticleBySlug = async (slug: string): Promise<Article | null> => {
   return data;
 };
 
-// 🚀 NEW: Function to detect if text is RTL
 const detectRTL = (text: string): boolean => {
-  // Hebrew Unicode range: \u0590-\u05FF
-  // Arabic Unicode range: \u0600-\u06FF
   const rtlRegex = /[\u0590-\u05FF\u0600-\u06FF]/;
   return rtlRegex.test(text);
 };
 
-// 🚀 NEW: Function to get text direction
 const getTextDirection = (article: Article): 'rtl' | 'ltr' => {
   if (!article) return 'ltr';
-  
-  // Check title and content for RTL characters
   const titleIsRTL = detectRTL(article.title);
   const contentIsRTL = detectRTL(article.content || '');
-  
   return (titleIsRTL || contentIsRTL) ? 'rtl' : 'ltr';
 };
 
@@ -57,6 +52,7 @@ const ArticlePage = () => {
   });
 
   if (isLoading) {
+    // Skeleton loader remains the same.
     return (
       <div className="flex flex-col flex-grow">
         <main className="flex-grow">
@@ -86,99 +82,98 @@ const ArticlePage = () => {
     );
   }
 
-  if (isError) {
-     return (
-      <div className="flex flex-col flex-grow">
-        <main className="flex-grow flex items-center justify-center">
-          <div className="text-center">
-            <h2 className="text-2xl font-bold">Failed to load article</h2>
-            <p className="text-muted-foreground">Please try again later or check the URL.</p>
-          </div>
-        </main>
-        <Footer />
-      </div>
-    );
-  }
-
-  if (!article) {
+  if (isError || !article) {
     return <NotFound />;
   }
-
-  // 🚀 NEW: Detect text direction
+  
   const textDirection = getTextDirection(article);
   const isRTL = textDirection === 'rtl';
 
   return (
     <div className="flex flex-col flex-grow">
       <main className="flex-grow">
-        <div className="container mx-auto max-w-4xl px-4 py-8">
+        <div className="container mx-auto max-w-4xl px-4 py-12 md:py-16">
           <div className="animate-fade-in">
-            <div className="mb-8 text-center">
-              <Link to="/" className="text-primary font-semibold hover:underline">
-                &larr; Back to all articles
-              </Link>
-              {/* 🚀 NEW: Apply RTL direction and text alignment */}
+            <header className="mb-8 md:mb-12">
+              <div className="text-center mb-8">
+                {article.category && (
+                  <Link to={`/category/${encodeURIComponent(article.category)}`}>
+                    <Badge variant="outline" className="text-sm font-semibold tracking-wider uppercase bg-primary/10 border-primary/20 text-primary hover:bg-primary/20">
+                      {article.category}
+                    </Badge>
+                  </Link>
+                )}
+              </div>
+
               <h1 
-                className={`text-4xl md:text-5xl font-serif font-bold mt-4 leading-tight ${isRTL ? 'text-right' : 'text-left'}`}
+                className={`text-4xl md:text-5xl font-bold mt-4 leading-tight text-center text-gray-900 ${isRTL ? 'text-right' : 'text-left'}`}
                 dir={textDirection}
-                style={{ 
-                  direction: textDirection,
-                  textAlign: isRTL ? 'right' : 'left',
-                  unicodeBidi: 'embed'
-                }}
               >
                 {article.title}
               </h1>
-              <div className="mt-6 flex justify-center items-center flex-wrap gap-x-6 gap-y-2 text-muted-foreground text-sm">
-                <div className="flex items-center space-x-2">
-                  <User size={16} />
-                  <span>{article.author_name}</span>
+
+              {/* === MODERNIZED METADATA BAR (UI Changes you liked) === */}
+              <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 text-sm text-muted-foreground border-t border-b border-gray-200 py-4">
+                <div className="flex items-center gap-3">
+                  <Avatar className="w-10 h-10">
+                    <AvatarImage 
+                      src={article.reporter?.avatar_url || article.author_avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(article.reporter?.name || article.author_name || 'A')}&background=random`}
+                      alt={article.reporter?.name || article.author_name || 'Author'}
+                    />
+                    <AvatarFallback>{(article.reporter?.name || article.author_name || 'A').charAt(0)}</AvatarFallback>
+                  </Avatar>
+                  <span className="font-semibold text-gray-800">{article.reporter?.name || article.author_name}</span>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <Calendar size={16} />
+                
+                    <div className="flex gap-1.5">
+                        {article.reporter.specialties.slice(0, 2).map((specialty, index) => (
+                          <Badge key={index} variant="secondary">{specialty}</Badge>
+                        ))}
+                    </div>
+
+                {article.reporter?.specialties && article.reporter.specialties.length > 0 && (
+                  <>
+                    <span className="hidden sm:block text-gray-300">|</span>
+                    <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4" />
                   <span>{format(new Date(article.published_date), 'MMMM d, yyyy')}</span>
                 </div>
-                {article.category && (
-  <Link to={`/category/${encodeURIComponent(article.category)}`}>
-    <Badge
-      variant="outline"
-      className="flex items-center hover:bg-primary hover:text-white transition-colors cursor-pointer my-1 py-1"
-    >
-      <Tag size={14} className="mr-1.5" />
-      {article.category}
-    </Badge>
-  </Link>
-)}
+                    </div>
+                  </>
+                )}
               </div>
-            </div>
+            </header>
+
             <img 
               src={article.image_url || 'https://placehold.co/1280x720/EEE/BDBDBD?text=Denti-AI'} 
               alt={article.title} 
-              className="w-full h-auto max-h-[500px] object-cover rounded-lg shadow-lg mb-8" 
+              className="w-full h-auto max-h-[500px] object-cover rounded-2xl shadow-lg mb-8 md:mb-12" 
             />
-            {/* 🚀 NEW: Apply RTL styling to content */}
+            
             <div 
               className="w-full" 
               data-color-mode="light"
               dir={textDirection}
-              style={{ 
-                direction: textDirection,
-                textAlign: isRTL ? 'right' : 'left'
-              }}
             >
               <MDEditor.Markdown 
                 source={article.content || ''} 
                 style={{ 
-                  backgroundColor: 'transparent',
-                  fontSize: '18px',
+                  backgroundColor: 'transparent', // ✅ Renders on the page's default background
+                  fontSize: '1.125rem',
                   lineHeight: '1.8',
-                  fontFamily: isRTL ? 'Arial, "Helvetica Neue", Helvetica, sans-serif' : 'inherit', // Better RTL font
+                  fontFamily: isRTL ? 'Arial, "Helvetica Neue", Helvetica, sans-serif' : 'inherit',
                   direction: textDirection,
                   textAlign: isRTL ? 'right' : 'left',
-                  unicodeBidi: 'embed'
                 }}
-                className={`prose prose-lg max-w-none ${isRTL ? 'prose-rtl' : ''}`}
+                className={`prose prose-lg max-w-none prose-p:text-gray-700 prose-headings:text-gray-900 prose-a:text-primary ${isRTL ? 'prose-rtl' : ''}`}
               />
+            </div>
+            
+            <div className="mt-12 text-center">
+              <Link to="/" className="text-primary font-semibold hover:underline">
+                ← Back to all articles
+              </Link>
             </div>
           </div>
         </div>

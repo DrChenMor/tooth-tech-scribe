@@ -62,19 +62,27 @@ const ArticleCard = ({ article, index }: ArticleCardProps) => {
           
           {/* Author/Date section with fixed spacing */}
           <div className="flex items-center mt-6 article-author-info">
-            <img 
-              src={article.author_avatar_url || undefined} 
-              alt={article.author_name || ''} 
-              className="w-8 h-8 rounded-full mr-3"
-              onError={(e) => {
-                e.currentTarget.style.display = 'none';
-              }}
-            />
-            <div className="text-sm">
-              <p className="font-semibold text-foreground">{article.author_name}</p>
-              <p className="text-muted-foreground">{format(new Date(article.published_date), 'MMMM d, yyyy')}</p>
-            </div>
-          </div>
+  <img 
+    src={
+      article.reporter?.avatar_url || 
+      article.author_avatar_url || 
+      `https://ui-avatars.com/api/?name=${encodeURIComponent(article.reporter?.name || article.author_name || 'Author')}&size=32`
+    } 
+    alt={article.reporter?.name || article.author_name || ''} 
+    className="w-8 h-8 rounded-full mr-3 object-cover"
+    onError={(e) => {
+      e.currentTarget.style.display = 'none';
+    }}
+  />
+  <div className="text-sm">
+    <p className="font-semibold text-foreground">
+      {article.reporter?.name || article.author_name}
+    </p>
+    <p className="text-muted-foreground">
+      {format(new Date(article.published_date), 'MMMM d, yyyy')}
+    </p>
+  </div>
+</div>
         </div>
       </Link>
     </div>

@@ -1,4 +1,3 @@
-
 export type ArticleStatus = "draft" | "published" | "archived";
 
 export interface Article {
@@ -14,6 +13,14 @@ export interface Article {
   category: string | null;
   status: ArticleStatus;
   views: number;
+  reporter_id?: string; // 🔧 NEW
+  reporter?: {          // 🔧 NEW
+    id: string;
+    name: string;
+    bio?: string;
+    avatar_url?: string;
+    specialties?: string[];
+  };
 }
 
 export interface Profile {

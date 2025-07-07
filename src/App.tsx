@@ -32,6 +32,7 @@ import ArticlesManagementPage from './pages/ArticlesManagementPage';
 import ContentQueuePage from './pages/ContentQueuePage';
 import ScrollToTop from './components/ScrollToTop'; // Add this import
 import { useGlobalTheme } from './hooks/useGlobalTheme';
+import ReportersManagementPage from '@/pages/ReportersManagementPage';
 
 
 const queryClient = new QueryClient();
@@ -84,6 +85,7 @@ function App() {
                 <Route path="/admin/ai-agents" element={<AIAgentManagementPage />} />
                 <Route path="/admin/articles" element={<ArticlesManagementPage />} />
                 <Route path="/admin/content-queue" element={<ContentQueuePage />} />
+                <Route path="/admin/reporters" element={<ProtectedRoute requireAdmin><AdminLayout><ReportersManagementPage /></AdminLayout></ProtectedRoute>} />
               </Route>
               
               <Route path="*" element={<NotFound />} />

@@ -7,7 +7,6 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 
-// ✅ NEW: Adapted your smart fallback logic for a single, specific image
 const getHeroImageWithFallbacks = (imageName: string): string => {
   // Replace with your actual Supabase URL and bucket name
   const supabaseUrl = 'https://nuhjsrmkkqtecfkjrcox.supabase.co'; 

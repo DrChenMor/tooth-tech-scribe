@@ -2,6 +2,7 @@ import { useParams, Link } from 'react-router-dom';
 import NotFound from './NotFound';
 import Footer from '@/components/Footer';
 import { Calendar, Tag } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Article } from '@/types';
@@ -98,9 +99,13 @@ const ArticlePage = () => {
               <div className="text-center mb-8">
                 {article.category && (
                   <Link to={`/category/${encodeURIComponent(article.category)}`}>
-                    <Badge variant="outline" className="text-sm font-semibold tracking-wider uppercase bg-primary/10 border-primary/20 text-primary hover:bg-primary/20">
+                    <Button
+                      variant="ghost"
+                      size="default"
+                      className="rounded-full px-5 py-2 h-10 text-base font-medium transition-all duration-200 bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground shadow-sm"
+                    >
                       {article.category}
-                    </Badge>
+                    </Button>
                   </Link>
                 )}
               </div>

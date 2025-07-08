@@ -780,14 +780,14 @@ const NodeConfiguration = ({
             <Label>Reporter Selection</Label>
             <Select
               key={`reporterId-${node.id}`}
-              value={localConfig.reporterId || ''}
+              value={localConfig.reporterId || 'none'}
               onValueChange={(value) => handleConfigChange('reporterId', value)}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select a reporter (optional)" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">No specific reporter</SelectItem>
+                <SelectItem value="none">No specific reporter</SelectItem>
                 {/* Note: In a real implementation, you'd fetch reporters here */}
                 <SelectItem value="ai-generated">AI Generated Content</SelectItem>
               </SelectContent>

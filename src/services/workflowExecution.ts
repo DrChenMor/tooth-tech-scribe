@@ -376,12 +376,21 @@ async function executeFilterNode(node: WorkflowNode, context: WorkflowExecutionC
 }
 
 async function executePublisherNode(node: WorkflowNode, context: WorkflowExecutionContext): Promise<any> {
-  console.log('📢 Executing Publisher node');
+  console.log('📢 Executing Publisher node with context:', context);
   
   try {
     // Prepare content for the create-article-from-ai function
     const articleContent = context.data.ai_content?.content || context.data.content || context.data.description || '';
-    const fullContent = `# ${context.data.title || 'Generated Article'}
+    const title = context.data.title || 'Generated Article';
+    
+    console.log('Publisher node - preparing content:', {
+      title,
+      contentLength: articleContent.length,
+      hasAiContent: !!context.data.ai_content,
+      category: node.config.category
+    });
+
+    const fullContent = `# ${title}
 
 ${context.data.summary || context.data.description || ''}
 
@@ -397,7 +406,12 @@ ${articleContent}`;
       }
     });
 
-    if (error) throw error;
+    if (error) {
+      console.error('Publisher node - create-article-from-ai error:', error);
+      throw error;
+    }
+
+    console.log('Publisher node - article created successfully:', data);
     
     return {
       ...context.data,

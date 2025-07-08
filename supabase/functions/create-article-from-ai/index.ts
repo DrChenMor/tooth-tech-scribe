@@ -249,6 +249,7 @@ serve(async (req) => {
       category: request.category || 'AI Generated',
       author_name: authorName,
       author_avatar_url: null,
+      reporter_id: null, // Add this required field
       status: status,
       published_date: published_date,
     };

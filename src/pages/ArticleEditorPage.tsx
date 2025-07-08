@@ -39,7 +39,7 @@ const ArticleEditorPage = () => {
       category: "",
       image_url: "",
       status: "draft",
-      reporter_id: "",
+      reporter_id: "none",
       author_name_override: "",
     },
   });
@@ -64,7 +64,7 @@ const ArticleEditorPage = () => {
         category: article.category || "",
         image_url: article.image_url || "",
         status: article.status,
-        reporter_id: article.reporter_id || "",
+        reporter_id: article.reporter_id || "none",
         author_name_override: "",
       });
     }

@@ -83,14 +83,14 @@ const ArticleForm = ({ form, onSubmit, isPending, isEditMode }: ArticleFormProps
           render={({ field }) => (
             <FormItem>
               <FormLabel>Reporter</FormLabel>
-              <Select onValueChange={field.onChange} value={field.value || ""}>
+              <Select onValueChange={field.onChange} value={field.value || "none"}>
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Select a reporter (optional)" />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="">No specific reporter</SelectItem>
+                  <SelectItem value="none">No specific reporter</SelectItem>
                   {reporters?.map((reporter) => (
                     <SelectItem key={reporter.id} value={reporter.id}>
                       {reporter.name}

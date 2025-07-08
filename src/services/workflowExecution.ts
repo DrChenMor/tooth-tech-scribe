@@ -379,15 +379,21 @@ async function executePublisherNode(node: WorkflowNode, context: WorkflowExecuti
   console.log('📢 Executing Publisher node');
   
   try {
-    // Create article from the workflow result
+    // Prepare content for the create-article-from-ai function
+    const articleContent = context.data.ai_content?.content || context.data.content || context.data.description || '';
+    const fullContent = `# ${context.data.title || 'Generated Article'}
+
+${context.data.summary || context.data.description || ''}
+
+${articleContent}`;
+
+    // Create article from the workflow result using the correct interface
     const { data, error } = await supabase.functions.invoke('create-article-from-ai', {
       body: {
-        title: context.data.title,
-        content: context.data.ai_content?.content || context.data.content,
-        excerpt: context.data.summary || context.data.description,
+        content: fullContent,
         category: node.config.category || 'AI Generated',
-        author: node.config.author || 'AI Content Generator',
-        publish: node.config.autoPublish || false
+        provider: 'Workflow Engine',
+        status: node.config.autoPublish ? 'published' : 'draft'
       }
     });
 

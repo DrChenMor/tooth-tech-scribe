@@ -12,6 +12,7 @@ interface CreateArticleRequest {
   category?: string;
   provider: string;
   status?: 'draft' | 'published';
+  reporterId?: string;
 }
 
 function parseAIContent(content: string): { 
@@ -228,7 +229,7 @@ serve(async (req) => {
       : slug;
       
     const status = request.status || 'draft';
-    const published_date = status === 'published' ? new Date().toISOString() : new Date(0).toISOString();
+    const published_date = status === 'published' ? new Date().toISOString() : new Date().toISOString();
 
     // Add RTL and language info to author name for identification
     let authorName = `AI Content Generator (${request.provider})`;
@@ -249,7 +250,7 @@ serve(async (req) => {
       category: request.category || 'AI Generated',
       author_name: authorName,
       author_avatar_url: null,
-      reporter_id: null, // Add this required field
+      reporter_id: request.reporterId || null,
       status: status,
       published_date: published_date,
     };

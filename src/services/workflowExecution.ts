@@ -254,12 +254,28 @@ async function executeGoogleScholarNode(node: WorkflowNode, context: WorkflowExe
     const papers = data.papers || [];
     console.log(`🎓 Google Scholar found ${papers.length} papers`);
     
-    // Return each paper as a separate result
-    return papers.map((paper: any) => ({
-      ...paper,
+    if (papers.length === 0) {
+      console.warn('⚠️ No papers found by Google Scholar search');
+      return [];
+    }
+    
+    // Return each paper as a separate result - THIS FIXES THE MULTIPLE RESULTS ISSUE
+    const results = papers.map((paper: any) => ({
+      title: paper.title,
+      content: paper.abstract || '',
+      description: paper.abstract || '',
+      url: paper.url || '',
       source_type: 'academic',
+      source_url: paper.url || '',
+      published_date: new Date().toISOString(), // Use current processing date
+      authors: Array.isArray(paper.authors) ? paper.authors : [],
+      citations: paper.citations || 0,
+      venue: paper.venue || '',
       execution_context: context.executionId
     }));
+    
+    console.log(`🔄 Google Scholar returning ${results.length} separate papers for processing`);
+    return results;
     
   } catch (error) {
     console.error('Google Scholar node execution failed:', error);

@@ -428,7 +428,7 @@ ${articleContent}`;
       body: {
         content: fullContent,
         category: node.config.category || 'AI Generated',
-        provider: 'Workflow Engine',
+        provider: 'AI Processor',
         status: node.config.autoPublish ? 'published' : 'draft',
         reporterId: node.config.reporterId || null
       }

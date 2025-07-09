@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { WorkflowNode } from '@/types/WorkflowTypes';
 import { AVAILABLE_MODELS, getImageGenerationModels, getTextGenerationModels } from '@/services/aiModelService';
+import { supabase } from '@/integrations/supabase/client';
 
 interface WorkflowSidebarProps {
   selectedNode: WorkflowNode | null;
@@ -112,11 +113,38 @@ const NodeConfiguration = ({
 }) => {
   // Local state to ensure immediate updates
   const [localConfig, setLocalConfig] = useState(node.config);
+  const [reporters, setReporters] = useState<any[]>([]);
 
   // Sync local state with node config when node changes
   useEffect(() => {
     setLocalConfig(node.config);
   }, [node.config, node.id]);
+
+  // Fetch reporters for publisher node
+  useEffect(() => {
+    if (node.type === 'publisher') {
+      const fetchReporters = async () => {
+        try {
+          const { data, error } = await supabase
+            .from('reporters')
+            .select('id, name, email, is_active')
+            .eq('is_active', true)
+            .order('name');
+          
+          if (error) {
+            console.error('Error fetching reporters:', error);
+            return;
+          }
+          
+          setReporters(data || []);
+        } catch (error) {
+          console.error('Error fetching reporters:', error);
+        }
+      };
+      
+      fetchReporters();
+    }
+  }, [node.type]);
 
   const getNodeIcon = (type: WorkflowNode['type']) => {
     const icons = {
@@ -776,7 +804,7 @@ const NodeConfiguration = ({
               onChange={(e) => handleConfigChange('category', e.target.value)}
             />
           </div>
-          <div className="space-y-2">
+            <div className="space-y-2">
             <Label>Reporter Selection</Label>
             <Select
               key={`reporterId-${node.id}`}
@@ -788,8 +816,11 @@ const NodeConfiguration = ({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">No specific reporter</SelectItem>
-                {/* Note: In a real implementation, you'd fetch reporters here */}
-                <SelectItem value="ai-generated">AI Generated Content</SelectItem>
+                {reporters.map((reporter) => (
+                  <SelectItem key={reporter.id} value={reporter.id}>
+                    {reporter.name} ({reporter.email})
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

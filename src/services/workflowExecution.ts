@@ -413,7 +413,8 @@ ${articleContent}`;
         content: fullContent,
         category: node.config.category || 'AI Generated',
         provider: 'Workflow Engine',
-        status: node.config.autoPublish ? 'published' : 'draft'
+        status: node.config.autoPublish ? 'published' : 'draft',
+        reporterId: node.config.reporterId || null
       }
     });
 

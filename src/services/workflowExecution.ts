@@ -56,37 +56,52 @@ export async function executeWorkflow(
 
     // Execute each node in sequence
     for (const node of sortedNodes) {
-      console.log(`📋 Executing node: ${node.label} (${node.type})`);
+      console.log(`📋 Executing node: ${node.label} (${node.type}) with ${executionContexts.length} context(s)`);
       
       const newContexts: WorkflowExecutionContext[] = [];
       
       // Process each execution context (handles multiple results)
-      for (const context of executionContexts) {
-        const nodeResults = await executeNode(node, context);
+      for (let i = 0; i < executionContexts.length; i++) {
+        const context = executionContexts[i];
+        console.log(`🔄 Processing context ${i + 1}/${executionContexts.length} for node ${node.label}`);
         
-        // Handle multiple results - each result becomes a new execution context
-        if (Array.isArray(nodeResults)) {
-          console.log(`🔄 Node ${node.label} returned ${nodeResults.length} results`);
-          nodeResults.forEach((result, index) => {
-            newContexts.push({
-              executionId: `${context.executionId}-${node.id}-${index}`,
-              data: result,
-              metadata: { ...context.metadata, [`${node.type}_${node.id}`]: result }
+        try {
+          const nodeResults = await executeNode(node, context);
+          
+          // Handle multiple results - each result becomes a new execution context
+          if (Array.isArray(nodeResults)) {
+            console.log(`🔄 Node ${node.label} returned ${nodeResults.length} results for context ${i + 1}`);
+            nodeResults.forEach((result, index) => {
+              newContexts.push({
+                executionId: `${context.executionId}-${node.id}-${index}`,
+                data: result,
+                metadata: { ...context.metadata, [`${node.type}_${node.id}`]: result }
+              });
             });
-          });
-        } else if (nodeResults !== null && nodeResults !== undefined) {
-          newContexts.push({
-            executionId: context.executionId,
-            data: nodeResults,
-            metadata: { ...context.metadata, [`${node.type}_${node.id}`]: nodeResults }
-          });
-        } else {
-          console.warn(`⚠️ Node ${node.label} returned null/undefined, skipping`);
+          } else if (nodeResults !== null && nodeResults !== undefined) {
+            console.log(`🔄 Node ${node.label} returned single result for context ${i + 1}`);
+            newContexts.push({
+              executionId: context.executionId,
+              data: nodeResults,
+              metadata: { ...context.metadata, [`${node.type}_${node.id}`]: nodeResults }
+            });
+          } else {
+            console.warn(`⚠️ Node ${node.label} returned null/undefined for context ${i + 1}, skipping`);
+          }
+        } catch (error) {
+          console.error(`❌ Error processing context ${i + 1} for node ${node.label}:`, error);
+          // Continue with other contexts even if one fails
         }
       }
       
       executionContexts = newContexts;
       console.log(`✅ Node ${node.label} completed with ${executionContexts.length} result(s)`);
+      
+      // Exit early if no contexts remain
+      if (executionContexts.length === 0) {
+        console.warn(`⚠️ No execution contexts remaining after node ${node.label}, stopping workflow`);
+        break;
+      }
     }
 
     // Update execution as completed
@@ -404,6 +419,7 @@ async function executeFilterNode(node: WorkflowNode, context: WorkflowExecutionC
 
 async function executePublisherNode(node: WorkflowNode, context: WorkflowExecutionContext): Promise<any> {
   console.log('📢 Executing Publisher node with context:', context);
+  console.log('📢 Publisher node config:', node.config);
   
   try {
     // Prepare content for the create-article-from-ai function
@@ -414,7 +430,9 @@ async function executePublisherNode(node: WorkflowNode, context: WorkflowExecuti
       title,
       contentLength: articleContent.length,
       hasAiContent: !!context.data.ai_content,
-      category: node.config.category
+      category: node.config.category,
+      reporterId: node.config.reporterId,
+      hasReporterId: !!node.config.reporterId
     });
 
     const fullContent = `# ${title}

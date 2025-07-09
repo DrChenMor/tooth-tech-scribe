@@ -83,11 +83,32 @@ export async function getWorkflowRules(): Promise<WorkflowRule[]> {
       .order('priority', { ascending: false });
     
     if (error) throw error;
-    return (data || []).map(rule => ({
+    
+    const rules = (data || []).map(rule => ({
       ...rule,
       conditions: Array.isArray(rule.conditions) ? rule.conditions : [],
       actions: Array.isArray(rule.actions) ? rule.actions : []
     })) as WorkflowRule[];
+    
+    // If no rules exist, create default rule
+    if (rules.length === 0) {
+      console.log('📋 No workflow rules found, creating default rule');
+      const defaultRule = await createWorkflowRule({
+        name: 'Auto Content Processing',
+        description: 'Automatically processes approved content queue items',
+        enabled: true,
+        priority: 1,
+        conditions: [
+          { field: 'status', operator: 'eq', value: 'approved' }
+        ],
+        actions: [
+          { type: 'execute_workflow', config: { workflow_type: 'content_processing' } }
+        ]
+      });
+      return [defaultRule];
+    }
+    
+    return rules;
   } catch (error) {
     console.error('Error fetching workflow rules:', error);
     return [];
@@ -211,15 +232,10 @@ export async function triggerContentQueueWorkflow(contentQueueItem: any): Promis
   console.log('🎯 Triggering content queue workflow for item:', contentQueueItem.id);
   
   try {
-    // Find workflow rules that should be triggered by content queue events
-    const { data: rules, error } = await supabase
-      .from('workflow_rules')
-      .select('*')
-      .eq('enabled', true);
+    // Get workflow rules (this will create default if none exist)
+    const rules = await getWorkflowRules();
     
-    if (error) throw error;
-    
-    for (const rule of rules || []) {
+    for (const rule of rules) {
       // Check if rule conditions match the content queue item
       const conditions = Array.isArray(rule.conditions) ? rule.conditions : [];
       const shouldTrigger = evaluateRuleConditions(conditions, contentQueueItem);
@@ -258,7 +274,8 @@ export async function triggerContentQueueWorkflow(contentQueueItem: any): Promis
             position: { x: 600, y: 0 },
             config: {
               category: contentQueueItem.source_type,
-              autoPublish: false
+              autoPublish: false,
+              reporterId: 'none' // Set default value
             },
             connected: [],
             data: {}

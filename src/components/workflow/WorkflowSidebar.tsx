@@ -781,7 +781,7 @@ const NodeConfiguration = ({
             <Select
               key={`reporterId-${node.id}`}
               value={localConfig.reporterId || 'none'}
-              onValueChange={(value) => handleConfigChange('reporterId', value)}
+              onValueChange={(value) => handleConfigChange('reporterId', value === 'none' ? null : value)}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select a reporter (optional)" />

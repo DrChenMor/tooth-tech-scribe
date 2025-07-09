@@ -66,6 +66,7 @@ export async function executeWorkflow(
         
         // Handle multiple results - each result becomes a new execution context
         if (Array.isArray(nodeResults)) {
+          console.log(`🔄 Node ${node.label} returned ${nodeResults.length} results`);
           nodeResults.forEach((result, index) => {
             newContexts.push({
               executionId: `${context.executionId}-${node.id}-${index}`,
@@ -73,12 +74,14 @@ export async function executeWorkflow(
               metadata: { ...context.metadata, [`${node.type}_${node.id}`]: result }
             });
           });
-        } else {
+        } else if (nodeResults !== null && nodeResults !== undefined) {
           newContexts.push({
             executionId: context.executionId,
             data: nodeResults,
             metadata: { ...context.metadata, [`${node.type}_${node.id}`]: nodeResults }
           });
+        } else {
+          console.warn(`⚠️ Node ${node.label} returned null/undefined, skipping`);
         }
       }
       
@@ -185,12 +188,20 @@ async function executeNewsDiscoveryNode(node: WorkflowNode, context: WorkflowExe
     const articles = data.articles || [];
     console.log(`📰 News discovery found ${articles.length} articles`);
     
+    if (articles.length === 0) {
+      console.warn('⚠️ No articles found by news discovery');
+      return [];
+    }
+    
     // Return each article as a separate result - THIS FIXES THE MULTIPLE RESULTS ISSUE
-    return articles.map((article: any) => ({
+    const results = articles.map((article: any) => ({
       ...article,
       source_type: 'news_discovery',
       execution_context: context.executionId
     }));
+    
+    console.log(`🔄 News discovery returning ${results.length} separate articles for processing`);
+    return results;
     
   } catch (error) {
     console.error('News discovery node execution failed:', error);

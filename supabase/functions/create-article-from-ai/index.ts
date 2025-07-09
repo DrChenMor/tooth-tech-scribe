@@ -231,9 +231,30 @@ serve(async (req) => {
     const status = request.status || 'draft';
     const published_date = status === 'published' ? new Date().toISOString() : new Date().toISOString();
 
-    // Add RTL and language info to author name for identification
+    // Get reporter info if reporterId is provided
     let authorName = `AI Content Generator (${request.provider})`;
-    if (targetLanguage && targetLanguage !== 'en') {
+    let authorAvatarUrl = null;
+    
+    if (request.reporterId) {
+      console.log('Fetching reporter info for ID:', request.reporterId);
+      const { data: reporter, error: reporterError } = await supabase
+        .from('reporters')
+        .select('name, avatar_url')
+        .eq('id', request.reporterId)
+        .eq('is_active', true)
+        .single();
+      
+      if (reporter && !reporterError) {
+        authorName = reporter.name;
+        authorAvatarUrl = reporter.avatar_url;
+        console.log('Using reporter info:', { name: authorName, avatar: authorAvatarUrl });
+      } else {
+        console.warn('Failed to fetch reporter or reporter not found:', reporterError);
+      }
+    }
+    
+    // Add RTL and language info to author name for identification (only for AI-generated)
+    if (!request.reporterId && targetLanguage && targetLanguage !== 'en') {
       authorName += ` - ${targetLanguage.toUpperCase()}`;
       if (isRTL) {
         authorName += ' RTL';
@@ -249,7 +270,7 @@ serve(async (req) => {
       image_url: image_url || null,
       category: request.category || 'AI Generated',
       author_name: authorName,
-      author_avatar_url: null,
+      author_avatar_url: authorAvatarUrl,
       reporter_id: request.reporterId || null,
       status: status,
       published_date: published_date,

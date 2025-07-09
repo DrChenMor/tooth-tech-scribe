@@ -594,90 +594,65 @@ Generate the ${contentType} now following all specifications above:`;
     throw new Error(`AI Processor failed: ${error.message}`);
   }
 
-        case 'publisher':
-          if (!previousData || (!previousData.processedContent && !previousData.synthesizedContent)) {
-            throw new Error('No processed content to publish. Connect this node to an AI Processor that generates structured content.');
-          }
-          
-          const contentToPublish = previousData.processedContent || previousData.synthesizedContent;
-          // ✅ FIXED: Use the title from previous data (AI Processor now provides it)
-          const titleToPublish = previousData.title || 'Untitled Article';
-          
-          // Get image URL from previous nodes (Image Generator)
-          const articleImageUrl = previousData.imageUrl || null;
-          
-          // Use English slug if available (from translator), otherwise create one
-          let slugToUse = '';
-          if (previousData.englishSlug) {
-            // Use the English slug from translator
-            slugToUse = previousData.englishSlug;
-          } else {
-            // ✅ FIXED: Create English slug from the properly extracted title
-            slugToUse = titleToPublish
-              .toLowerCase()
-              .replace(/[^a-z0-9\s-]/g, '')
-              .replace(/\s+/g, '-')
-              .replace(/-+/g, '-')
-              .replace(/^-|-$/g, '')
-              .trim();
-          }
-          
-          addLog(node.id, node.label, 'running', `Publishing article: "${titleToPublish}" with slug: ${slugToUse}${articleImageUrl ? ' (with featured image)' : ''}`);
-          
-          // Create a properly formatted content for the publisher
-          const formattedContent = {
-            title: titleToPublish,
-            content: contentToPublish,
-            slug: slugToUse, // Force English slug
-            image_url: articleImageUrl, // Include featured image
-            isRTL: previousData.isRTL || false, // Pass RTL info
-            targetLanguage: previousData.targetLanguage || 'en'
-          };
-          
-          // Use the create-article-from-ai edge function for proper article creation
-          const { data: publishResult, error: publishError } = await supabase.functions.invoke('create-article-from-ai', {
-            body: {
-              content: JSON.stringify(formattedContent),
-              category: node.config.category || previousData.category || 'AI Generated',
-              provider: previousData.aiModel || 'AI Processor',
-              status: node.config.status || 'draft'
-            }
-          });
+case 'publisher':
+  if (!previousData || (!previousData.processedContent && !previousData.synthesizedContent)) {
+    throw new Error('No processed content to publish. Connect this node to an AI Processor that generates structured content.');
+  }
+  
+  const contentToPublish = previousData.processedContent || previousData.synthesizedContent;
+  const titleToPublish = previousData.title || 'Untitled Article';
+  
+  // Get image URL from previous nodes (Image Generator)
+  const articleImageUrl = previousData.imageUrl || null;
+  
+  // Use English slug if available (from translator), otherwise create one
+  let slugToUse = '';
+  if (previousData.englishSlug) {
+    slugToUse = previousData.englishSlug;
+  } else {
+    slugToUse = titleToPublish
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '')
+      .trim();
+  }
+  
+  addLog(node.id, node.label, 'running', `Publishing article: "${titleToPublish}" with slug: ${slugToUse}${articleImageUrl ? ' (with featured image)' : ''}`);
+  
+  const formattedContent = {
+    title: titleToPublish,
+    content: contentToPublish,
+    slug: slugToUse,
+    image_url: articleImageUrl,
+    isRTL: previousData.isRTL || false,
+    targetLanguage: previousData.targetLanguage || 'en'
+  };
+  
+  // 🔥 FIXED: Add reporterId to the request
+  const { data: publishResult, error: publishError } = await supabase.functions.invoke('create-article-from-ai', {
+    body: {
+      content: JSON.stringify(formattedContent),
+      category: node.config.category || previousData.category || 'AI Generated',
+      provider: previousData.aiModel || 'AI Processor',
+      status: node.config.status || 'draft',
+      reporterId: node.config.reporterId // 🔥 ADD THIS LINE
+    }
+  });
 
-          if (publishError) throw new Error(publishError.message);
-          
-          result = { 
-            articleId: publishResult.article.id,
-            title: publishResult.article.title,
-            slug: publishResult.article.slug,
-            status: publishResult.article.status,
-            imageUrl: articleImageUrl, // Pass through image URL
-            url: `/articles/${publishResult.article.slug}`
-          };
-          addLog(node.id, node.label, 'completed', `Article published: "${publishResult.article.title}" (${publishResult.article.status})${articleImageUrl ? ' with featured image' : ''}`);
-          break;
-          
-        case 'email-sender':
-          if (!node.config.recipient || !node.config.subject) {
-            throw new Error('Email recipient and subject are required');
-          }
-          
-          // Use previous data to build email content
-          const emailBody = node.config.body || 
-            (previousData?.title ? `New article published: ${previousData.title}` : 'Workflow execution completed');
-          
-          const { data: emailData, error: emailError } = await supabase.functions.invoke('send-email', {
-            body: {
-              to: node.config.recipient,
-              subject: node.config.subject,
-              body: emailBody
-            }
-          });
-          if (emailError) throw new Error(emailError.message);
-          
-          result = { emailSent: true, recipient: node.config.recipient };
-          addLog(node.id, node.label, 'completed', `Email sent to ${node.config.recipient}`);
-          break;
+  if (publishError) throw new Error(publishError.message);
+  
+  result = { 
+    articleId: publishResult.article.id,
+    title: publishResult.article.title,
+    slug: publishResult.article.slug,
+    status: publishResult.article.status,
+    imageUrl: articleImageUrl,
+    url: `/articles/${publishResult.article.slug}`
+  };
+  addLog(node.id, node.label, 'completed', `Article published: "${publishResult.article.title}" (${publishResult.article.status})${articleImageUrl ? ' with featured image' : ''}`);
+  break;
 
         case 'translator':
           if (!previousData || (!previousData.processedContent && !previousData.synthesizedContent && !previousData.content)) {

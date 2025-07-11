@@ -127,19 +127,18 @@ const CategoriesPage = () => {
                     to={`/category/${encodeURIComponent(category.name)}`}
                     className="group"
                   >
-                    <Card className="p-0 h-64 border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 cursor-pointer relative overflow-hidden">
-                      {/* 🔧 UPDATED: Smart background image with multiple format detection */}
+                    <Card className="p-0 h-64 border-0 shadow-none transition-all duration-300 hover:shadow-xl hover:scale-105 cursor-pointer relative overflow-hidden">
+                      {/* Background image remains */}
                       <div 
                         className="absolute inset-0 bg-cover bg-center"
-                        style={{ 
-                          backgroundImage: getImageWithFallbacks(category.name, fallbackImage),
-                        }}
+                        style={{ backgroundImage: getImageWithFallbacks(category.name, fallbackImage) }}
                       />
-                      <div className="absolute inset-0 bg-black/5" /> {/* Dark overlay for text readability */}
+                      {/* Remove the blur and overlay for flat look */}
+                      {/* <div className="absolute inset-0 bg-black/5" /> */}
                       <div className="relative z-10 p-8 h-full flex flex-col justify-between text-white">
                         
                         {/* Category name badge */}
-                        <div className="bg-white/20 backdrop-blur-sm rounded-full px-4 py-2 w-fit">
+                        <div className="bg-white/20 rounded-full px-4 py-2 w-fit">
                           <span className="text-white font-medium text-sm">
                             {category.name}
                           </span>

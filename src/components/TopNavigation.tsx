@@ -20,8 +20,8 @@ const TopNavigation = () => {
         bg-white/80 backdrop-blur-xl 
         rounded-3xl 
         py-4 px-6 
-        shadow-xl shadow-black/5 
         border border-white/20
+        shadow-none
         hover:shadow-2xl hover:shadow-black/10
         transition-all duration-500 ease-out
         hover:-translate-y-1

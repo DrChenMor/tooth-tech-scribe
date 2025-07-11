@@ -96,7 +96,7 @@ return (
         className={cn(
           "border-none text-blue-900",
           "[&_[data-sidebar='sidebar']]:rounded-tr-3xl", 
-          "[&_[data-sidebar='sidebar']]:shadow-xl",   
+          "[&_[data-sidebar='sidebar']]:shadow-none hover:[&_[data-sidebar='sidebar']]:shadow-xl",   
           "[&_[data-sidebar='sidebar']]:bg-blue-50",    
           "[&_[data-sidebar='sidebar']_svg]:stroke-[1.2]",
           "lg:[&_[data-sidebar='sidebar']_svg]:stroke-[1.5]",
@@ -161,12 +161,6 @@ return (
           </SidebarGroup>
 
           <SidebarGroup>
-            {!isMobile && (
-              <div className="mb-5 border-t border-gray-300 group-hover:hidden" />
-            )}
-            {isMobile && (
-              <div className="mb-2 border-t border-gray-300" />
-            )}
             <SidebarGroupLabel className={cn(
               textClasses,
               "text-sm font-medium hover:text-primary transition-colors cursor-pointer"

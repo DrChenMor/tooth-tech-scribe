@@ -82,7 +82,7 @@ const Footer = () => {
   return (
     <footer className="mt-16 p-4 lg:p-6">
       {/* Main Footer Content with Capsule Style & Hover Animation */}
-      <div className="bg-white/80 backdrop-blur-xl rounded-3xl py-8 px-6 lg:py-12 lg:px-8 shadow-xl shadow-black/5 border border-white/20 hover:shadow-2xl hover:shadow-black/10 transition-all duration-500 ease-out hover:-translate-y-1 relative z-10">
+      <div className="bg-white/80 backdrop-blur-xl rounded-3xl py-8 px-6 lg:py-12 lg:px-8 border border-white/20 shadow-none hover:shadow-2xl hover:shadow-black/10 transition-all duration-500 ease-out hover:-translate-y-1 relative z-10">
         <div className="container mx-auto">
           
           {/* ✅ DESKTOP: Grid Layout (hidden below 1024px) */}
@@ -118,7 +118,7 @@ const Footer = () => {
 
       {/* Bottom Bar with Copyright */}
       <div className="mt-4">
-        <div className="bg-white/60 backdrop-blur-xl rounded-2xl py-4 px-6 shadow-lg shadow-black/5 border border-white/20 transition-all duration-300">
+        <div className="bg-white/60 backdrop-blur-xl rounded-2xl py-4 px-6 shadow-none border border-white/20 transition-all duration-300">
           <div className="container mx-auto">
             <div className="flex flex-col md:flex-row justify-between items-center gap-4">
               <div className="flex flex-col md:flex-row items-center gap-x-6 gap-y-2 text-sm">

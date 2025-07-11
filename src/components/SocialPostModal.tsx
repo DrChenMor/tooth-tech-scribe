@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog';
 import { Button } from './ui/button';
@@ -98,6 +97,45 @@ const SocialPostModal = ({ open, article, onClose }: SocialPostModalProps) => {
     }
   };
 
+  const testFacebookAccess = async (pageId: string, pageAccessToken: string) => {
+    try {
+      console.log('🧪 Testing Facebook Page access...');
+      
+      // Test 1: Validate the page access token
+      const tokenResponse = await fetch(`https://graph.facebook.com/v19.0/me?access_token=${pageAccessToken}`);
+      const tokenData = await tokenResponse.json();
+      
+      if (!tokenResponse.ok) {
+        console.error('❌ Access token test failed:', tokenData);
+        return { valid: false, error: `Token validation failed: ${tokenData.error?.message || 'Unknown error'}` };
+      }
+      
+      console.log('✅ Access token is valid for:', tokenData.name);
+      
+      // Test 2: Check page permissions
+      const pageResponse = await fetch(`https://graph.facebook.com/v19.0/${pageId}?fields=name,id,access_token&access_token=${pageAccessToken}`);
+      const pageData = await pageResponse.json();
+      
+      if (!pageResponse.ok) {
+        console.error('❌ Page access test failed:', pageData);
+        return { valid: false, error: `Page access failed: ${pageData.error?.message || 'Unknown error'}` };
+      }
+      
+      console.log('✅ Page access confirmed:', pageData.name);
+      
+      // Test 3: Check posting permissions
+      const permissionsResponse = await fetch(`https://graph.facebook.com/v19.0/${pageId}?fields=permissions&access_token=${pageAccessToken}`);
+      const permissionsData = await permissionsResponse.json();
+      
+      console.log('📋 Page permissions:', permissionsData);
+      
+      return { valid: true, pageData };
+    } catch (error) {
+      console.error('❌ Facebook access test error:', error);
+      return { valid: false, error: `Connection failed: ${error.message}` };
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -109,20 +147,37 @@ const SocialPostModal = ({ open, article, onClose }: SocialPostModalProps) => {
     setIsPosting(true);
     
     try {
-      // Facebook posting
+      // Facebook posting with enhanced debugging
       if (selectedPlatforms.includes('facebook')) {
-        const pageId = '735337896323018'; // Your Facebook Page ID k
-        const pageAccessToken = 'EAAKXaWpuDrQBPBFoXcDR4JOEHjTBlvTjVGw80xjQn4WNzBdEvzxP3nZBlEfg4UyPn0R6aW0kjCw8xq1CThLhkcJP0w7DDr2EWtyyYwjHjiPPWBZBB5ZB10gEaMOJ69vKV7gCh3GZB0cZBF5stg74khpZCXmoPZBGH89aD8rYnrkTvsHp8x7QLiAE6CZCGZCO5i1co51bsrS2zrY68nVVZBkpYm5TI66bqg5nZA8KV30X2ui6wZDZD';
+        const pageId = '61577954384886'; // Your correct Facebook Page ID
+        const pageAccessToken = 'EAAfyJMAmR2oBPLulOOf0vvpwHUMpHpg0RSlYoVm1UzXGMhzt2Bb2IESZBgwebppTRa6vjaehv1JZAFgL2O5L5nk0ZCPPW9J520daofmGbPZC3vuRTX6GLDfHIUhaU4SWZAq1wQMYcFSJVIZAjglw3ZCZBCcz4oulZAgGsUS0MypklB5ALoZAbzAcbk0HxNrCKcMrNtQDT2tbztHfarOD1XmUb7ji3AT4G9VsysWbR1';
         
+        // Step 1: Test Facebook access before attempting to post
+        console.log('🔍 Step 1: Testing Facebook access...');
+        const accessTest = await testFacebookAccess(pageId, pageAccessToken);
+        
+        if (!accessTest.valid) {
+          toast.error(`Facebook Access Error: ${accessTest.error}`);
+          console.error('❌ Facebook access test failed:', accessTest.error);
+          return;
+        }
+        
+        console.log('✅ Facebook access test passed');
+        
+        // Step 2: Prepare the message
         const message = `${caption}\n\n${hashtags.join(' ')}`;
         const finalImageUrl = imageUrl || article.image_url;
 
-        console.log('📘 Attempting to post to Facebook...', {
+        console.log('📝 Preparing Facebook post:', {
           pageId,
-          message: message.substring(0, 100) + '...',
-          hasImage: !!finalImageUrl
+          messageLength: message.length,
+          hasImage: !!finalImageUrl,
+          messagePreview: message.substring(0, 100) + '...'
         });
 
+        // Step 3: Make the actual post
+        console.log('📤 Step 3: Attempting to post to Facebook...');
+        
         const { data, error } = await supabase.functions.invoke('social-poster', {
           body: {
             platform: 'facebook',
@@ -133,21 +188,31 @@ const SocialPostModal = ({ open, article, onClose }: SocialPostModalProps) => {
           }
         });
 
+        console.log('📊 Supabase function response:', { data, error });
+
         if (error) {
-          console.error('Facebook posting error:', error);
+          console.error('❌ Supabase function error:', error);
           toast.error(`Failed to post to Facebook: ${error.message}`);
           return;
         }
 
-        if (data.success) {
-          toast.success(`Successfully posted to Facebook! Post ID: ${data.postId}`);
+        if (data && data.success) {
+          toast.success(`Successfully posted to Facebook! Post ID: ${data.postId || 'N/A'}`);
+          console.log('🎉 Facebook post successful:', data);
           onClose();
         } else {
-          toast.error(`Facebook posting failed: ${data.error || 'Unknown error'}`);
+          const errorMsg = data?.error || 'Unknown error occurred';
+          console.error('❌ Facebook posting failed:', data);
+          toast.error(`Facebook posting failed: ${errorMsg}`);
+          
+          // Log detailed error information
+          if (data?.facebook) {
+            console.error('🔍 Detailed Facebook API response:', data.facebook);
+          }
         }
       }
       
-      // Instagram posting (existing code)
+      // Instagram posting (existing code with similar debugging)
       if (selectedPlatforms.includes('instagram')) {
         // You'll need to replace these with your actual values
         const instagramAccountId = 'YOUR_INSTAGRAM_BUSINESS_ACCOUNT_ID';
@@ -181,7 +246,7 @@ const SocialPostModal = ({ open, article, onClose }: SocialPostModalProps) => {
         });
 
         if (error) {
-          console.error('Social posting error:', error);
+          console.error('Instagram posting error:', error);
           toast.error(`Failed to post: ${error.message}`);
           return;
         }
@@ -199,8 +264,8 @@ const SocialPostModal = ({ open, article, onClose }: SocialPostModalProps) => {
         toast.info('Posting to X (Twitter) is not yet implemented. Facebook and Instagram are currently supported.');
       }
     } catch (error) {
-      console.error('Social posting error:', error);
-      toast.error('Failed to post to social media. Please try again.');
+      console.error('💥 Critical social posting error:', error);
+      toast.error(`Failed to post to social media: ${error.message}`);
     } finally {
       setIsPosting(false);
     }
@@ -208,21 +273,26 @@ const SocialPostModal = ({ open, article, onClose }: SocialPostModalProps) => {
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent>
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Create Social Post</DialogTitle>
         </DialogHeader>
         {article ? (
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="p-4 bg-blue-50 rounded-lg">
               <strong>Article:</strong> {article.title}
+              <br />
+              <small className="text-muted-foreground">
+                This will create a social media post promoting this article.
+              </small>
             </div>
+            
             {/* Platform Selector */}
             <div>
-              <label className="font-semibold block mb-1">Platforms</label>
+              <label className="font-semibold block mb-2">Platforms</label>
               <div className="flex gap-4">
                 {PLATFORMS.map((platform) => (
-                  <label key={platform.key} className="flex items-center gap-1">
+                  <label key={platform.key} className="flex items-center gap-2 cursor-pointer">
                     <input
                       type="checkbox"
                       checked={selectedPlatforms.includes(platform.key)}
@@ -233,65 +303,101 @@ const SocialPostModal = ({ open, article, onClose }: SocialPostModalProps) => {
                 ))}
               </div>
             </div>
+            
             {/* Caption */}
             <div>
-              <label className="font-semibold block mb-1">Caption</label>
+              <label className="font-semibold block mb-2">Caption</label>
               <textarea
-                className="w-full border rounded p-2"
-                rows={3}
+                className="w-full border rounded-lg p-3 min-h-[100px]"
                 value={caption}
                 onChange={(e) => setCaption(e.target.value)}
                 disabled={loadingAI}
+                placeholder="Enter your social media caption..."
               />
-              <Button type="button" size="sm" className="mt-2" onClick={handleRegenerateCaption} disabled={loadingAI}>
+              <Button 
+                type="button" 
+                size="sm" 
+                className="mt-2" 
+                onClick={handleRegenerateCaption} 
+                disabled={loadingAI}
+              >
                 {loadingAI ? 'Generating...' : 'Regenerate with AI'}
               </Button>
             </div>
+            
             {/* Hashtags */}
             <div>
-              <label className="font-semibold block mb-1">Hashtags</label>
+              <label className="font-semibold block mb-2">Hashtags</label>
               <input
-                className="w-full border rounded p-2"
+                className="w-full border rounded-lg p-3"
                 type="text"
                 value={hashtags.join(', ')}
                 onChange={handleHashtagChange}
-                placeholder="#AI, #Dentistry"
+                placeholder="#AI, #Dentistry, #Innovation"
                 disabled={loadingAI}
               />
-              <div className="text-xs text-muted-foreground mt-1">Comma-separated</div>
+              <div className="text-xs text-muted-foreground mt-1">Comma-separated hashtags</div>
             </div>
+            
             {/* Image Preview & Upload */}
             <div>
-              <label className="font-semibold block mb-1">Image</label>
+              <label className="font-semibold block mb-2">Image</label>
               {imageUrl && (
-                <img src={imageUrl} alt="Social preview" className="w-32 h-32 object-cover rounded mb-2" />
+                <div className="mb-3">
+                  <img 
+                    src={imageUrl} 
+                    alt="Social preview" 
+                    className="w-48 h-32 object-cover rounded-lg border"
+                  />
+                </div>
               )}
-              <input type="file" accept="image/*" onChange={handleImageChange} />
+              <input 
+                type="file" 
+                accept="image/*" 
+                onChange={handleImageChange}
+                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+              />
             </div>
+            
             {/* Schedule Time */}
             <div>
-              <label className="font-semibold block mb-1">Schedule (optional)</label>
+              <label className="font-semibold block mb-2">Schedule (optional)</label>
               <input
                 type="datetime-local"
-                className="w-full border rounded p-2"
+                className="w-full border rounded-lg p-3"
                 value={schedule}
                 onChange={(e) => setSchedule(e.target.value)}
                 disabled={loadingAI}
               />
+              <div className="text-xs text-muted-foreground mt-1">Leave empty to post immediately</div>
             </div>
-            <DialogFooter>
-              <Button variant="outline" type="button" onClick={onClose} disabled={loadingAI || isPosting}>Cancel</Button>
-              <Button type="submit" disabled={loadingAI || isPosting}>
-                {isPosting ? 'Posting...' : 'Save & Post'}
+            
+            <DialogFooter className="flex gap-2">
+              <Button 
+                variant="outline" 
+                type="button" 
+                onClick={onClose} 
+                disabled={loadingAI || isPosting}
+              >
+                Cancel
+              </Button>
+              <Button 
+                type="submit" 
+                disabled={loadingAI || isPosting || selectedPlatforms.length === 0}
+                className="min-w-[120px]"
+              >
+                {isPosting ? 'Posting...' : 'Post to Social Media'}
               </Button>
             </DialogFooter>
           </form>
         ) : (
-          <div>No article selected.</div>
+          <div className="text-center py-8">
+            <p className="text-muted-foreground">No article selected.</p>
+          </div>
         )}
       </DialogContent>
     </Dialog>
   );
 };
 
-export default SocialPostModal; 
+export default SocialPostModal;

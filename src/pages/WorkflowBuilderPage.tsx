@@ -119,7 +119,8 @@ const WorkflowBuilderPage = () => {
               maxResults: node.config.maxResults || 20,
               yearFrom: node.config.yearFrom,
               yearTo: node.config.yearTo,
-              includeAbstracts: node.config.includeAbstracts
+              includeAbstracts: node.config.includeAbstracts,
+              multiplePages: true // 🔥 Enable multiple page fetching
             }
           });
           if (scholarError) throw new Error(scholarError.message);
@@ -820,20 +821,193 @@ case 'publisher':
     }
   };
 
+  // 🔥 ================================================================== 🔥
+  // 🔥                    NEW, GENERALIZED FAN-OUT ENGINE                 🔥
+  // 🔥 ================================================================== 🔥
   const executeConnectedNodes = async (currentNode: WorkflowNode, data: any) => {
+    // Determine if the output is a list that needs fanning out.
+    let itemsToProcess: any[] | null = null;
+    
+    // Check for different possible array outputs from nodes
+    if (data.papers && Array.isArray(data.papers)) {
+      itemsToProcess = data.papers;
+    } else if (data.articles && Array.isArray(data.articles)) {
+      itemsToProcess = data.articles;
+    } else if (data.scrapedContent && Array.isArray(data.scrapedContent)) {
+      itemsToProcess = data.scrapedContent;
+    } else if (data.sources && Array.isArray(data.sources)) {
+      itemsToProcess = data.sources;
+    }
+
+    // If we have a list of items, process them one by one.
+    if (itemsToProcess && itemsToProcess.length > 0) {
+      let processedItems = itemsToProcess;
+
+      // Enhanced fan-out configuration based on node type
+      if (currentNode.type === 'news-discovery') {
+        // The news-discovery function already sorts by priority_score.
+        // We just need to take the top 2.
+        processedItems = itemsToProcess.slice(0, 2);
+        addLog(currentNode.id, currentNode.label, 'completed', `Fan-out: Found ${itemsToProcess.length} articles. Processing the top ${processedItems.length}.`);
+      } else if (currentNode.type === 'google-scholar-search') {
+        // For academic papers, process all but limit to reasonable number
+        const maxPapers = currentNode.config.maxPapers || 5;
+        processedItems = itemsToProcess.slice(0, maxPapers);
+        addLog(currentNode.id, currentNode.label, 'completed', `Fan-out: Found ${itemsToProcess.length} papers. Processing top ${processedItems.length} papers.`);
+      } else if (currentNode.type === 'rss-aggregator') {
+        // For RSS feeds, process all items
+        processedItems = itemsToProcess;
+        addLog(currentNode.id, currentNode.label, 'completed', `Fan-out: Found ${itemsToProcess.length} RSS items. Processing each individually.`);
+      } else {
+        addLog(currentNode.id, currentNode.label, 'completed', `Fan-out: Found ${itemsToProcess.length} items. Processing each individually.`);
+      }
+
+      // Enhanced parallel processing with configurable concurrency
+      const maxConcurrent = currentNode.config.maxConcurrent || 3;
+      const useParallel = currentNode.config.useParallel !== false; // Default to true
+
+             if (useParallel && processedItems.length > 1) {
+         // Process items in parallel batches
+         for (let i = 0; i < processedItems.length; i += maxConcurrent) {
+           const batch = processedItems.slice(i, i + maxConcurrent);
+           const batchPromises = batch.map(async (batchItem, batchIndex) => {
+             const itemIndex = i + batchIndex;
+             const currentItem = processedItems[itemIndex];
+             const branchLogId = `${currentNode.id}-branch-${itemIndex + 1}`;
+             
+             addLog(branchLogId, `Branch ${itemIndex + 1}/${processedItems.length}`, 'running', `Starting parallel branch for: "${(currentItem.title || 'Untitled').substring(0, 50)}..."`);
+
+             return await processSingleItem(currentItem, itemsToProcess, data, currentNode, branchLogId, itemIndex, processedItems.length);
+           });
+
+          // Wait for current batch to complete before starting next batch
+          await Promise.allSettled(batchPromises);
+        }
+      } else {
+        // Sequential processing (original behavior)
+        for (let i = 0; i < processedItems.length; i++) {
+          const item = processedItems[i];
+          const branchLogId = `${currentNode.id}-branch-${i + 1}`;
+          addLog(branchLogId, `Branch ${i + 1}/${processedItems.length}`, 'running', `Starting branch for: "${(item.title || 'Untitled').substring(0, 50)}..."`);
+
+          await processSingleItem(item, itemsToProcess, data, currentNode, branchLogId, i, processedItems.length);
+        }
+      }
+    } else {
+      // Standard pipeline: Pass the entire result to the next nodes.
+      for (const connectedNodeId of currentNode.connected) {
+        const connectedNode = nodes.find(n => n.id === connectedNodeId);
+        if (connectedNode) {
+          try {
+            const result = await executeNode(connectedNode, data);
+            await executeConnectedNodes(connectedNode, result);
+          } catch (error: any) {
+            console.error(`Error executing node ${connectedNode.label}:`, error);
+            addLog(currentNode.id, currentNode.label, 'error', `Error in standard pipeline: ${error.message}`);
+          }
+        }
+      }
+    }
+  };
+
+  // Helper function to process a single item in the fan-out
+  const processSingleItem = async (
+    item: any, 
+    itemsToProcess: any[], 
+    data: any, 
+    currentNode: WorkflowNode, 
+    branchLogId: string, 
+    itemIndex: number, 
+    totalItems: number
+  ) => {
+    // IMPORTANT: Package the single item correctly for the next node (e.g., AI Processor).
+    // Different nodes expect different data structures, so we need to be smart about packaging.
+    let singleItemData: any;
+    
+    if (itemsToProcess === data.papers) {
+      // For research papers, package as articles for AI processing
+      singleItemData = { 
+        articles: [{
+          title: item.title,
+          description: item.abstract,
+          content: item.abstract,
+          url: item.url,
+          authors: item.authors,
+          year: item.year,
+          citations: item.citations,
+          venue: item.venue
+        }]
+      };
+    } else if (itemsToProcess === data.scrapedContent) {
+      // For scraped content, package as articles
+      singleItemData = { 
+        articles: [{
+          title: item.url || 'Scraped Content',
+          description: item.content,
+          content: item.content,
+          url: item.url
+        }]
+      };
+    } else if (itemsToProcess === data.sources) {
+      // For research sources, package as articles
+      singleItemData = { 
+        articles: [{
+          title: item.title || 'Research Source',
+          description: item.content,
+          content: item.content,
+          url: item.url
+        }]
+      };
+    } else {
+      // Default: package as articles (for news articles, etc.)
+      singleItemData = { articles: [item] };
+    }
+
+    // For this single item, execute all connected nodes.
     for (const connectedNodeId of currentNode.connected) {
       const connectedNode = nodes.find(n => n.id === connectedNodeId);
       if (connectedNode) {
         try {
-          const result = await executeNode(connectedNode, data);
-          // Recursively execute the next connected nodes
-          await executeConnectedNodes(connectedNode, result);
-        } catch (error) {
-          // Log error but continue with other nodes
-          console.error(`Error executing node ${connectedNode.label}:`, error);
+          // If the next node is Publisher and we don't have processedContent, auto-insert AI Processor
+          if (
+            connectedNode.type === 'publisher' &&
+            (!singleItemData.articles?.[0]?.processedContent && !singleItemData.articles?.[0]?.synthesizedContent)
+          ) {
+            // Create a temporary AI Processor node config
+            const tempAIProcessorNode: WorkflowNode = {
+              ...connectedNode,
+              id: `${connectedNode.id}-auto-ai-processor`,
+              type: 'ai-processor',
+              label: 'Auto AI Processor',
+              config: {
+                // You can set sensible defaults or copy from a template node
+                writingStyle: 'Professional',
+                targetAudience: 'General readers',
+                contentType: 'article',
+                // ...add more defaults as needed
+              },
+              connected: [], // We'll call publisher manually after
+            };
+
+            // Run the AI Processor
+            const aiProcessed = await executeNode(tempAIProcessorNode, singleItemData);
+
+            // Now run the Publisher with the processed data
+            const branchResult = await executeNode(connectedNode, aiProcessed);
+            await executeConnectedNodes(connectedNode, branchResult);
+          } else {
+            // Normal case
+            const branchResult = await executeNode(connectedNode, singleItemData);
+            await executeConnectedNodes(connectedNode, branchResult);
+          }
+        } catch (error: any) {
+          addLog(branchLogId, `Branch ${itemIndex + 1} - ${connectedNode.label}`, 'error', `Error in branch: ${error.message}`);
+          console.log(`Node ${connectedNode.label} failed. Continuing branch with original data.`);
+          await executeConnectedNodes(connectedNode, singleItemData);
         }
       }
     }
+    addLog(branchLogId, `Branch ${itemIndex + 1}/${totalItems}`, 'completed', `Finished branch for: "${(item.title || 'Untitled').substring(0, 50)}..."`);
   };
 
   const stopExecution = () => {

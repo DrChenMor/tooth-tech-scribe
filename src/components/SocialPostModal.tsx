@@ -4,6 +4,8 @@ import { Button } from './ui/button';
 import { Article } from '@/types';
 import React from 'react';
 import { getAIAnalysis } from '@/services/aiModelService';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 const PLATFORMS = [
   { key: 'facebook', label: 'Facebook' },
@@ -35,6 +37,7 @@ const SocialPostModal = ({ open, article, onClose }: SocialPostModalProps) => {
   const [schedule, setSchedule] = useState<string>('');
   const [customImage, setCustomImage] = useState<File | null>(null);
   const [loadingAI, setLoadingAI] = useState(false);
+  const [isPosting, setIsPosting] = useState(false);
 
   // Initialize fields when article changes
   React.useEffect(() => {
@@ -94,10 +97,112 @@ const SocialPostModal = ({ open, article, onClose }: SocialPostModalProps) => {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Integrate backend API call
-    onClose();
+    
+    if (!article || selectedPlatforms.length === 0) {
+      toast.error('Please select at least one platform and ensure an article is selected.');
+      return;
+    }
+
+    setIsPosting(true);
+    
+    try {
+      // Facebook posting
+      if (selectedPlatforms.includes('facebook')) {
+        const pageId = '2236564493453162'; // Your Facebook Page ID
+        const pageAccessToken = 'EAAfyJMAmR2oBPLulOOf0vvpwHUMpHpg0RSlYoVm1UzXGMhzt2Bb2IESZBgwebppTRa6vjaehv1JZAFgL2O5L5nk0ZCPPW9J520daofmGbPZC3vuRTX6GLDfHIUhaU4SWZAq1wQMYcFSJVIZAjglw3ZCZBCcz4oulZAgGsUS0MypklB5ALoZAbzAcbk0HxNrCKcMrNtQDT2tbztHfarOD1XmUb7ji3AT4G9VsysWbR1';
+        
+        const message = `${caption}\n\n${hashtags.join(' ')}`;
+        const finalImageUrl = imageUrl || article.image_url;
+
+        console.log('📘 Attempting to post to Facebook...', {
+          pageId,
+          message: message.substring(0, 100) + '...',
+          hasImage: !!finalImageUrl
+        });
+
+        const { data, error } = await supabase.functions.invoke('social-poster', {
+          body: {
+            platform: 'facebook',
+            message,
+            imageUrl: finalImageUrl,
+            pageId,
+            pageAccessToken
+          }
+        });
+
+        if (error) {
+          console.error('Facebook posting error:', error);
+          toast.error(`Failed to post to Facebook: ${error.message}`);
+          return;
+        }
+
+        if (data.success) {
+          toast.success(`Successfully posted to Facebook! Post ID: ${data.postId}`);
+          onClose();
+        } else {
+          toast.error(`Facebook posting failed: ${data.error || 'Unknown error'}`);
+        }
+      }
+      
+      // Instagram posting (existing code)
+      if (selectedPlatforms.includes('instagram')) {
+        // You'll need to replace these with your actual values
+        const instagramAccountId = 'YOUR_INSTAGRAM_BUSINESS_ACCOUNT_ID';
+        const pageAccessToken = 'YOUR_PAGE_ACCESS_TOKEN';
+        
+        if (instagramAccountId === 'YOUR_INSTAGRAM_BUSINESS_ACCOUNT_ID' || pageAccessToken === 'YOUR_PAGE_ACCESS_TOKEN') {
+          toast.error('Please configure your Instagram credentials in the code. Check the console for instructions.');
+          console.log('🔧 SETUP REQUIRED:');
+          console.log('1. Get your Instagram Business Account ID from Facebook Business Manager');
+          console.log('2. Get your Page Access Token from Facebook Graph API Explorer');
+          console.log('3. Replace the placeholder values in SocialPostModal.tsx');
+          return;
+        }
+
+        const message = `${caption}\n\n${hashtags.join(' ')}`;
+        const finalImageUrl = imageUrl || article.image_url;
+
+        if (!finalImageUrl) {
+          toast.error('Please provide an image for Instagram posting.');
+          return;
+        }
+
+        const { data, error } = await supabase.functions.invoke('social-poster', {
+          body: {
+            platform: 'instagram',
+            message,
+            imageUrl: finalImageUrl,
+            instagramAccountId,
+            pageAccessToken
+          }
+        });
+
+        if (error) {
+          console.error('Social posting error:', error);
+          toast.error(`Failed to post: ${error.message}`);
+          return;
+        }
+
+        if (data.success) {
+          toast.success('Successfully posted to Instagram!');
+          onClose();
+        } else {
+          toast.error(`Posting failed: ${data.error || 'Unknown error'}`);
+        }
+      }
+      
+      // For other platforms, show a message
+      if (selectedPlatforms.includes('x')) {
+        toast.info('Posting to X (Twitter) is not yet implemented. Facebook and Instagram are currently supported.');
+      }
+    } catch (error) {
+      console.error('Social posting error:', error);
+      toast.error('Failed to post to social media. Please try again.');
+    } finally {
+      setIsPosting(false);
+    }
   };
 
   return (
@@ -174,8 +279,10 @@ const SocialPostModal = ({ open, article, onClose }: SocialPostModalProps) => {
               />
             </div>
             <DialogFooter>
-              <Button variant="outline" type="button" onClick={onClose} disabled={loadingAI}>Cancel</Button>
-              <Button type="submit" disabled={loadingAI}>Save & Post</Button>
+              <Button variant="outline" type="button" onClick={onClose} disabled={loadingAI || isPosting}>Cancel</Button>
+              <Button type="submit" disabled={loadingAI || isPosting}>
+                {isPosting ? 'Posting...' : 'Save & Post'}
+              </Button>
             </DialogFooter>
           </form>
         ) : (

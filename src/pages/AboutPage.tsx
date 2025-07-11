@@ -123,7 +123,7 @@ const AboutPage = () => {
                 // Render team members once loaded
                 teamMembers.map((member) => (
                   <div key={member.name} className="w-full sm:w-64 lg:w-72">
-                    <Card className="border-0 text-center rounded-2xl overflow-hidden shadow-sm transition-all duration-300 hover:shadow-xl hover:-translate-y-2 group">
+                    <Card className="border-0 text-center rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-2 group">
                       <CardContent className="p-0">
                         <div className={`relative h-40 flex items-center justify-center transition-colors duration-300 ${member.color}`}>
                           <Avatar className="w-28 h-28 border-4 border-white shadow-lg transform transition-transform duration-300 group-hover:scale-110">

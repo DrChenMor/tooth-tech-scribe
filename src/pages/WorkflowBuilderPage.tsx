@@ -885,10 +885,10 @@ case 'publisher':
         }
       } else {
         // Sequential processing (original behavior)
-        for (let i = 0; i < processedItems.length; i++) {
-          const item = processedItems[i];
-          const branchLogId = `${currentNode.id}-branch-${i + 1}`;
-          addLog(branchLogId, `Branch ${i + 1}/${processedItems.length}`, 'running', `Starting branch for: "${(item.title || 'Untitled').substring(0, 50)}..."`);
+      for (let i = 0; i < processedItems.length; i++) {
+        const item = processedItems[i];
+        const branchLogId = `${currentNode.id}-branch-${i + 1}`;
+        addLog(branchLogId, `Branch ${i + 1}/${processedItems.length}`, 'running', `Starting branch for: "${(item.title || 'Untitled').substring(0, 50)}..."`);
 
           await processSingleItem(item, itemsToProcess, data, currentNode, branchLogId, i, processedItems.length);
         }
@@ -920,93 +920,93 @@ case 'publisher':
     itemIndex: number, 
     totalItems: number
   ) => {
-    // IMPORTANT: Package the single item correctly for the next node (e.g., AI Processor).
-    // Different nodes expect different data structures, so we need to be smart about packaging.
-    let singleItemData: any;
-    
-    if (itemsToProcess === data.papers) {
-      // For research papers, package as articles for AI processing
-      singleItemData = { 
-        articles: [{
-          title: item.title,
-          description: item.abstract,
-          content: item.abstract,
-          url: item.url,
-          authors: item.authors,
-          year: item.year,
-          citations: item.citations,
-          venue: item.venue
-        }]
-      };
-    } else if (itemsToProcess === data.scrapedContent) {
-      // For scraped content, package as articles
-      singleItemData = { 
-        articles: [{
-          title: item.url || 'Scraped Content',
-          description: item.content,
-          content: item.content,
-          url: item.url
-        }]
-      };
-    } else if (itemsToProcess === data.sources) {
-      // For research sources, package as articles
-      singleItemData = { 
-        articles: [{
-          title: item.title || 'Research Source',
-          description: item.content,
-          content: item.content,
-          url: item.url
-        }]
-      };
-    } else {
-      // Default: package as articles (for news articles, etc.)
-      singleItemData = { articles: [item] };
-    }
+        // IMPORTANT: Package the single item correctly for the next node (e.g., AI Processor).
+        // Different nodes expect different data structures, so we need to be smart about packaging.
+        let singleItemData: any;
+        
+        if (itemsToProcess === data.papers) {
+          // For research papers, package as articles for AI processing
+          singleItemData = { 
+            articles: [{
+              title: item.title,
+              description: item.abstract,
+              content: item.abstract,
+              url: item.url,
+              authors: item.authors,
+              year: item.year,
+              citations: item.citations,
+              venue: item.venue
+            }]
+          };
+        } else if (itemsToProcess === data.scrapedContent) {
+          // For scraped content, package as articles
+          singleItemData = { 
+            articles: [{
+              title: item.url || 'Scraped Content',
+              description: item.content,
+              content: item.content,
+              url: item.url
+            }]
+          };
+        } else if (itemsToProcess === data.sources) {
+          // For research sources, package as articles
+          singleItemData = { 
+            articles: [{
+              title: item.title || 'Research Source',
+              description: item.content,
+              content: item.content,
+              url: item.url
+            }]
+          };
+        } else {
+          // Default: package as articles (for news articles, etc.)
+          singleItemData = { articles: [item] };
+        }
 
-    // For this single item, execute all connected nodes.
-    for (const connectedNodeId of currentNode.connected) {
-      const connectedNode = nodes.find(n => n.id === connectedNodeId);
-      if (connectedNode) {
-        try {
-          // If the next node is Publisher and we don't have processedContent, auto-insert AI Processor
-          if (
-            connectedNode.type === 'publisher' &&
-            (!singleItemData.articles?.[0]?.processedContent && !singleItemData.articles?.[0]?.synthesizedContent)
-          ) {
-            // Create a temporary AI Processor node config
+        // For this single item, execute all connected nodes.
+        for (const connectedNodeId of currentNode.connected) {
+          const connectedNode = nodes.find(n => n.id === connectedNodeId);
+          if (connectedNode) {
+            try {
+              // If the next node is Publisher and we don't have processedContent, auto-insert AI Processor
+              if (
+                connectedNode.type === 'publisher' &&
+                (!singleItemData.articles?.[0]?.processedContent && !singleItemData.articles?.[0]?.synthesizedContent)
+              ) {
+                // Create a temporary AI Processor node config
             const tempAIProcessorNode: WorkflowNode = {
-              ...connectedNode,
-              id: `${connectedNode.id}-auto-ai-processor`,
-              type: 'ai-processor',
-              label: 'Auto AI Processor',
-              config: {
-                // You can set sensible defaults or copy from a template node
-                writingStyle: 'Professional',
-                targetAudience: 'General readers',
-                contentType: 'article',
-                // ...add more defaults as needed
-              },
-              connected: [], // We'll call publisher manually after
-            };
+                  ...connectedNode,
+                  id: `${connectedNode.id}-auto-ai-processor`,
+                  type: 'ai-processor',
+                  label: 'Auto AI Processor',
+                  config: {
+                    // You can set sensible defaults or copy from a template node
+                    writingStyle: 'Professional',
+                    targetAudience: 'General readers',
+                    contentType: 'article',
+                    // ...add more defaults as needed
+                  },
+                  connected: [], // We'll call publisher manually after
+                };
 
-            // Run the AI Processor
-            const aiProcessed = await executeNode(tempAIProcessorNode, singleItemData);
+                // Run the AI Processor
+                const aiProcessed = await executeNode(tempAIProcessorNode, singleItemData);
 
-            // Now run the Publisher with the processed data
-            const branchResult = await executeNode(connectedNode, aiProcessed);
-            await executeConnectedNodes(connectedNode, branchResult);
-          } else {
-            // Normal case
-            const branchResult = await executeNode(connectedNode, singleItemData);
-            await executeConnectedNodes(connectedNode, branchResult);
-          }
+                // Now run the Publisher with the processed data
+                const branchResult = await executeNode(connectedNode, aiProcessed);
+                await executeConnectedNodes(connectedNode, branchResult);
+              } else {
+                // Normal case
+                const branchResult = await executeNode(connectedNode, singleItemData);
+                await executeConnectedNodes(connectedNode, branchResult);
+              }
         } catch (error: any) {
           addLog(branchLogId, `Branch ${itemIndex + 1} - ${connectedNode.label}`, 'error', `Error in branch: ${error.message}`);
-          console.log(`Node ${connectedNode.label} failed. Continuing branch with original data.`);
-          await executeConnectedNodes(connectedNode, singleItemData);
+              console.log(`Node ${connectedNode.label} failed. Continuing branch with original data.`);
+              await executeConnectedNodes(connectedNode, singleItemData);
+            }
+          }
         }
-      }
-    }
     addLog(branchLogId, `Branch ${itemIndex + 1}/${totalItems}`, 'completed', `Finished branch for: "${(item.title || 'Untitled').substring(0, 50)}..."`);
   };
 

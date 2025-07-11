@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog';
 import { Button } from './ui/button';
@@ -110,8 +111,8 @@ const SocialPostModal = ({ open, article, onClose }: SocialPostModalProps) => {
     try {
       // Facebook posting
       if (selectedPlatforms.includes('facebook')) {
-        const pageId = '2236564493453162'; // Your Facebook Page ID
-        const pageAccessToken = 'EAAfyJMAmR2oBPLulOOf0vvpwHUMpHpg0RSlYoVm1UzXGMhzt2Bb2IESZBgwebppTRa6vjaehv1JZAFgL2O5L5nk0ZCPPW9J520daofmGbPZC3vuRTX6GLDfHIUhaU4SWZAq1wQMYcFSJVIZAjglw3ZCZBCcz4oulZAgGsUS0MypklB5ALoZAbzAcbk0HxNrCKcMrNtQDT2tbztHfarOD1XmUb7ji3AT4G9VsysWbR1';
+        const pageId = '735337896323018'; // Your Facebook Page ID k
+        const pageAccessToken = 'EAAKXaWpuDrQBPBFoXcDR4JOEHjTBlvTjVGw80xjQn4WNzBdEvzxP3nZBlEfg4UyPn0R6aW0kjCw8xq1CThLhkcJP0w7DDr2EWtyyYwjHjiPPWBZBB5ZB10gEaMOJ69vKV7gCh3GZB0cZBF5stg74khpZCXmoPZBGH89aD8rYnrkTvsHp8x7QLiAE6CZCGZCO5i1co51bsrS2zrY68nVVZBkpYm5TI66bqg5nZA8KV30X2ui6wZDZD';
         
         const message = `${caption}\n\n${hashtags.join(' ')}`;
         const finalImageUrl = imageUrl || article.image_url;

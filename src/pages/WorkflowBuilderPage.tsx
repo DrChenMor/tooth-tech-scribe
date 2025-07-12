@@ -288,7 +288,7 @@ case 'image-generator':
             previousData.content ||
             '';
           const titleToAnalyze = previousData.title || 'Untitled';
-
+          
           if (!contentToAnalyze || contentToAnalyze.length < 10) {
             throw new Error('No content to analyze for SEO. Connect this node to content sources.');
           }
@@ -659,95 +659,154 @@ case 'publisher':
   addLog(node.id, node.label, 'completed', `Article published: "${publishResult.article.title}" (${publishResult.article.status})${articleImageUrl ? ' with featured image' : ''}`);
   break;
 
-        case 'translator':
-          if (!previousData || (!previousData.processedContent && !previousData.synthesizedContent && !previousData.content)) {
-            throw new Error('No content to translate. Connect this node to a content source.');
-          }
-          
-          // Get content to translate - try multiple sources
-          const contentToTranslate = previousData.processedContent || 
-                                    previousData.synthesizedContent || 
-                                    previousData.content ||
-                                    '';
-          
-          // Get title to translate if it exists
-          const titleToTranslate = previousData.title || '';
-          
-          if (!contentToTranslate && !titleToTranslate) {
-            throw new Error('No content found to translate.');
-          }
-          
-          addLog(node.id, node.label, 'running', `Translating content to ${node.config.targetLanguage || 'es'}`);
-          
-          let translatedContent = contentToTranslate;
-          let translatedTitle = titleToTranslate;
-          
-          // Translate content if it exists
-          if (contentToTranslate) {
-            const { data: contentTranslation, error: contentError } = await supabase.functions.invoke('translator', {
-              body: {
-                content: contentToTranslate,
-                targetLanguage: node.config.targetLanguage || 'es',
-                provider: node.config.provider || 'google'
-              }
-            });
-            if (contentError) throw new Error(`Content translation failed: ${contentError.message}`);
-            translatedContent = contentTranslation.content;
-          }
-          
-          // Translate title if it exists
-          if (titleToTranslate) {
-            const { data: titleTranslation, error: titleError } = await supabase.functions.invoke('translator', {
-              body: {
-                content: titleToTranslate,
-                targetLanguage: node.config.targetLanguage || 'es',
-                provider: node.config.provider || 'google'
-              }
-            });
-            if (titleError) {
-              console.warn('Title translation failed, using original title');
-              translatedTitle = titleToTranslate;
-            } else {
-              translatedTitle = titleTranslation.content;
-            }
-          }
-          
-          // Create English slug from ORIGINAL title (before translation!)
-          const englishSlugBase = previousData.title || titleToTranslate || 'translated-article';
-          let englishSlug = englishSlugBase
-            .toLowerCase()
-            .replace(/[^a-z0-9\s-]/g, '') // Remove non-English characters
-            .replace(/\s+/g, '-')
-            .replace(/-+/g, '-')
-            .replace(/^-|-$/g, '')
-            .trim();
-          
-          // If slug is empty (all non-English), create a meaningful fallback
-          if (!englishSlug || englishSlug.length < 3) {
-            const targetLang = node.config.targetLanguage || 'translated';
-            const timestamp = Date.now().toString().slice(-6); // Last 6 digits
-            englishSlug = `${targetLang}-article-${timestamp}`;
-          }
-          
-          // Detect if target language is RTL
-          const rtlLanguages = ['he', 'ar', 'fa', 'ur']; // Hebrew, Arabic, Persian, Urdu
-          const isRTL = rtlLanguages.includes(node.config.targetLanguage || 'es');
-          
-          result = { 
-            title: translatedTitle,
-            processedContent: translatedContent,
-            translatedContent: translatedContent,
-            translatedTitle: translatedTitle,
-            englishSlug: englishSlug, // Always has a valid English slug!
-            targetLanguage: node.config.targetLanguage,
-            isRTL: isRTL,
-            originalContent: contentToTranslate,
-            originalTitle: titleToTranslate,
-            category: previousData.category,
-            aiModel: previousData.aiModel
-          };
-          addLog(node.id, node.label, 'completed', `Translated to ${node.config.targetLanguage} with slug: ${englishSlug}`);
-          break;
+// Enhanced translator case in WorkflowBuilderPage.tsx with detailed debugging
+
+case 'translator':
+  console.log('🌍 TRANSLATOR: Starting execution...');
+  console.log('🌍 TRANSLATOR: Previous data received:', {
+    dataKeys: Object.keys(previousData || {}),
+    hasProcessedContent: !!previousData?.processedContent,
+    hasSynthesizedContent: !!previousData?.synthesizedContent,
+    hasContent: !!previousData?.content,
+    hasTitle: !!previousData?.title,
+    hasArticles: !!previousData?.articles,
+    dataPreview: JSON.stringify(previousData, null, 2).substring(0, 500)
+  });
+  
+  if (!previousData || (!previousData.processedContent && !previousData.synthesizedContent && !previousData.content)) {
+    console.error('🌍 TRANSLATOR: No content found in previousData:', previousData);
+    throw new Error('No content to translate. Connect this node to a content source.');
+  }
+  
+  // Get content to translate - try multiple sources
+  const contentToTranslate = previousData.processedContent || 
+                            previousData.synthesizedContent || 
+                            previousData.content ||
+                            '';
+  
+  // Get title to translate if it exists
+  const titleToTranslate = previousData.title || '';
+  
+  console.log('🌍 TRANSLATOR: Content to translate:', {
+    contentLength: contentToTranslate.length,
+    titleLength: titleToTranslate.length,
+    contentPreview: contentToTranslate.substring(0, 100),
+    titlePreview: titleToTranslate
+  });
+  
+  if (!contentToTranslate && !titleToTranslate) {
+    console.error('🌍 TRANSLATOR: No valid content or title found');
+    throw new Error('No content found to translate.');
+  }
+  
+  const targetLanguage = node.config.targetLanguage || 'es';
+  const provider = node.config.provider || 'google';
+  
+  addLog(node.id, node.label, 'running', `Translating content to ${targetLanguage} using ${provider} provider`);
+  console.log('🌍 TRANSLATOR: Translation config:', { targetLanguage, provider });
+  
+  let translatedContent = contentToTranslate;
+  let translatedTitle = titleToTranslate;
+  
+  // Translate content if it exists
+  if (contentToTranslate) {
+    console.log('🌍 TRANSLATOR: Calling translator edge function for content...');
+    const { data: contentTranslation, error: contentError } = await supabase.functions.invoke('translator', {
+      body: {
+        content: contentToTranslate,
+        targetLanguage: targetLanguage,
+        provider: provider
+      }
+    });
+    
+    console.log('🌍 TRANSLATOR: Content translation response:', {
+      hasData: !!contentTranslation,
+      hasError: !!contentError,
+      error: contentError,
+      dataKeys: contentTranslation ? Object.keys(contentTranslation) : []
+    });
+    
+    if (contentError) {
+      console.error('🌍 TRANSLATOR: Content translation failed:', contentError);
+      throw new Error(`Content translation failed: ${contentError.message}`);
+    }
+    translatedContent = contentTranslation.content;
+  }
+  
+  // Translate title if it exists
+  if (titleToTranslate) {
+    console.log('🌍 TRANSLATOR: Calling translator edge function for title...');
+    const { data: titleTranslation, error: titleError } = await supabase.functions.invoke('translator', {
+      body: {
+        content: titleToTranslate,
+        targetLanguage: targetLanguage,
+        provider: provider
+      }
+    });
+    
+    console.log('🌍 TRANSLATOR: Title translation response:', {
+      hasData: !!titleTranslation,
+      hasError: !!titleError,
+      error: titleError
+    });
+    
+    if (titleError) {
+      console.warn('🌍 TRANSLATOR: Title translation failed, using original title:', titleError);
+      translatedTitle = titleToTranslate;
+    } else {
+      translatedTitle = titleTranslation.content;
+    }
+  }
+  
+  // Create English slug from ORIGINAL title (before translation!)
+  const englishSlugBase = previousData.title || titleToTranslate || 'translated-article';
+  let englishSlug = englishSlugBase
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '') // Remove non-English characters
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+    .trim();
+  
+  // If slug is empty (all non-English), create a meaningful fallback
+  if (!englishSlug || englishSlug.length < 3) {
+    const targetLang = targetLanguage || 'translated';
+    const timestamp = Date.now().toString().slice(-6); // Last 6 digits
+    englishSlug = `${targetLang}-article-${timestamp}`;
+  }
+  
+  // Detect if target language is RTL
+  const rtlLanguages = ['he', 'ar', 'fa', 'ur']; // Hebrew, Arabic, Persian, Urdu
+  const isRTL = rtlLanguages.includes(targetLanguage || 'es');
+  
+  console.log('🌍 TRANSLATOR: Final translation result:', {
+    translatedTitleLength: translatedTitle.length,
+    translatedContentLength: translatedContent.length,
+    englishSlug: englishSlug,
+    isRTL: isRTL,
+    targetLanguage: targetLanguage
+  });
+  
+  result = { 
+    title: translatedTitle,
+    processedContent: translatedContent,
+    translatedContent: translatedContent,
+    translatedTitle: translatedTitle,
+    englishSlug: englishSlug, // Always has a valid English slug!
+    targetLanguage: targetLanguage,
+    isRTL: isRTL,
+    originalContent: contentToTranslate,
+    originalTitle: titleToTranslate,
+    category: previousData.category,
+    aiModel: previousData.aiModel,
+    // Pass through any other data that might be needed
+    imageUrl: previousData.imageUrl,
+    seoAnalysis: previousData.seoAnalysis
+  };
+  
+  addLog(node.id, node.label, 'completed', `Translated to ${targetLanguage} with slug: ${englishSlug}. Title: "${translatedTitle.substring(0, 50)}..."`);
+  console.log('🌍 TRANSLATOR: ✅ Translation completed successfully');
+  break;
           
         case 'article-structure-validator':
           if (!previousData || (!previousData.processedContent && !previousData.synthesizedContent)) {
@@ -828,191 +887,204 @@ case 'publisher':
   // 🔥 ================================================================== 🔥
   // 🔥                    NEW, GENERALIZED FAN-OUT ENGINE                 🔥
   // 🔥 ================================================================== 🔥
-  const executeConnectedNodes = async (currentNode: WorkflowNode, data: any) => {
-    // Determine if the output is a list that needs fanning out.
-    let itemsToProcess: any[] | null = null;
-    
-    // Check for different possible array outputs from nodes
-    if (data.papers && Array.isArray(data.papers)) {
-      itemsToProcess = data.papers;
-    } else if (data.articles && Array.isArray(data.articles)) {
-      itemsToProcess = data.articles;
-    } else if (data.scrapedContent && Array.isArray(data.scrapedContent)) {
-      itemsToProcess = data.scrapedContent;
-    } else if (data.sources && Array.isArray(data.sources)) {
-      itemsToProcess = data.sources;
+// Fixed executeConnectedNodes function in WorkflowBuilderPage.tsx
+
+const executeConnectedNodes = async (currentNode: WorkflowNode, data: any) => {
+  // Determine if the output is a list that needs fanning out.
+  let itemsToProcess: any[] | null = null;
+  
+  // Check for different possible array outputs from nodes
+  if (data.papers && Array.isArray(data.papers)) {
+    itemsToProcess = data.papers;
+  } else if (data.articles && Array.isArray(data.articles)) {
+    itemsToProcess = data.articles;
+  } else if (data.scrapedContent && Array.isArray(data.scrapedContent)) {
+    itemsToProcess = data.scrapedContent;
+  } else if (data.sources && Array.isArray(data.sources)) {
+    itemsToProcess = data.sources;
+  }
+
+  // If we have a list of items, process them one by one.
+  if (itemsToProcess && itemsToProcess.length > 0) {
+    let processedItems = itemsToProcess;
+
+    // Enhanced fan-out configuration based on node type
+    if (currentNode.type === 'news-discovery') {
+      processedItems = itemsToProcess.slice(0, 2);
+      addLog(currentNode.id, currentNode.label, 'completed', `Fan-out: Found ${itemsToProcess.length} articles. Processing the top ${processedItems.length}.`);
+    } else if (currentNode.type === 'google-scholar-search') {
+      const maxPapers = currentNode.config.maxPapers || 5;
+      processedItems = itemsToProcess.slice(0, maxPapers);
+      addLog(currentNode.id, currentNode.label, 'completed', `Fan-out: Found ${itemsToProcess.length} papers. Processing top ${processedItems.length} papers.`);
+    } else if (currentNode.type === 'rss-aggregator') {
+      processedItems = itemsToProcess;
+      addLog(currentNode.id, currentNode.label, 'completed', `Fan-out: Found ${itemsToProcess.length} RSS items. Processing each individually.`);
+    } else {
+      addLog(currentNode.id, currentNode.label, 'completed', `Fan-out: Found ${itemsToProcess.length} items. Processing each individually.`);
     }
 
-    // If we have a list of items, process them one by one.
-    if (itemsToProcess && itemsToProcess.length > 0) {
-      let processedItems = itemsToProcess;
+    // Enhanced parallel processing with configurable concurrency
+    const maxConcurrent = currentNode.config.maxConcurrent || 3;
+    const useParallel = currentNode.config.useParallel !== false; // Default to true
 
-      // Enhanced fan-out configuration based on node type
-      if (currentNode.type === 'news-discovery') {
-        // The news-discovery function already sorts by priority_score.
-        // We just need to take the top 2.
-        processedItems = itemsToProcess.slice(0, 2);
-        addLog(currentNode.id, currentNode.label, 'completed', `Fan-out: Found ${itemsToProcess.length} articles. Processing the top ${processedItems.length}.`);
-      } else if (currentNode.type === 'google-scholar-search') {
-        // For academic papers, process all but limit to reasonable number
-        const maxPapers = currentNode.config.maxPapers || 5;
-        processedItems = itemsToProcess.slice(0, maxPapers);
-        addLog(currentNode.id, currentNode.label, 'completed', `Fan-out: Found ${itemsToProcess.length} papers. Processing top ${processedItems.length} papers.`);
-      } else if (currentNode.type === 'rss-aggregator') {
-        // For RSS feeds, process all items
-        processedItems = itemsToProcess;
-        addLog(currentNode.id, currentNode.label, 'completed', `Fan-out: Found ${itemsToProcess.length} RSS items. Processing each individually.`);
-      } else {
-        addLog(currentNode.id, currentNode.label, 'completed', `Fan-out: Found ${itemsToProcess.length} items. Processing each individually.`);
+    if (useParallel && processedItems.length > 1) {
+      // Process items in parallel batches
+      for (let i = 0; i < processedItems.length; i += maxConcurrent) {
+        const batch = processedItems.slice(i, i + maxConcurrent);
+        const batchPromises = batch.map(async (batchItem, batchIndex) => {
+          const itemIndex = i + batchIndex;
+          const currentItem = processedItems[itemIndex];
+          const branchLogId = `${currentNode.id}-branch-${itemIndex + 1}`;
+          
+          addLog(branchLogId, `Branch ${itemIndex + 1}/${processedItems.length}`, 'running', `Starting parallel branch for: "${(currentItem.title || 'Untitled').substring(0, 50)}..."`);
+
+          return await processSingleItem(currentItem, itemsToProcess, data, currentNode, branchLogId, itemIndex, processedItems.length);
+        });
+
+        // Wait for current batch to complete before starting next batch
+        await Promise.allSettled(batchPromises);
       }
-
-      // Enhanced parallel processing with configurable concurrency
-      const maxConcurrent = currentNode.config.maxConcurrent || 3;
-      const useParallel = currentNode.config.useParallel !== false; // Default to true
-
-             if (useParallel && processedItems.length > 1) {
-         // Process items in parallel batches
-         for (let i = 0; i < processedItems.length; i += maxConcurrent) {
-           const batch = processedItems.slice(i, i + maxConcurrent);
-           const batchPromises = batch.map(async (batchItem, batchIndex) => {
-             const itemIndex = i + batchIndex;
-             const currentItem = processedItems[itemIndex];
-             const branchLogId = `${currentNode.id}-branch-${itemIndex + 1}`;
-             
-             addLog(branchLogId, `Branch ${itemIndex + 1}/${processedItems.length}`, 'running', `Starting parallel branch for: "${(currentItem.title || 'Untitled').substring(0, 50)}..."`);
-
-             return await processSingleItem(currentItem, itemsToProcess, data, currentNode, branchLogId, itemIndex, processedItems.length);
-           });
-
-          // Wait for current batch to complete before starting next batch
-          await Promise.allSettled(batchPromises);
-        }
-      } else {
-        // Sequential processing (original behavior)
+    } else {
+      // Sequential processing (original behavior)
       for (let i = 0; i < processedItems.length; i++) {
         const item = processedItems[i];
         const branchLogId = `${currentNode.id}-branch-${i + 1}`;
         addLog(branchLogId, `Branch ${i + 1}/${processedItems.length}`, 'running', `Starting branch for: "${(item.title || 'Untitled').substring(0, 50)}..."`);
 
-          await processSingleItem(item, itemsToProcess, data, currentNode, branchLogId, i, processedItems.length);
-        }
+        await processSingleItem(item, itemsToProcess, data, currentNode, branchLogId, i, processedItems.length);
       }
-    } else {
-      // Standard pipeline: Pass the entire result to the next nodes.
-      for (const connectedNodeId of currentNode.connected) {
-        const connectedNode = nodes.find(n => n.id === connectedNodeId);
-        if (connectedNode) {
-          try {
-            const result = await executeNode(connectedNode, data);
-            await executeConnectedNodes(connectedNode, result);
-          } catch (error: any) {
-            console.error(`Error executing node ${connectedNode.label}:`, error);
-            addLog(currentNode.id, currentNode.label, 'error', `Error in standard pipeline: ${error.message}`);
-          }
+    }
+  } else {
+    // Standard pipeline: Pass the entire result to the next nodes.
+    for (const connectedNodeId of currentNode.connected) {
+      const connectedNode = nodes.find(n => n.id === connectedNodeId);
+      if (connectedNode) {
+        try {
+          const result = await executeNode(connectedNode, data);
+          await executeConnectedNodes(connectedNode, result);
+        } catch (error: any) {
+          console.error(`Error executing node ${connectedNode.label}:`, error);
+          addLog(currentNode.id, currentNode.label, 'error', `Error in standard pipeline: ${error.message}`);
         }
       }
     }
-  };
+  }
+};
 
-  // Helper function to process a single item in the fan-out
-  const processSingleItem = async (
-    item: any, 
-    itemsToProcess: any[], 
-    data: any, 
-    currentNode: WorkflowNode, 
-    branchLogId: string, 
-    itemIndex: number, 
-    totalItems: number
-  ) => {
-        // IMPORTANT: Package the single item correctly for the next node (e.g., AI Processor).
-        // Different nodes expect different data structures, so we need to be smart about packaging.
-        let singleItemData: any;
-        
-        if (itemsToProcess === data.papers) {
-          // For research papers, package as articles for AI processing
-          singleItemData = { 
-            articles: [{
-              title: item.title,
-              description: item.abstract,
-              content: item.abstract,
-              url: item.url,
-              authors: item.authors,
-              year: item.year,
-              citations: item.citations,
-              venue: item.venue
-            }]
+// FIXED: Helper function to process a single item in the fan-out
+const processSingleItem = async (
+  item: any, 
+  itemsToProcess: any[], 
+  data: any, 
+  currentNode: WorkflowNode, 
+  branchLogId: string, 
+  itemIndex: number, 
+  totalItems: number
+) => {
+  // Package the single item correctly for the next node
+  let singleItemData: any;
+  
+  if (itemsToProcess === data.papers) {
+    singleItemData = { 
+      articles: [{
+        title: item.title,
+        description: item.abstract,
+        content: item.abstract,
+        url: item.url,
+        authors: item.authors,
+        year: item.year,
+        citations: item.citations,
+        venue: item.venue
+      }]
+    };
+  } else if (itemsToProcess === data.scrapedContent) {
+    singleItemData = { 
+      articles: [{
+        title: item.url || 'Scraped Content',
+        description: item.content,
+        content: item.content,
+        url: item.url
+      }]
+    };
+  } else if (itemsToProcess === data.sources) {
+    singleItemData = { 
+      articles: [{
+        title: item.title || 'Research Source',
+        description: item.content,
+        content: item.content,
+        url: item.url
+      }]
+    };
+  } else {
+    singleItemData = { articles: [item] };
+  }
+
+  // 🔥 NEW: Process connected nodes in the correct ORDER, passing results through the chain
+  let currentData = singleItemData;
+  
+  for (const connectedNodeId of currentNode.connected) {
+    const connectedNode = nodes.find(n => n.id === connectedNodeId);
+    if (connectedNode) {
+      try {
+        console.log(`🔄 Processing node ${connectedNode.label} with data:`, {
+          hasProcessedContent: !!currentData.processedContent,
+          hasTitle: !!currentData.title,
+          hasArticles: !!currentData.articles,
+          dataKeys: Object.keys(currentData)
+        });
+
+        // 🔥 CRITICAL FIX: Only auto-insert AI Processor if DIRECTLY connected to Publisher
+        // and there's no processedContent/synthesizedContent
+        if (
+          connectedNode.type === 'publisher' &&
+          (!currentData.processedContent && !currentData.synthesizedContent && !currentData.translatedContent) &&
+          (!currentData.articles?.[0]?.processedContent && !currentData.articles?.[0]?.synthesizedContent)
+        ) {
+          console.log('🤖 Auto-inserting AI Processor before Publisher');
+          // Create a temporary AI Processor node config
+          const tempAIProcessorNode: WorkflowNode = {
+            ...connectedNode,
+            id: `${connectedNode.id}-auto-ai-processor`,
+            type: 'ai-processor',
+            label: 'Auto AI Processor',
+            config: {
+              writingStyle: 'Professional',
+              targetAudience: 'General readers',
+              contentType: 'article',
+            },
+            connected: [],
           };
-        } else if (itemsToProcess === data.scrapedContent) {
-          // For scraped content, package as articles
-          singleItemData = { 
-            articles: [{
-              title: item.url || 'Scraped Content',
-              description: item.content,
-              content: item.content,
-              url: item.url
-            }]
-          };
-        } else if (itemsToProcess === data.sources) {
-          // For research sources, package as articles
-          singleItemData = { 
-            articles: [{
-              title: item.title || 'Research Source',
-              description: item.content,
-              content: item.content,
-              url: item.url
-            }]
-          };
+
+          // Run the AI Processor
+          const aiProcessed = await executeNode(tempAIProcessorNode, currentData);
+          
+          // Now run the Publisher with the processed data
+          const branchResult = await executeNode(connectedNode, aiProcessed);
+          // Update currentData for potential next nodes
+          currentData = branchResult;
         } else {
-          // Default: package as articles (for news articles, etc.)
-          singleItemData = { articles: [item] };
+          // 🔥 FIXED: Normal case - pass the result from one node to the next
+          const branchResult = await executeNode(connectedNode, currentData);
+          // 🔥 CRITICAL: Update currentData so the next node gets the result of this node
+          currentData = branchResult;
         }
-
-        // For this single item, execute all connected nodes.
-        for (const connectedNodeId of currentNode.connected) {
-          const connectedNode = nodes.find(n => n.id === connectedNodeId);
-          if (connectedNode) {
-            try {
-              // If the next node is Publisher and we don't have processedContent, auto-insert AI Processor
-              if (
-                connectedNode.type === 'publisher' &&
-                (!singleItemData.articles?.[0]?.processedContent && !singleItemData.articles?.[0]?.synthesizedContent)
-              ) {
-                // Create a temporary AI Processor node config
-            const tempAIProcessorNode: WorkflowNode = {
-                  ...connectedNode,
-                  id: `${connectedNode.id}-auto-ai-processor`,
-                  type: 'ai-processor',
-                  label: 'Auto AI Processor',
-                  config: {
-                    // You can set sensible defaults or copy from a template node
-                    writingStyle: 'Professional',
-                    targetAudience: 'General readers',
-                    contentType: 'article',
-                    // ...add more defaults as needed
-                  },
-                  connected: [], // We'll call publisher manually after
-                };
-
-                // Run the AI Processor
-                const aiProcessed = await executeNode(tempAIProcessorNode, singleItemData);
-
-                // Now run the Publisher with the processed data
-                const branchResult = await executeNode(connectedNode, aiProcessed);
-                await executeConnectedNodes(connectedNode, branchResult);
-              } else {
-                // Normal case
-                const branchResult = await executeNode(connectedNode, singleItemData);
-                await executeConnectedNodes(connectedNode, branchResult);
-              }
-        } catch (error: any) {
-          addLog(branchLogId, `Branch ${itemIndex + 1} - ${connectedNode.label}`, 'error', `Error in branch: ${error.message}`);
-              console.log(`Node ${connectedNode.label} failed. Continuing branch with original data.`);
-              await executeConnectedNodes(connectedNode, singleItemData);
-            }
-          }
+        
+        // 🔥 FIXED: Recursively process connected nodes of this node with the updated data
+        if (connectedNode.connected.length > 0) {
+          await executeConnectedNodes(connectedNode, currentData);
         }
-    addLog(branchLogId, `Branch ${itemIndex + 1}/${totalItems}`, 'completed', `Finished branch for: "${(item.title || 'Untitled').substring(0, 50)}..."`);
-  };
+        
+      } catch (error: any) {
+        addLog(branchLogId, `Branch ${itemIndex + 1} - ${connectedNode.label}`, 'error', `Error in branch: ${error.message}`);
+        console.log(`Node ${connectedNode.label} failed. Continuing with original data.`);
+        // Don't continue with failed data
+        break;
+      }
+    }
+  }
+  
+  addLog(branchLogId, `Branch ${itemIndex + 1}/${totalItems}`, 'completed', `Finished branch for: "${(item.title || 'Untitled').substring(0, 50)}..."`);
+};
 
   const stopExecution = () => {
     setIsExecuting(false);

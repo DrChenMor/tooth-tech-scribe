@@ -1,4 +1,4 @@
-// FIXED supabase/functions/translator/index.ts
+// COMPLETELY FIXED supabase/functions/translator/index.ts
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 
 console.log("translator function booting");
@@ -18,177 +18,54 @@ interface TranslateRequest {
   provider: 'google' | 'openai' | 'claude' | 'gemini';
 }
 
-// 🔥 ENHANCED: Better markdown structure preservation
-function protectMarkdownFormatting(content: string): { 
-  protected: string; 
-  placeholders: Map<string, string> 
-} {
-  const placeholders = new Map<string, string>();
-  let protectedContent = content;
-  let placeholderCounter = 0;
-
-  // Function to create a unique placeholder
-  const createPlaceholder = (type: string) => {
-    const placeholder = `___MDPROTECT_${type}_${placeholderCounter++}___`;
-    return placeholder;
-  };
-
-  // 🔥 CRITICAL: Protect code blocks first (they contain other markdown)
-  protectedContent = protectedContent.replace(/```[\s\S]*?```/g, (match) => {
-    const placeholder = createPlaceholder('CODEBLOCK');
-    placeholders.set(placeholder, match);
-    return placeholder;
+// 🔥 SIMPLE BUT EFFECTIVE: Minimal protection that actually works
+function protectCodeBlocks(content: string): { protected: string; codeBlocks: string[] } {
+  const codeBlocks: string[] = [];
+  let protected = content;
+  
+  // Only protect actual code blocks - nothing else
+  protected = protected.replace(/```[\s\S]*?```/g, (match) => {
+    const index = codeBlocks.length;
+    codeBlocks.push(match);
+    return `CODEBLOCK_PLACEHOLDER_${index}`;
   });
-
-  // Protect inline code
-  protectedContent = protectedContent.replace(/`([^`]+)`/g, (match) => {
-    const placeholder = createPlaceholder('INLINECODE');
-    placeholders.set(placeholder, match);
-    return placeholder;
-  });
-
-  // Protect headings with their structure
-  protectedContent = protectedContent.replace(/^(#{1,6})\s+(.+)$/gm, (match, hashes, title) => {
-    const placeholder = createPlaceholder('HEADING');
-    placeholders.set(placeholder, match);
-    return `${hashes} ___TRANSLATE_${placeholder}___ `;
-  });
-
-  // Protect bullet points structure
-  protectedContent = protectedContent.replace(/^(\s*)([-*+])\s+(.+)$/gm, (match, indent, bullet, content) => {
-    const placeholder = createPlaceholder('BULLET');
-    placeholders.set(placeholder, `${indent}${bullet} `);
-    return `___STRUCTURE_${placeholder}___${content}`;
-  });
-
-  // Protect numbered lists structure
-  protectedContent = protectedContent.replace(/^(\s*)(\d+\.)\s+(.+)$/gm, (match, indent, number, content) => {
-    const placeholder = createPlaceholder('NUMBER');
-    placeholders.set(placeholder, `${indent}${number} `);
-    return `___STRUCTURE_${placeholder}___${content}`;
-  });
-
-  // Protect links
-  protectedContent = protectedContent.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (match) => {
-    const placeholder = createPlaceholder('LINK');
-    placeholders.set(placeholder, match);
-    return placeholder;
-  });
-
-  // Protect bold/italic formatting
-  protectedContent = protectedContent.replace(/\*\*([^*]+)\*\*/g, (match, content) => {
-    const placeholder = createPlaceholder('BOLD');
-    placeholders.set(placeholder, '**');
-    return `___OPEN_${placeholder}___${content}___CLOSE_${placeholder}___`;
-  });
-
-  protectedContent = protectedContent.replace(/\*([^*]+)\*/g, (match, content) => {
-    const placeholder = createPlaceholder('ITALIC');
-    placeholders.set(placeholder, '*');
-    return `___OPEN_${placeholder}___${content}___CLOSE_${placeholder}___`;
-  });
-
-  return { protected: protectedContent, placeholders };
+  
+  return { protected, codeBlocks };
 }
 
-function restoreMarkdownFormatting(content: string, placeholders: Map<string, string>): string {
-  let restoredContent = content;
-
-  // Restore structure placeholders
-  for (const [placeholder, original] of placeholders.entries()) {
-    if (placeholder.includes('STRUCTURE_')) {
-      restoredContent = restoredContent.replace(`___STRUCTURE_${placeholder}___`, original);
-    }
-  }
-
-  // Restore translation placeholders for headings
-  for (const [placeholder, original] of placeholders.entries()) {
-    if (placeholder.includes('TRANSLATE_')) {
-      restoredContent = restoredContent.replace(`___TRANSLATE_${placeholder}___`, '');
-      // The heading structure is already preserved
-    }
-  }
-
-  // Restore formatting
-  for (const [placeholder, original] of placeholders.entries()) {
-    if (placeholder.includes('OPEN_') || placeholder.includes('CLOSE_')) {
-      const baseId = placeholder.replace('___OPEN_', '').replace('___CLOSE_', '').replace('___', '');
-      if (placeholders.has(baseId)) {
-        const formatChar = placeholders.get(baseId);
-        restoredContent = restoredContent.replace(`___OPEN_${placeholder}___`, formatChar || '');
-        restoredContent = restoredContent.replace(`___CLOSE_${placeholder}___`, formatChar || '');
-      }
-    }
-  }
-
-  // Restore protected elements
-  for (const [placeholder, original] of placeholders.entries()) {
-    if (!placeholder.includes('STRUCTURE_') && !placeholder.includes('TRANSLATE_') && 
-        !placeholder.includes('OPEN_') && !placeholder.includes('CLOSE_')) {
-      restoredContent = restoredContent.replace(new RegExp(placeholder, 'g'), original);
-    }
-  }
-
-  return restoredContent;
+function restoreCodeBlocks(content: string, codeBlocks: string[]): string {
+  let restored = content;
+  
+  codeBlocks.forEach((block, index) => {
+    restored = restored.replace(`CODEBLOCK_PLACEHOLDER_${index}`, block);
+  });
+  
+  return restored;
 }
 
-function fixTextStructure(content: string, targetLanguage: string): string {
-  console.log('🔧 Fixing text structure for language:', targetLanguage);
-  
-  let fixedContent = content;
-  
-  // 🔥 CRITICAL: Ensure proper paragraph separation
-  const paragraphs = fixedContent.split(/\n\s*\n/);
-  const cleanParagraphs = paragraphs
-    .map(p => p.trim())
-    .filter(p => p.length > 0)
-    .map(p => {
-      // Ensure headings are on their own lines
-      p = p.replace(/^(#{1,6}\s+)/gm, '\n$1').trim();
-      
-      // Ensure bullet points are properly spaced
-      p = p.replace(/^(\s*[-*+]\s+)/gm, '\n$1').trim();
-      
-      // Ensure numbered lists are properly spaced
-      p = p.replace(/^(\s*\d+\.\s+)/gm, '\n$1').trim();
-      
-      return p;
-    });
-  
-  fixedContent = cleanParagraphs.join('\n\n');
-  
-  // 🔥 RTL-specific fixes for Hebrew, Arabic, etc.
-  const rtlLanguages = ['he', 'ar', 'fa', 'ur'];
-  if (rtlLanguages.includes(targetLanguage)) {
-    console.log('🔧 Applying RTL-specific fixes...');
-    
-    fixedContent = fixedContent
-      // Fix any reversed markdown syntax
-      .replace(/(\s+)##/g, '##$1')
-      .replace(/(\s+)###/g, '###$1')
-      .replace(/(\s+)-/g, '- ')
-      .replace(/(\s+)\*/g, '* ')
-      // Ensure proper spacing around Hebrew punctuation
-      .replace(/([א-ת])\s*:\s*/g, '$1: ')
-      .replace(/([א-ת])\s*\.\s*/g, '$1. ')
-      .replace(/([א-ת])\s*,\s*/g, '$1, ');
-  }
-  
-  // 🔥 Final cleanup
-  fixedContent = fixedContent
-    // Remove excessive newlines
+// 🔥 CRITICAL: Clean up any translation artifacts
+function cleanTranslationArtifacts(content: string): string {
+  return content
+    // Remove any "TRANSLATE##" artifacts
+    .replace(/TRANSLATE##/g, '')
+    .replace(/TRANSLATE#/g, '')
+    // Remove orphaned ## that aren't headings
+    .replace(/(\n|^)##(\s*)$/gm, '')
+    // Fix spacing around headings
+    .replace(/(\n|^)(#{1,6})\s*([^\n]+)(\n|$)/gm, '\n\n$2 $3\n\n')
+    // Fix double spaces
+    .replace(/  +/g, ' ')
+    // Fix excessive newlines
     .replace(/\n{3,}/g, '\n\n')
-    // Ensure headings have proper spacing
-    .replace(/^(#{1,6}\s+.*?)(\n)([^#\n])/gm, '$1\n\n$3')
-    // Ensure lists have proper spacing
-    .replace(/^((?:\s*[-*+]\s+.*?\n)+)\n*([^-*+\s#])/gm, '$1\n$2')
+    // Clean up any leftover artifacts
+    .replace(/_TRANSLATE[^_]*_/g, '')
+    .replace(/__STRUCTURE[^_]*__/g, '')
+    .replace(/__OPEN___/g, '')
+    .replace(/__CLOSE__/g, '')
     .trim();
-  
-  console.log('🔧 Text structure fixed');
-  return fixedContent;
 }
 
-// Enhanced AI translation functions with better structure preservation
+// Enhanced AI translation with MUCH better prompts
 async function translateWithGemini(content: string, targetLanguage: string): Promise<string> {
   if (!googleApiKey) {
     throw new Error("Google API key not configured");
@@ -196,11 +73,12 @@ async function translateWithGemini(content: string, targetLanguage: string): Pro
 
   const languageMap: Record<string, string> = {
     'es': 'Spanish',
-    'fr': 'French',
+    'fr': 'French', 
     'de': 'German',
     'ja': 'Japanese',
     'pt': 'Portuguese',
     'he': 'Hebrew',
+    'ar': 'Arabic',
     'zh': 'Chinese',
     'ru': 'Russian',
     'it': 'Italian',
@@ -209,25 +87,23 @@ async function translateWithGemini(content: string, targetLanguage: string): Pro
 
   const targetLanguageName = languageMap[targetLanguage] || targetLanguage;
   
-  // 🔥 ENHANCED: Protection and restoration system
-  const { protected: protectedContent, placeholders } = protectMarkdownFormatting(content);
+  // Only protect code blocks
+  const { protected: protectedContent, codeBlocks } = protectCodeBlocks(content);
   
-  const prompt = `You are a professional translator specializing in preserving document structure and formatting.
+  const prompt = `You are a professional translator. Your task is to translate the following text to ${targetLanguageName}.
 
-CRITICAL INSTRUCTIONS:
-1. Translate the following text to ${targetLanguageName}
-2. PRESERVE ALL markdown formatting EXACTLY (##, ###, *, -, etc.)
-3. MAINTAIN paragraph breaks and structure EXACTLY
-4. Keep all headings, bullet points, and numbered lists intact
-5. For RTL languages like Hebrew/Arabic, ensure proper text direction but keep markdown syntax
-6. DO NOT merge paragraphs - keep each paragraph separate
-7. DO NOT translate any placeholder text that looks like ___MDPROTECT_XXX___ - keep these EXACTLY as they are
-8. Maintain the EXACT document structure
+CRITICAL RULES:
+1. Translate ALL text content including headings, subtitles, and body text
+2. Keep markdown formatting EXACTLY the same (# ## ### - * etc.)
+3. Do NOT translate: CODEBLOCK_PLACEHOLDER_0, CODEBLOCK_PLACEHOLDER_1, etc. - keep these EXACTLY as they are
+4. Maintain the EXACT same paragraph structure and line breaks
+5. For RTL languages like Hebrew/Arabic: translate the text but keep markdown symbols in their original position
 
-Text to translate:
+Here is the text to translate:
+
 ${protectedContent}
 
-Return ONLY the translated text with preserved formatting:`;
+Translate to ${targetLanguageName}:`;
 
   const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${googleApiKey}`, {
     method: 'POST',
@@ -240,7 +116,7 @@ Return ONLY the translated text with preserved formatting:`;
       }],
       generationConfig: {
         maxOutputTokens: 4000,
-        temperature: 0.1, // Low temperature for consistent formatting
+        temperature: 0.2,
       },
     }),
   });
@@ -251,14 +127,14 @@ Return ONLY the translated text with preserved formatting:`;
   }
 
   const data = await response.json();
-  const translatedText = data.candidates[0].content.parts[0].text;
+  let translatedText = data.candidates[0].content.parts[0].text;
   
-  // 🔥 CRITICAL: Restore markdown formatting
-  const restoredText = restoreMarkdownFormatting(translatedText, placeholders);
-  const structuredText = fixTextStructure(restoredText, targetLanguage);
+  // Restore code blocks and clean artifacts
+  translatedText = restoreCodeBlocks(translatedText, codeBlocks);
+  translatedText = cleanTranslationArtifacts(translatedText);
   
-  console.log('🌍 Gemini: Translation completed with enhanced structure preservation');
-  return structuredText;
+  console.log('🌍 Gemini: Translation completed');
+  return translatedText;
 }
 
 async function translateWithOpenAI(content: string, targetLanguage: string): Promise<string> {
@@ -269,10 +145,11 @@ async function translateWithOpenAI(content: string, targetLanguage: string): Pro
   const languageMap: Record<string, string> = {
     'es': 'Spanish',
     'fr': 'French',
-    'de': 'German',
+    'de': 'German', 
     'ja': 'Japanese',
     'pt': 'Portuguese',
     'he': 'Hebrew',
+    'ar': 'Arabic',
     'zh': 'Chinese',
     'ru': 'Russian',
     'it': 'Italian',
@@ -281,8 +158,8 @@ async function translateWithOpenAI(content: string, targetLanguage: string): Pro
 
   const targetLanguageName = languageMap[targetLanguage] || targetLanguage;
 
-  // 🔥 ENHANCED: Protection and restoration system
-  const { protected: protectedContent, placeholders } = protectMarkdownFormatting(content);
+  // Only protect code blocks
+  const { protected: protectedContent, codeBlocks } = protectCodeBlocks(content);
 
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -295,7 +172,7 @@ async function translateWithOpenAI(content: string, targetLanguage: string): Pro
       messages: [
         {
           role: 'system',
-          content: `You are a professional translator. Translate to ${targetLanguageName} while PERFECTLY preserving all markdown formatting, paragraph breaks, headings (##, ###), bullet points, and document structure. For RTL languages, maintain proper text direction but keep all markdown syntax intact. DO NOT merge paragraphs. DO NOT translate placeholder text that looks like ___MDPROTECT_XXX___ - keep these EXACTLY as they are.`
+          content: `You are a professional translator. Translate to ${targetLanguageName} while preserving ALL markdown formatting. Translate ALL text including headings and subtitles. Do NOT translate CODEBLOCK_PLACEHOLDER_X placeholders - keep them exactly as they are. Maintain exact paragraph structure.`
         },
         {
           role: 'user',
@@ -303,7 +180,7 @@ async function translateWithOpenAI(content: string, targetLanguage: string): Pro
         }
       ],
       max_tokens: 4000,
-      temperature: 0.1, // Low temperature for consistent formatting
+      temperature: 0.2,
     }),
   });
 
@@ -313,13 +190,13 @@ async function translateWithOpenAI(content: string, targetLanguage: string): Pro
   }
 
   const data = await response.json();
-  const translatedText = data.choices[0].message.content;
+  let translatedText = data.choices[0].message.content;
   
-  // 🔥 CRITICAL: Restore markdown formatting
-  const restoredText = restoreMarkdownFormatting(translatedText, placeholders);
-  const structuredText = fixTextStructure(restoredText, targetLanguage);
+  // Restore code blocks and clean artifacts
+  translatedText = restoreCodeBlocks(translatedText, codeBlocks);
+  translatedText = cleanTranslationArtifacts(translatedText);
   
-  return structuredText;
+  return translatedText;
 }
 
 async function translateWithClaude(content: string, targetLanguage: string): Promise<string> {
@@ -331,9 +208,10 @@ async function translateWithClaude(content: string, targetLanguage: string): Pro
     'es': 'Spanish',
     'fr': 'French',
     'de': 'German',
-    'ja': 'Japanese',
+    'ja': 'Japanese', 
     'pt': 'Portuguese',
     'he': 'Hebrew',
+    'ar': 'Arabic',
     'zh': 'Chinese',
     'ru': 'Russian',
     'it': 'Italian',
@@ -342,8 +220,8 @@ async function translateWithClaude(content: string, targetLanguage: string): Pro
 
   const targetLanguageName = languageMap[targetLanguage] || targetLanguage;
 
-  // 🔥 ENHANCED: Protection and restoration system
-  const { protected: protectedContent, placeholders } = protectMarkdownFormatting(content);
+  // Only protect code blocks
+  const { protected: protectedContent, codeBlocks } = protectCodeBlocks(content);
 
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -355,7 +233,7 @@ async function translateWithClaude(content: string, targetLanguage: string): Pro
     body: JSON.stringify({
       model: 'claude-3-5-sonnet-20241022',
       max_tokens: 4000,
-      system: `You are a professional translator. Translate to ${targetLanguageName} while PERFECTLY preserving all markdown formatting, paragraph breaks, headings (##, ###), bullet points, and document structure. For RTL languages, maintain proper text direction but keep all markdown syntax intact. DO NOT merge paragraphs. DO NOT translate placeholder text that looks like ___MDPROTECT_XXX___ - keep these EXACTLY as they are.`,
+      system: `You are a professional translator. Translate to ${targetLanguageName} while preserving ALL markdown formatting. Translate ALL text including headings and subtitles. Do NOT translate CODEBLOCK_PLACEHOLDER_X placeholders - keep them exactly as they are. Maintain exact paragraph structure.`,
       messages: [
         {
           role: 'user',
@@ -371,13 +249,13 @@ async function translateWithClaude(content: string, targetLanguage: string): Pro
   }
 
   const data = await response.json();
-  const translatedText = data.content[0].text;
+  let translatedText = data.content[0].text;
   
-  // 🔥 CRITICAL: Restore markdown formatting
-  const restoredText = restoreMarkdownFormatting(translatedText, placeholders);
-  const structuredText = fixTextStructure(restoredText, targetLanguage);
+  // Restore code blocks and clean artifacts
+  translatedText = restoreCodeBlocks(translatedText, codeBlocks);
+  translatedText = cleanTranslationArtifacts(translatedText);
   
-  return structuredText;
+  return translatedText;
 }
 
 async function translateWithGoogle(content: string, targetLanguage: string): Promise<string> {
@@ -385,10 +263,10 @@ async function translateWithGoogle(content: string, targetLanguage: string): Pro
     throw new Error("Google API key not configured");
   }
 
-  console.log('🌍 Google Translate: Using advanced structure preservation...');
+  console.log('🌍 Google Translate: Using simple protection...');
   
-  // 🔥 ENHANCED: Protection and restoration system
-  const { protected: protectedContent, placeholders } = protectMarkdownFormatting(content);
+  // Only protect code blocks
+  const { protected: protectedContent, codeBlocks } = protectCodeBlocks(content);
   
   const apiUrl = `https://translation.googleapis.com/language/translate/v2?key=${googleApiKey}`;
   
@@ -400,7 +278,7 @@ async function translateWithGoogle(content: string, targetLanguage: string): Pro
     body: JSON.stringify({
       q: protectedContent,
       target: targetLanguage,
-      format: 'text', // Use text format to preserve structure
+      format: 'text',
     }),
   });
 
@@ -412,14 +290,14 @@ async function translateWithGoogle(content: string, targetLanguage: string): Pro
   }
 
   const result = await response.json();
-  const translatedText = result.data.translations[0].translatedText;
+  let translatedText = result.data.translations[0].translatedText;
   
-  // 🔥 CRITICAL: Restore markdown formatting
-  const restoredText = restoreMarkdownFormatting(translatedText, placeholders);
-  const structuredText = fixTextStructure(restoredText, targetLanguage);
+  // Restore code blocks and clean artifacts
+  translatedText = restoreCodeBlocks(translatedText, codeBlocks);
+  translatedText = cleanTranslationArtifacts(translatedText);
   
-  console.log('🌍 Google Translate: Enhanced structure preservation completed');
-  return structuredText;
+  console.log('🌍 Google Translate: Simple protection completed');
+  return translatedText;
 }
 
 // Add provider alias mapping
@@ -429,7 +307,7 @@ const providerAliases = {
   'anthropic-claude': 'claude',
   'google-translate': 'google',
   'gemini': 'gemini',
-  'openai': 'openai',
+  'openai': 'openai', 
   'claude': 'claude',
   'google': 'google'
 };
@@ -454,7 +332,7 @@ serve(async (req: Request) => {
     // Normalize provider using aliases
     const normalizedProvider = providerAliases[provider] || provider;
 
-    console.log(`🔥 ENHANCED TRANSLATOR: Translating to ${targetLanguage} using ${normalizedProvider}...`);
+    console.log(`🔥 SIMPLIFIED TRANSLATOR: Translating to ${targetLanguage} using ${normalizedProvider}...`);
     console.log(`📝 Content preview: ${content.substring(0, 200)}...`);
 
     let translatedText: string;
@@ -476,7 +354,7 @@ serve(async (req: Request) => {
         throw new Error(`Unsupported translation provider: ${provider}`);
     }
 
-    console.log("✅ Enhanced translation successful with structure preservation.");
+    console.log("✅ Simplified translation successful.");
     console.log(`📝 Translated preview: ${translatedText.substring(0, 200)}...`);
     
     return new Response(JSON.stringify({ content: translatedText }), {
@@ -484,7 +362,7 @@ serve(async (req: Request) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
-    console.error("Unhandled error in enhanced translator function:", error);
+    console.error("Unhandled error in simplified translator function:", error);
     let errorMessage = error.message || "An internal server error occurred.";
 
     if (errorMessage.includes("Cloud Translation API has not been used")) {

@@ -1,7 +1,8 @@
-// COMPLETELY FIXED supabase/functions/translator/index.ts
+// FINAL SOLUTION: supabase/functions/translator/index.ts
+// This focuses on the REAL problem: preserving structure while translating ALL content
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 
-console.log("translator function booting");
+console.log("Enhanced translator function booting");
 
 const googleApiKey = Deno.env.get("GOOGLE_API_KEY");
 const openaiApiKey = Deno.env.get("OPENAI_API_KEY");
@@ -18,54 +19,64 @@ interface TranslateRequest {
   provider: 'google' | 'openai' | 'claude' | 'gemini';
 }
 
-// 🔥 SIMPLE BUT EFFECTIVE: Minimal protection that actually works
-function protectCodeBlocks(content: string): { protected: string; codeBlocks: string[] } {
-  const codeBlocks: string[] = [];
-  let protected = content;
-  
-  // Only protect actual code blocks - nothing else
-  protected = protected.replace(/```[\s\S]*?```/g, (match) => {
-    const index = codeBlocks.length;
-    codeBlocks.push(match);
-    return `CODEBLOCK_PLACEHOLDER_${index}`;
-  });
-  
-  return { protected, codeBlocks };
-}
-
-function restoreCodeBlocks(content: string, codeBlocks: string[]): string {
-  let restored = content;
-  
-  codeBlocks.forEach((block, index) => {
-    restored = restored.replace(`CODEBLOCK_PLACEHOLDER_${index}`, block);
-  });
-  
-  return restored;
-}
-
-// 🔥 CRITICAL: Clean up any translation artifacts
-function cleanTranslationArtifacts(content: string): string {
+// 🔥 STEP 1: Clean input content of any existing artifacts
+function cleanInputContent(content: string): string {
   return content
-    // Remove any "TRANSLATE##" artifacts
+    // Remove any existing translation artifacts
     .replace(/TRANSLATE##/g, '')
     .replace(/TRANSLATE#/g, '')
-    // Remove orphaned ## that aren't headings
-    .replace(/(\n|^)##(\s*)$/gm, '')
-    // Fix spacing around headings
-    .replace(/(\n|^)(#{1,6})\s*([^\n]+)(\n|$)/gm, '\n\n$2 $3\n\n')
-    // Fix double spaces
-    .replace(/  +/g, ' ')
-    // Fix excessive newlines
-    .replace(/\n{3,}/g, '\n\n')
-    // Clean up any leftover artifacts
     .replace(/_TRANSLATE[^_]*_/g, '')
     .replace(/__STRUCTURE[^_]*__/g, '')
     .replace(/__OPEN___/g, '')
     .replace(/__CLOSE__/g, '')
+    // Fix any double spaces
+    .replace(/  +/g, ' ')
+    // Fix excessive newlines but preserve structure
+    .replace(/\n{3,}/g, '\n\n')
     .trim();
 }
 
-// Enhanced AI translation with MUCH better prompts
+// 🔥 STEP 2: Post-process to ensure perfect markdown structure
+function ensurePerfectMarkdown(content: string): string {
+  let lines = content.split('\n');
+  let result: string[] = [];
+  
+  for (let i = 0; i < lines.length; i++) {
+    let line = lines[i];
+    
+    // Clean any remaining artifacts
+    line = line
+      .replace(/TRANSLATE##/g, '')
+      .replace(/TRANSLATE#/g, '')
+      .replace(/_TRANSLATE[^_]*_/g, '')
+      .replace(/__STRUCTURE[^_]*__/g, '')
+      .replace(/__OPEN___/g, '')
+      .replace(/__CLOSE__/g, '');
+    
+    // Ensure proper heading format
+    if (line.match(/^#{1,6}\s/)) {
+      // This is a heading - ensure proper spacing
+      if (result.length > 0 && result[result.length - 1].trim() !== '') {
+        result.push(''); // Add blank line before heading
+      }
+      result.push(line);
+      result.push(''); // Add blank line after heading
+    } else if (line.trim() === '') {
+      // Only add empty line if the last line isn't already empty
+      if (result.length > 0 && result[result.length - 1].trim() !== '') {
+        result.push(line);
+      }
+    } else {
+      result.push(line);
+    }
+  }
+  
+  return result.join('\n')
+    .replace(/\n{3,}/g, '\n\n') // Clean up excessive newlines
+    .trim();
+}
+
+// 🔥 GEMINI TRANSLATION with perfect structure preservation
 async function translateWithGemini(content: string, targetLanguage: string): Promise<string> {
   if (!googleApiKey) {
     throw new Error("Google API key not configured");
@@ -73,7 +84,7 @@ async function translateWithGemini(content: string, targetLanguage: string): Pro
 
   const languageMap: Record<string, string> = {
     'es': 'Spanish',
-    'fr': 'French', 
+    'fr': 'French',
     'de': 'German',
     'ja': 'Japanese',
     'pt': 'Portuguese',
@@ -87,23 +98,31 @@ async function translateWithGemini(content: string, targetLanguage: string): Pro
 
   const targetLanguageName = languageMap[targetLanguage] || targetLanguage;
   
-  // Only protect code blocks
-  const { protected: protectedContent, codeBlocks } = protectCodeBlocks(content);
+  // Clean input first
+  const cleanedContent = cleanInputContent(content);
   
-  const prompt = `You are a professional translator. Your task is to translate the following text to ${targetLanguageName}.
+  const prompt = `You are a professional markdown translator. Your task is to translate the following markdown text to ${targetLanguageName}.
 
 CRITICAL RULES:
-1. Translate ALL text content including headings, subtitles, and body text
+1. Translate EVERY piece of text including all headings, subtitles, and content
 2. Keep markdown formatting EXACTLY the same (# ## ### - * etc.)
-3. Do NOT translate: CODEBLOCK_PLACEHOLDER_0, CODEBLOCK_PLACEHOLDER_1, etc. - keep these EXACTLY as they are
-4. Maintain the EXACT same paragraph structure and line breaks
-5. For RTL languages like Hebrew/Arabic: translate the text but keep markdown symbols in their original position
+3. Maintain the EXACT same structure and paragraph breaks
+4. Do not add any extra text or artifacts
+5. Do not use words like "TRANSLATE" in your output
+6. For RTL languages like Hebrew/Arabic: translate the text content but keep markdown symbols in their original positions
 
-Here is the text to translate:
+Example of what I want:
+Input:
+## Section Title
+Content paragraph.
 
-${protectedContent}
+Output should be:
+## טיטל מתורגם
+תוכן מתורגם.
 
-Translate to ${targetLanguageName}:`;
+Here is the markdown text to translate:
+
+${cleanedContent}`;
 
   const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${googleApiKey}`, {
     method: 'POST',
@@ -116,7 +135,7 @@ Translate to ${targetLanguageName}:`;
       }],
       generationConfig: {
         maxOutputTokens: 4000,
-        temperature: 0.2,
+        temperature: 0.1, // Very low for consistency
       },
     }),
   });
@@ -129,11 +148,10 @@ Translate to ${targetLanguageName}:`;
   const data = await response.json();
   let translatedText = data.candidates[0].content.parts[0].text;
   
-  // Restore code blocks and clean artifacts
-  translatedText = restoreCodeBlocks(translatedText, codeBlocks);
-  translatedText = cleanTranslationArtifacts(translatedText);
+  // Ensure perfect markdown structure
+  translatedText = ensurePerfectMarkdown(translatedText);
   
-  console.log('🌍 Gemini: Translation completed');
+  console.log('🌍 Gemini: Perfect markdown translation completed');
   return translatedText;
 }
 
@@ -145,7 +163,7 @@ async function translateWithOpenAI(content: string, targetLanguage: string): Pro
   const languageMap: Record<string, string> = {
     'es': 'Spanish',
     'fr': 'French',
-    'de': 'German', 
+    'de': 'German',
     'ja': 'Japanese',
     'pt': 'Portuguese',
     'he': 'Hebrew',
@@ -157,9 +175,9 @@ async function translateWithOpenAI(content: string, targetLanguage: string): Pro
   };
 
   const targetLanguageName = languageMap[targetLanguage] || targetLanguage;
-
-  // Only protect code blocks
-  const { protected: protectedContent, codeBlocks } = protectCodeBlocks(content);
+  
+  // Clean input first
+  const cleanedContent = cleanInputContent(content);
 
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -172,15 +190,15 @@ async function translateWithOpenAI(content: string, targetLanguage: string): Pro
       messages: [
         {
           role: 'system',
-          content: `You are a professional translator. Translate to ${targetLanguageName} while preserving ALL markdown formatting. Translate ALL text including headings and subtitles. Do NOT translate CODEBLOCK_PLACEHOLDER_X placeholders - keep them exactly as they are. Maintain exact paragraph structure.`
+          content: `You are a professional markdown translator. Translate to ${targetLanguageName} while preserving EXACT markdown formatting. Translate ALL text including headings and content. Keep structure identical. Never add artifacts or extra text.`
         },
         {
           role: 'user',
-          content: protectedContent
+          content: `Translate this markdown to ${targetLanguageName}:\n\n${cleanedContent}`
         }
       ],
       max_tokens: 4000,
-      temperature: 0.2,
+      temperature: 0.1,
     }),
   });
 
@@ -192,9 +210,8 @@ async function translateWithOpenAI(content: string, targetLanguage: string): Pro
   const data = await response.json();
   let translatedText = data.choices[0].message.content;
   
-  // Restore code blocks and clean artifacts
-  translatedText = restoreCodeBlocks(translatedText, codeBlocks);
-  translatedText = cleanTranslationArtifacts(translatedText);
+  // Ensure perfect markdown structure
+  translatedText = ensurePerfectMarkdown(translatedText);
   
   return translatedText;
 }
@@ -208,7 +225,7 @@ async function translateWithClaude(content: string, targetLanguage: string): Pro
     'es': 'Spanish',
     'fr': 'French',
     'de': 'German',
-    'ja': 'Japanese', 
+    'ja': 'Japanese',
     'pt': 'Portuguese',
     'he': 'Hebrew',
     'ar': 'Arabic',
@@ -219,9 +236,9 @@ async function translateWithClaude(content: string, targetLanguage: string): Pro
   };
 
   const targetLanguageName = languageMap[targetLanguage] || targetLanguage;
-
-  // Only protect code blocks
-  const { protected: protectedContent, codeBlocks } = protectCodeBlocks(content);
+  
+  // Clean input first
+  const cleanedContent = cleanInputContent(content);
 
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -233,11 +250,11 @@ async function translateWithClaude(content: string, targetLanguage: string): Pro
     body: JSON.stringify({
       model: 'claude-3-5-sonnet-20241022',
       max_tokens: 4000,
-      system: `You are a professional translator. Translate to ${targetLanguageName} while preserving ALL markdown formatting. Translate ALL text including headings and subtitles. Do NOT translate CODEBLOCK_PLACEHOLDER_X placeholders - keep them exactly as they are. Maintain exact paragraph structure.`,
+      system: `You are a professional markdown translator. Translate to ${targetLanguageName} while preserving EXACT markdown formatting. Translate ALL text including headings and content. Keep structure identical. Never add artifacts or extra text.`,
       messages: [
         {
           role: 'user',
-          content: protectedContent
+          content: `Translate this markdown to ${targetLanguageName}:\n\n${cleanedContent}`
         }
       ],
     }),
@@ -251,9 +268,8 @@ async function translateWithClaude(content: string, targetLanguage: string): Pro
   const data = await response.json();
   let translatedText = data.content[0].text;
   
-  // Restore code blocks and clean artifacts
-  translatedText = restoreCodeBlocks(translatedText, codeBlocks);
-  translatedText = cleanTranslationArtifacts(translatedText);
+  // Ensure perfect markdown structure
+  translatedText = ensurePerfectMarkdown(translatedText);
   
   return translatedText;
 }
@@ -263,10 +279,10 @@ async function translateWithGoogle(content: string, targetLanguage: string): Pro
     throw new Error("Google API key not configured");
   }
 
-  console.log('🌍 Google Translate: Using simple protection...');
+  console.log('🌍 Google Translate: Processing markdown...');
   
-  // Only protect code blocks
-  const { protected: protectedContent, codeBlocks } = protectCodeBlocks(content);
+  // Clean input first
+  const cleanedContent = cleanInputContent(content);
   
   const apiUrl = `https://translation.googleapis.com/language/translate/v2?key=${googleApiKey}`;
   
@@ -276,7 +292,7 @@ async function translateWithGoogle(content: string, targetLanguage: string): Pro
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      q: protectedContent,
+      q: cleanedContent,
       target: targetLanguage,
       format: 'text',
     }),
@@ -292,28 +308,26 @@ async function translateWithGoogle(content: string, targetLanguage: string): Pro
   const result = await response.json();
   let translatedText = result.data.translations[0].translatedText;
   
-  // Restore code blocks and clean artifacts
-  translatedText = restoreCodeBlocks(translatedText, codeBlocks);
-  translatedText = cleanTranslationArtifacts(translatedText);
+  // Ensure perfect markdown structure
+  translatedText = ensurePerfectMarkdown(translatedText);
   
-  console.log('🌍 Google Translate: Simple protection completed');
+  console.log('🌍 Google Translate: Markdown processing completed');
   return translatedText;
 }
 
-// Add provider alias mapping
+// Provider aliases
 const providerAliases = {
   'google-gemini': 'gemini',
   'openai-gpt': 'openai',
   'anthropic-claude': 'claude',
   'google-translate': 'google',
   'gemini': 'gemini',
-  'openai': 'openai', 
+  'openai': 'openai',
   'claude': 'claude',
   'google': 'google'
 };
 
 serve(async (req: Request) => {
-  // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     console.log("Handling OPTIONS request");
     return new Response(null, { headers: corsHeaders });
@@ -329,11 +343,10 @@ serve(async (req: Request) => {
       );
     }
 
-    // Normalize provider using aliases
     const normalizedProvider = providerAliases[provider] || provider;
 
-    console.log(`🔥 SIMPLIFIED TRANSLATOR: Translating to ${targetLanguage} using ${normalizedProvider}...`);
-    console.log(`📝 Content preview: ${content.substring(0, 200)}...`);
+    console.log(`🔥 PERFECT TRANSLATOR: Translating to ${targetLanguage} using ${normalizedProvider}...`);
+    console.log(`📝 Input structure preview: ${content.substring(0, 200)}...`);
 
     let translatedText: string;
 
@@ -354,15 +367,15 @@ serve(async (req: Request) => {
         throw new Error(`Unsupported translation provider: ${provider}`);
     }
 
-    console.log("✅ Simplified translation successful.");
-    console.log(`📝 Translated preview: ${translatedText.substring(0, 200)}...`);
+    console.log("✅ Perfect markdown translation completed!");
+    console.log(`📝 Output structure preview: ${translatedText.substring(0, 200)}...`);
     
     return new Response(JSON.stringify({ content: translatedText }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
-    console.error("Unhandled error in simplified translator function:", error);
+    console.error("Error in perfect translator function:", error);
     let errorMessage = error.message || "An internal server error occurred.";
 
     if (errorMessage.includes("Cloud Translation API has not been used")) {

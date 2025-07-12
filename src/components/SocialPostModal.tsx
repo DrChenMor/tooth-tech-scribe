@@ -149,7 +149,7 @@ const SocialPostModal = ({ open, article, onClose }: SocialPostModalProps) => {
     try {
       // Facebook posting with enhanced debugging
       if (selectedPlatforms.includes('facebook')) {
-        const pageId = '61577954384886'; // Your correct Facebook Page ID
+        const pageId = '735337896323018'; // Your correct Facebook Page ID
         const pageAccessToken = 'EAAKXaWpuDrQBPHWSUzKzXDefc5sAdRDd2bZArLEkZArkyudU23cSGvJbD7N4BjYy0NrXMVevL7hEIpsMVDi4dhmjYEGPbstRmvb3l4GozS72u42XZB8ZAjqc9ZA6IF3q1Ogv1MGrJnAuz3kY2chAGOw0sy5p5V9ZCBlzZB0rWJmJvZCnseM6pWqZArfWFIZBqVRtKkgJWLtVA6UZBDutObQDxuTHDMKrcZCfKPNa';
         
         // Step 1: Test Facebook access before attempting to post

@@ -279,15 +279,20 @@ case 'image-generator':
   break;
           
         case 'seo-analyzer':
-          if (!previousData || (!previousData.processedContent && !previousData.synthesizedContent)) {
+          // Accept more content fields for SEO analysis
+          const contentToAnalyze =
+            previousData.processedContent ||
+            previousData.synthesizedContent ||
+            previousData.translatedContent ||
+            (Array.isArray(previousData.scrapedContent) ? previousData.scrapedContent.map((item: any) => item.content || '').join('\n\n') : previousData.scrapedContent) ||
+            previousData.content ||
+            '';
+          const titleToAnalyze = previousData.title || 'Untitled';
+
+          if (!contentToAnalyze || contentToAnalyze.length < 10) {
             throw new Error('No content to analyze for SEO. Connect this node to content sources.');
           }
-          
-          const contentToAnalyze = previousData.processedContent || previousData.synthesizedContent;
-          const titleToAnalyze = previousData.title || 'Untitled';
-          
           addLog(node.id, node.label, 'running', `Analyzing SEO for content (${contentToAnalyze.length} characters)`);
-          
           const { data: seoData, error: seoError } = await supabase.functions.invoke('seo-analyzer', {
             body: {
               content: contentToAnalyze,
@@ -299,7 +304,6 @@ case 'image-generator':
             }
           });
           if (seoError) throw new Error(seoError.message);
-          
           result = { 
             ...previousData, // Pass through previous data
             seoAnalysis: seoData.analysis,

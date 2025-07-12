@@ -13,7 +13,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Checkbox } from '@/components/ui/checkbox';
 import { deleteArticle, updateArticleStatus } from '@/services/articles';
 import { toast } from '@/components/ui/use-toast';
-import SocialPostModal from '@/components/SocialPostModal'; // (to be created)
 
 const fetchArticles = async (): Promise<Article[]> => {
   const { data, error } = await supabase
@@ -31,8 +30,6 @@ const ArticlesManagementPage = () => {
   // 🔥 NEW: State for bulk actions
   const [selectedArticles, setSelectedArticles] = useState<number[]>([]);
   const [isBulkProcessing, setIsBulkProcessing] = useState(false);
-  const [socialModalOpen, setSocialModalOpen] = useState(false);
-  const [selectedArticleForSocial, setSelectedArticleForSocial] = useState<Article | null>(null);
 
   const { data: articles, isLoading } = useQuery({
     queryKey: ['articles'], // Use consistent key
@@ -298,18 +295,6 @@ const ArticlesManagementPage = () => {
                         Edit
                       </Link>
                     </Button>
-                    {/* NEW: Create Social Post Button */}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setSelectedArticleForSocial(article);
-                        setSocialModalOpen(true);
-                      }}
-                    >
-                      <FileText className="h-4 w-4 mr-1" />
-                      Create Social Post
-                    </Button>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="outline" size="sm">
@@ -328,12 +313,6 @@ const ArticlesManagementPage = () => {
               </CardContent>
             </Card>
           ))}
-          {/* Social Post Modal (scaffold) */}
-          <SocialPostModal
-            open={socialModalOpen}
-            article={selectedArticleForSocial}
-            onClose={() => setSocialModalOpen(false)}
-          />
         </div>
       ) : (
         <Card>

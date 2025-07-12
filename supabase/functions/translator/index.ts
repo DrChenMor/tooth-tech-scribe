@@ -196,6 +196,18 @@ async function translateWithGemini(content: string, targetLanguage: string): Pro
   return data.candidates[0].content.parts[0].text;
 }
 
+// Add provider alias mapping
+const providerAliases = {
+  'google-gemini': 'gemini',
+  'openai-gpt': 'openai',
+  'anthropic-claude': 'claude',
+  'google-translate': 'google',
+  'gemini': 'gemini',
+  'openai': 'openai',
+  'claude': 'claude',
+  'google': 'google'
+};
+
 serve(async (req: Request) => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
@@ -213,11 +225,14 @@ serve(async (req: Request) => {
       );
     }
 
-    console.log(`Translating to ${targetLanguage} using ${provider}...`);
+    // Normalize provider using aliases
+    const normalizedProvider = providerAliases[provider] || provider;
+
+    console.log(`Translating to ${targetLanguage} using ${normalizedProvider}...`);
 
     let translatedText: string;
 
-    switch (provider) {
+    switch (normalizedProvider) {
       case 'google':
         translatedText = await translateWithGoogle(content, targetLanguage);
         break;

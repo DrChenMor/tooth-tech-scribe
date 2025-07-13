@@ -8,6 +8,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { NewsletterSubscribe } from './NewsletterSubscribe';
 
 // --- Helper Components (to keep code clean while preserving all styles) ---
 
@@ -39,21 +40,6 @@ const LinkSection = ({ title, links, noTitle = false }: { title?: string; links:
           {link.title}
         </Link>
       ))}
-    </div>
-  </div>
-);
-
-const NewsletterSection = () => (
-  <div className="space-y-4">
-    <h3 className="text-lg font-semibold text-blue-900">Stay Updated</h3>
-    <p className="text-sm text-gray-600">
-      Get the latest AI dental insights delivered to your inbox weekly.
-    </p>
-    <div className="space-y-3">
-      <Input type="email" placeholder="Enter your email" className="bg-white/90 backdrop-blur-sm border border-gray-200/60 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:bg-white focus:border-blue-300/60 focus:shadow-lg focus:shadow-blue-500/10 transition-all duration-300 placeholder:text-gray-400" />
-      <Button className="w-full bbg-primary hover:bg-primary hover:bg-blue-900 text-white rounded-2xl font-medium transition-all duration-300 hover:shadow-lg hover:shadow-blue-700/25 hover:-translate-y-0.5 backdrop-blur-sm">
-        Subscribe
-      </Button>
     </div>
   </div>
 );
@@ -90,13 +76,13 @@ const Footer = () => {
             <BrandSection />
             <LinkSection title="Quick Links" links={quickLinks} />
             <LinkSection title="Topics" links={topics} />
-            <NewsletterSection />
+            <NewsletterSubscribe />
           </div>
 
           {/* ✅ MOBILE & TABLET: Accordion Layout (hidden above 1024px) */}
           <div className="block lg:hidden space-y-8">
             <BrandSection />
-            <NewsletterSection />
+            <NewsletterSubscribe />
             <Accordion type="single" collapsible className="w-full">
               <AccordionItem value="quick-links">
                 <AccordionTrigger className="text-lg font-semibold text-blue-900 hover:no-underline">Quick Links</AccordionTrigger>

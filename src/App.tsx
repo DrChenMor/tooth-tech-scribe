@@ -34,6 +34,7 @@ import ScrollToTop from './components/ScrollToTop'; // Add this import
 import { useGlobalTheme } from './hooks/useGlobalTheme';
 import ReportersManagementPage from '@/pages/ReportersManagementPage';
 import { SidebarProvider } from "@/components/ui/sidebar";
+import UnsubscribePage from './pages/UnsubscribePage';
 
 
 const queryClient = new QueryClient();
@@ -61,6 +62,7 @@ function App() {
                 </Route>
 
                 <Route path="/auth" element={<AuthPage />} />
+                <Route path="/unsubscribe" element={<UnsubscribePage />} />
 
                 <Route path="/sitemap.xml" element={<SitemapPage />} />
 

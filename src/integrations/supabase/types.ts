@@ -318,7 +318,10 @@ export type Database = {
           image_url: string | null
           published_date: string
           reporter_id: string | null
+          seo_details: Json | null
+          seo_score: number | null
           slug: string
+          source_references: Json | null
           status: Database["public"]["Enums"]["article_status"]
           title: string
           views: number
@@ -335,7 +338,10 @@ export type Database = {
           image_url?: string | null
           published_date: string
           reporter_id?: string | null
+          seo_details?: Json | null
+          seo_score?: number | null
           slug: string
+          source_references?: Json | null
           status?: Database["public"]["Enums"]["article_status"]
           title: string
           views?: number
@@ -352,7 +358,10 @@ export type Database = {
           image_url?: string | null
           published_date?: string
           reporter_id?: string | null
+          seo_details?: Json | null
+          seo_score?: number | null
           slug?: string
+          source_references?: Json | null
           status?: Database["public"]["Enums"]["article_status"]
           title?: string
           views?: number
@@ -580,6 +589,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      subscribers: {
+        Row: {
+          created_at: string | null
+          email: string
+          id: string
+          is_active: boolean | null
+          name: string | null
+          subscribed_at: string | null
+          unsubscribed_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+          id?: string
+          is_active?: boolean | null
+          name?: string | null
+          subscribed_at?: string | null
+          unsubscribed_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+          id?: string
+          is_active?: boolean | null
+          name?: string | null
+          subscribed_at?: string | null
+          unsubscribed_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       system_config: {
         Row: {

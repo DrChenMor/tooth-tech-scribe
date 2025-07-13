@@ -3,6 +3,7 @@ import { Mail, Search, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import SearchCommand from './SearchCommand';
 import { SidebarTrigger } from './ui/sidebar';
+import { NewsletterDropdown } from './NewsletterDropdown';
 
 const TopNavigation = () => {
   const location = useLocation();
@@ -95,18 +96,10 @@ const TopNavigation = () => {
               </Button>
             </div>
             
-
-            <Button className="
-              bbg-primary hover:bg-primary text-white rounded-2xl font-medium p-3 lg:px-6
-              transition-all duration-300 
-              hover:shadow-lg hover:shadow-blue-500/25 
-              hover:-translate-y-0.5
-              backdrop-blur-sm
-            ">
-              <Mail className="w-4 h-4 lg:mr-2" />
-              {/* ✅ FIXED: Show "Subscribe" text on desktop (lg) and up */}
-              <span className="hidden lg:inline">Subscribe</span>
-            </Button>
+            {/* Newsletter Subscribe Dropdown */}
+            <div className="hidden md:block">
+              <NewsletterDropdown />
+            </div>
           </div>
         </div>
       </nav>

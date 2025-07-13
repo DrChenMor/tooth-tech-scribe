@@ -27,21 +27,26 @@ export const validateEmail = (email: string): boolean => {
 // Send welcome email
 const sendWelcomeEmail = async (email: string, name?: string): Promise<void> => {
   try {
-    // Get the Supabase URL from environment or use a default
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://nuhjsrmkkqtecfkjrcox.supabase.co';
-    const functionUrl = `${supabaseUrl}/functions/v1/send-welcome-email`;
+    // ✅ Fix: Use direct URL and proper auth
+    const functionUrl = 'https://nuhjsrmkkqtecfkjrcox.supabase.co/functions/v1/send-welcome-email';
+    
+    // Get auth token properly
+    const { data: { session } } = await supabase.auth.getSession();
+    const authToken = session?.access_token || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im51aGpzcm1ra3F0ZWNma2pyY294Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk5MDU5MzksImV4cCI6MjA2NTQ4MTkzOX0.UZ4WC-Rgg3AUNmh91xTCMkmjr_v9UHR5TFO5TFZRq04';
     
     const response = await fetch(functionUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        'Authorization': `Bearer ${authToken}`,
+        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im51aGpzcm1ra3F0ZWNma2pyY294Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk5MDU5MzksImV4cCI6MjA2NTQ4MTkzOX0.UZ4WC-Rgg3AUNmh91xTCMkmjr_v9UHR5TFO5TFZRq04'
       },
       body: JSON.stringify({ email, name }),
     });
 
     if (!response.ok) {
-      console.error('Failed to send welcome email:', response.statusText);
+      const errorText = await response.text();
+      console.error('Failed to send welcome email:', response.statusText, errorText);
       // Don't throw error - welcome email failure shouldn't break subscription
     } else {
       console.log('Welcome email sent successfully');
@@ -68,18 +73,29 @@ export const subscribeToNewsletter = async (
 
     const cleanEmail = email.trim().toLowerCase();
 
-    // Check if already subscribed
-    const { data: existingSubscribers, error: checkError } = await supabase
-      .from('subscribers')
-      .select('*')
-      .eq('email', cleanEmail)
-      .limit(1);
+    // ✅ Fix: Add better error handling for check query
+    let existingSubscribers;
+    try {
+      const { data, error: checkError } = await supabase
+        .from('subscribers')
+        .select('*')
+        .eq('email', cleanEmail)
+        .limit(1);
 
-    if (checkError) {
-      console.error('Error checking subscription:', checkError);
+      if (checkError) {
+        console.error('Error checking subscription:', checkError);
+        return {
+          success: false,
+          message: 'Error checking subscription status. Please try again.'
+        };
+      }
+      
+      existingSubscribers = data;
+    } catch (checkErr) {
+      console.error('Database check failed:', checkErr);
       return {
         success: false,
-        message: 'Error checking subscription status. Please try again.'
+        message: 'Database error. Please try again.'
       };
     }
 
@@ -125,19 +141,29 @@ export const subscribeToNewsletter = async (
       };
     }
 
-    // Create new subscription
+    // ✅ Fix: Create new subscription with proper fields
     const { data: newSubscriber, error: insertError } = await supabase
       .from('subscribers')
       .insert({
         email: cleanEmail,
         name: name?.trim() || null,
-        is_active: true
+        is_active: true,
+        subscribed_at: new Date().toISOString() // ✅ Add this field
       } as SubscriberInsert)
       .select()
       .single();
 
     if (insertError) {
       console.error('Newsletter subscription error:', insertError);
+      
+      // ✅ Better error messages based on error type
+      if (insertError.code === '23505') { // Unique constraint violation
+        return {
+          success: false,
+          message: 'This email is already subscribed to our newsletter.'
+        };
+      }
+      
       return {
         success: false,
         message: 'Error subscribing to newsletter. Please try again.'
@@ -266,4 +292,4 @@ export const getActiveSubscribersCount = async (): Promise<number> => {
     console.error('Error fetching subscribers count:', error);
     return 0;
   }
-}; 
+};

@@ -20,8 +20,8 @@ import {
 } from "@/components/ui/carousel";
 import Autoplay from "embla-carousel-autoplay";
 
-const fetchArticles = async (): Promise<Article[]> => {
-  // 🔧 Type assertion to bypass TypeScript error
+const fetchPublishedArticles = async (): Promise<Article[]> => {
+  // 🔥 CRITICAL: Add status filter for published articles only
   const { data, error } = await (supabase as any)
     .from('articles')
     .select(`
@@ -33,19 +33,21 @@ const fetchArticles = async (): Promise<Article[]> => {
         specialties
       )
     `)
+    .eq('status', 'published') // 🔥 ONLY PUBLISHED ARTICLES
     .order('published_date', { ascending: false });
 
   if (error) {
-    console.error('Error fetching articles:', error);
+    console.error('Error fetching published articles:', error);
     throw new Error(error.message);
   }
   return data || [];
 };
 
 const Index = () => {
+  // 🔥 FIX: Use specific query key for published articles
   const { data: articles, isLoading, isError } = useQuery({
-    queryKey: ['articles'],
-    queryFn: fetchArticles,
+    queryKey: ['published-articles'], // 🔥 DIFFERENT KEY
+    queryFn: fetchPublishedArticles,
   });
   const { data: categories, isLoading: isLoadingCategories } = useCategories();
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);

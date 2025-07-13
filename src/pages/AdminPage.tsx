@@ -13,13 +13,16 @@ import { toast } from '@/components/ui/use-toast';
 import DeleteArticleDialog from '@/components/admin/DeleteArticleDialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
+import SEOBreakdownModal from '@/components/admin/SEOBreakdownModal';
 
 
 const fetchAllArticles = async (): Promise<Article[]> => {
+  // 🔥 This should fetch ALL articles (drafts, published, archived)
   const { data, error } = await supabase
     .from('articles')
     .select('*')
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false }); // No status filter - all articles
+
   if (error) throw new Error(error.message);
   return data || [];
 };
@@ -39,8 +42,9 @@ const AdminPage = () => {
   const [selectedArticles, setSelectedArticles] = useState<number[]>([]);
   const [isBulkProcessing, setIsBulkProcessing] = useState(false);
 
+  // 🔥 FIX: Use specific query key for admin (all articles)
   const { data: articles, isLoading, isError } = useQuery({
-    queryKey: ['articles'],
+    queryKey: ['admin-articles'], // 🔥 DIFFERENT KEY FOR ADMIN
     queryFn: fetchAllArticles,
   });
 
@@ -69,9 +73,9 @@ const AdminPage = () => {
   const statusMutation = useMutation({
     mutationFn: updateArticleStatus,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['articles'] });
-      queryClient.invalidateQueries({ queryKey: ['all-articles'] });
+      queryClient.invalidateQueries({ queryKey: ['published-articles'] });
       queryClient.invalidateQueries({ queryKey: ['admin-articles'] });
+      queryClient.invalidateQueries({ queryKey: ['articles'] }); // Legacy fallback
     },
     onSettled: () => setMutating(null),
     onError: (error) => {
@@ -87,9 +91,9 @@ const AdminPage = () => {
     mutationFn: deleteArticle,
     onSuccess: () => {
       toast({ title: "Article deleted successfully!" });
-      queryClient.invalidateQueries({ queryKey: ['articles'] });
-      queryClient.invalidateQueries({ queryKey: ['all-articles'] });
+      queryClient.invalidateQueries({ queryKey: ['published-articles'] });
       queryClient.invalidateQueries({ queryKey: ['admin-articles'] });
+      queryClient.invalidateQueries({ queryKey: ['articles'] }); // Legacy fallback
     },
     onError: (error) => {
       toast({
@@ -153,9 +157,9 @@ const AdminPage = () => {
 
       // Clear selection and refresh data
       setSelectedArticles([]);
-      queryClient.invalidateQueries({ queryKey: ['articles'] });
-      queryClient.invalidateQueries({ queryKey: ['all-articles'] });
+      queryClient.invalidateQueries({ queryKey: ['published-articles'] });
       queryClient.invalidateQueries({ queryKey: ['admin-articles'] });
+      queryClient.invalidateQueries({ queryKey: ['articles'] }); // Legacy fallback
 
     } catch (error) {
       toast({
@@ -267,20 +271,27 @@ const AdminPage = () => {
                     </span>
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Badge 
-                        variant={
-                          (article.seo_score || 0) >= 80 ? "default" : 
-                          (article.seo_score || 0) >= 60 ? "secondary" : "destructive"
-                        }
-                        className="text-xs"
-                      >
-                        {article.seo_score || 0}/100
-                      </Badge>
-                      {article.seo_score && article.seo_score >= 80 && (
-                        <span className="text-green-600">⭐</span>
-                      )}
-                    </div>
+                    <SEOBreakdownModal
+                      seoScore={article.seo_score || 0}
+                      seoDetails={article.seo_details}
+                      title={article.title}
+                    >
+                      <div className="flex items-center gap-2 cursor-pointer hover:opacity-80">
+                        <Badge 
+                          variant={
+                            (article.seo_score || 0) >= 80 ? "default" : 
+                            (article.seo_score || 0) >= 60 ? "secondary" : "destructive"
+                          }
+                          className="text-xs"
+                        >
+                          {article.seo_score || 0}/100
+                        </Badge>
+                        {article.seo_score && article.seo_score >= 80 && (
+                          <span className="text-green-600">⭐</span>
+                        )}
+                        <span className="text-xs text-muted-foreground">(click to view details)</span>
+                      </div>
+                    </SEOBreakdownModal>
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1">

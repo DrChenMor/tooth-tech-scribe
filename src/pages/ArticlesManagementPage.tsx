@@ -13,6 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Checkbox } from '@/components/ui/checkbox';
 import { deleteArticle, updateArticleStatus } from '@/services/articles';
 import { toast } from '@/components/ui/use-toast';
+import SEOBreakdownModal from '@/components/admin/SEOBreakdownModal';
 
 const fetchArticles = async (): Promise<Article[]> => {
   const { data, error } = await supabase
@@ -32,7 +33,7 @@ const ArticlesManagementPage = () => {
   const [isBulkProcessing, setIsBulkProcessing] = useState(false);
 
   const { data: articles, isLoading } = useQuery({
-    queryKey: ['articles'], // Use consistent key
+    queryKey: ['admin-articles'], // 🔥 FIX: Use admin query key for all articles
     queryFn: fetchArticles,
   });
 
@@ -111,7 +112,9 @@ const ArticlesManagementPage = () => {
 
       // Clear selection and refresh data
       setSelectedArticles([]);
-      queryClient.invalidateQueries({ queryKey: ['articles'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-articles'] });
+      queryClient.invalidateQueries({ queryKey: ['published-articles'] });
+      queryClient.invalidateQueries({ queryKey: ['articles'] }); // Legacy fallback
 
     } catch (error) {
       toast({
@@ -280,6 +283,39 @@ const ArticlesManagementPage = () => {
                       <Badge variant="secondary">{article.category}</Badge>
                     )}
                     <span>{article.views} views</span>
+                    
+                    {/* 🔥 NEW: SEO Score Display */}
+                    {article.seo_score !== undefined && (
+                      <SEOBreakdownModal
+                        seoScore={article.seo_score}
+                        seoDetails={article.seo_details}
+                        title={article.title}
+                      >
+                        <div className="flex items-center gap-1 cursor-pointer hover:opacity-80">
+                          <Badge 
+                            variant={
+                              article.seo_score >= 80 ? "default" : 
+                              article.seo_score >= 60 ? "secondary" : "destructive"
+                            }
+                            className="text-xs"
+                          >
+                            SEO: {article.seo_score}/100
+                          </Badge>
+                          {article.seo_score >= 80 && (
+                            <span className="text-green-600 text-xs">⭐</span>
+                          )}
+                        </div>
+                      </SEOBreakdownModal>
+                    )}
+                    
+                    {/* 🔥 NEW: Sources Display */}
+                    {article.source_references && Array.isArray(article.source_references) && article.source_references.length > 0 && (
+                      <div className="flex items-center gap-1">
+                        <Badge variant="outline" className="text-xs">
+                          📚 {article.source_references.length} sources
+                        </Badge>
+                      </div>
+                    )}
                   </div>
                   
                   <div className="flex items-center gap-2">

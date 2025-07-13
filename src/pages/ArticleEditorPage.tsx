@@ -73,8 +73,10 @@ const ArticleEditorPage = () => {
   const mutation = useMutation({
     mutationFn: upsertArticle,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['all-articles'] });
-      queryClient.invalidateQueries({ queryKey: ['articles'] });
+      // 🔥 UPDATED: Invalidate specific query keys
+      queryClient.invalidateQueries({ queryKey: ['published-articles'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-articles'] });
+      queryClient.invalidateQueries({ queryKey: ['articles'] }); // Legacy
       queryClient.invalidateQueries({ queryKey: ['article-editor', articleId] });
       toast({ title: `Article ${isEditMode ? 'updated' : 'created'} successfully!` });
       navigate("/admin");

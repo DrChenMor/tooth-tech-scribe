@@ -13,6 +13,7 @@ const fetchArticlesByCategory = async (category: string): Promise<Article[]> => 
     .from('articles')
     .select('*')
     .eq('category', category)
+    .eq('status', 'published') // 🔥 ONLY PUBLISHED ARTICLES
     .order('published_date', { ascending: false });
 
   if (error) {

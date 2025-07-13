@@ -9,8 +9,10 @@ import { Play, Save, Download, Upload, Square, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { WorkflowNode, ExecutionLog } from '@/types/WorkflowTypes';
 import { executeArticleValidation } from '@/components/workflow/ArticleStructureValidator';
+import { useQueryClient } from '@tanstack/react-query';
 
 const WorkflowBuilderPage = () => {
+  const queryClient = useQueryClient();
   const [nodes, setNodes] = useState<WorkflowNode[]>([]);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [connectingNodeId, setConnectingNodeId] = useState<string | null>(null);
@@ -768,6 +770,11 @@ case 'publisher':
 
   if (publishError) throw new Error(publishError.message);
   
+  // 🔥 CRITICAL: Invalidate the correct query caches
+  queryClient.invalidateQueries({ queryKey: ['published-articles'] }); // For Index and ArticlesPage
+  queryClient.invalidateQueries({ queryKey: ['admin-articles'] }); // For AdminPage
+  queryClient.invalidateQueries({ queryKey: ['articles'] }); // Legacy fallback
+  
   result = { 
     articleId: publishResult.article.id,
     title: publishResult.article.title,
@@ -779,7 +786,7 @@ case 'publisher':
   };
   
   addLog(node.id, node.label, 'completed', 
-    `Article published: "${publishResult.article.title}" (${publishResult.article.status})${articleImageUrl ? ' with featured image' : ''} and ${sourceReferences.length} sources`);
+    `Article published: "${publishResult.article.title}" (${publishResult.article.status}) - Cache invalidated`);
   break;
 
 // FIND AND COMPLETELY REPLACE the existing 'translator' case in your executeNode function

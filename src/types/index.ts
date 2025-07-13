@@ -14,6 +14,7 @@ export interface Article {
   status: ArticleStatus;
   views: number;
   seo_score?: number;
+  seo_details?: any; // SEO analysis details
   source_references?: string[] | any[]; // Adjust type based on your data structure
   reporter_id?: string; // 🔧 NEW
   reporter?: {          // 🔧 NEW

@@ -9,10 +9,12 @@ import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
 import { useState, useMemo } from 'react';
 
-const fetchArticles = async (): Promise<Article[]> => {
+const fetchPublishedArticlesForArticlesPage = async (): Promise<Article[]> => {
+  // 🔥 CRITICAL: Add status filter for published articles only
   const { data, error } = await supabase
     .from('articles')
     .select('*')
+    .eq('status', 'published') // 🔥 ONLY PUBLISHED ARTICLES
     .order('published_date', { ascending: false });
 
   if (error) {
@@ -23,9 +25,10 @@ const fetchArticles = async (): Promise<Article[]> => {
 };
 
 const ArticlesPage = () => {
+  // 🔥 FIX: Use same query key as Index page since they show same data
   const { data: articles, isLoading, isError } = useQuery({
-    queryKey: ['articles'],
-    queryFn: fetchArticles,
+    queryKey: ['published-articles'], // 🔥 SAME KEY AS INDEX
+    queryFn: fetchPublishedArticlesForArticlesPage,
   });
   
   const [searchQuery, setSearchQuery] = useState('');

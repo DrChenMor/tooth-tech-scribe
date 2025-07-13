@@ -26,7 +26,7 @@ const SearchCommand = () => {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const { data: articles = [] } = useQuery({
-    queryKey: ['articles'],
+    queryKey: ['published-articles'], // 🔥 FIX: Use published articles for search
     queryFn: fetchArticles,
   });
 

@@ -51,7 +51,7 @@ const sendWelcomeEmail = async (email: string, name?: string): Promise<void> => 
   }
 };
 
-// ✅ FIXED: Subscribe to newsletter (NO SELECT CHECK)
+// ✅ FIXED: Subscribe to newsletter with better error handling
 export const subscribeToNewsletter = async (
   email: string, 
   name?: string
@@ -67,8 +67,64 @@ export const subscribeToNewsletter = async (
 
     const cleanEmail = email.trim().toLowerCase();
 
-    // ✅ SKIP THE SELECT CHECK - Just try to insert directly
-    // Let the database handle duplicate email constraints
+    // ✅ FIXED: Check if already subscribed first
+    const { data: existingSubscribers, error: checkError } = await supabase
+      .from('subscribers')
+      .select('*')
+      .eq('email', cleanEmail)
+      .limit(1);
+
+    if (checkError) {
+      console.error('Error checking subscription:', checkError);
+      return {
+        success: false,
+        message: 'Error checking subscription status. Please try again.'
+      };
+    }
+
+    const existingSubscriber = existingSubscribers?.[0];
+
+    // If already subscribed and active
+    if (existingSubscriber && existingSubscriber.is_active) {
+      return {
+        success: false,
+        message: 'You are already subscribed to our newsletter!'
+      };
+    }
+
+    // If exists but unsubscribed, reactivate
+    if (existingSubscriber && !existingSubscriber.is_active) {
+      const { data: updatedSubscriber, error: updateError } = await supabase
+        .from('subscribers')
+        .update({
+          is_active: true,
+          unsubscribed_at: null,
+          name: name?.trim() || existingSubscriber.name,
+          updated_at: new Date().toISOString()
+        } as SubscriberUpdate)
+        .eq('id', existingSubscriber.id)
+        .select()
+        .single();
+
+      if (updateError) {
+        console.error('Error reactivating subscription:', updateError);
+        return {
+          success: false,
+          message: 'Error reactivating subscription. Please try again.'
+        };
+      }
+
+      // Send welcome back email
+      await sendWelcomeEmail(cleanEmail, name);
+
+      return {
+        success: true,
+        message: 'Welcome back! Your subscription has been reactivated.',
+        subscriber: updatedSubscriber
+      };
+    }
+
+    // ✅ FIXED: Create new subscription with proper error handling
     const { data: newSubscriber, error: insertError } = await supabase
       .from('subscribers')
       .insert({

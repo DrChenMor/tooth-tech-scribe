@@ -5,10 +5,20 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Settings, Key, CheckCircle, AlertCircle, Palette, Type, Network } from 'lucide-react';
+import { Settings, Key, CheckCircle, AlertCircle, Palette, Type, Network, Globe, List, Shield } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
+import { 
+  saveGlobalTheme, 
+  fetchAllGlobalThemes, 
+  activateGlobalTheme,
+  updateSiteSetting,
+  fetchSiteSetting
+} from '@/services/globalTheme';
+import { useGlobalTheme } from '@/hooks/useGlobalTheme';
+import { Checkbox } from '@/components/ui/checkbox';
+import { useToast } from '@/components/ui/use-toast';
 
 interface ApiKeyStatus {
   name: string;
@@ -180,7 +190,42 @@ const saveSystemConfig = async (config: SystemConfig) => {
 
 const AdminSettingsPage = () => {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   
+  // 🔥 NEW: Global theme state
+  const [themeName, setThemeName] = useState('Default Theme');
+  const [saveAsGlobal, setSaveAsGlobal] = useState(false);
+  const [allowUserOverride, setAllowUserOverride] = useState(true);
+  
+  // 🔥 NEW: Use enhanced global theme hook
+  const { 
+    currentTheme, 
+    themeSource, 
+    userCanOverride, 
+    hasGlobalTheme,
+    globalTheme,
+    saveUserTheme 
+  } = useGlobalTheme();
+
+  // 🔥 NEW: Fetch all global themes
+  const { data: allGlobalThemes, isLoading: loadingThemes } = useQuery({
+    queryKey: ['all-global-themes'],
+    queryFn: fetchAllGlobalThemes,
+  });
+
+  // 🔥 NEW: Fetch theme enforcement setting
+  const { data: themeEnforcement } = useQuery({
+    queryKey: ['theme-enforcement'],
+    queryFn: () => fetchSiteSetting('theme_enforcement'),
+  });
+
+  // 🔥 NEW: Load theme enforcement setting
+  useEffect(() => {
+    if (themeEnforcement) {
+      setAllowUserOverride(themeEnforcement.allow_user_override !== false);
+    }
+  }, [themeEnforcement]);
+
   const [apiKeys, setApiKeys] = useState({
     OPENAI_API_KEY: '',
     ANTHROPIC_API_KEY: '',
@@ -286,309 +331,24 @@ const AdminSettingsPage = () => {
   
   // 🔥 NUCLEAR OPTION: Enhanced saveTheme function with aggressive font application
   const saveTheme = () => {
-    localStorage.setItem('app-theme', JSON.stringify(theme));
-    
-    // Helper function to format font values properly
-    const formatFontValue = (value: string): string => {
-      if (!value) return value;
-      
-      const fonts = value.split(',').map(f => f.trim());
-      const processedFonts = fonts.map(font => {
-        // Remove existing quotes
-        font = font.replace(/["']/g, '');
-        // Add quotes if font name has spaces (but not for generic families)
-        if (font.includes(' ') && 
-            !font.includes('sans-serif') && 
-            !font.includes('serif') && 
-            !font.includes('monospace') &&
-            !font.includes('cursive') &&
-            !font.includes('fantasy')) {
-          return `"${font}"`;
-        }
-        return font;
-      });
-      return processedFonts.join(', ');
-    };
-
-    // 🔥 STEP 1: Apply to CSS custom properties
-    Object.entries(theme).forEach(([key, value]) => {
-      if (value) {
-        let finalValue = value;
-        
-        if (key.includes('font')) {
-          finalValue = formatFontValue(value);
-          console.log(`🎯 Applying CSS custom property ${key}: ${finalValue}`);
-        }
-        
-        document.documentElement.style.setProperty(key, finalValue);
-      }
-    });
-
-    // 🔥 STEP 2: NUCLEAR OPTION - Force apply fonts directly to ALL elements
-    const forceApplyFontsEverywhere = () => {
-      console.log('🚀 NUCLEAR FONT APPLICATION STARTING...');
-      
-      // Apply heading font to ALL headings and heading-like elements
-      if (theme['--font-secondary']) {
-        const headingFont = formatFontValue(theme['--font-secondary']);
-        console.log(`🎯 Forcing heading font: ${headingFont}`);
-        
-        // Target ALL possible heading selectors
-        const headingSelectors = [
-          'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-          '.text-4xl', '.text-5xl', '.text-6xl', '.text-3xl', '.text-2xl', '.text-xl',
-          '.font-bold', '.font-semibold', '.font-medium',
-          '[class*="title"]', '[class*="heading"]', '[class*="header"]',
-          '.prose h1', '.prose h2', '.prose h3', '.prose h4', '.prose h5', '.prose h6'
-        ];
-        
-        headingSelectors.forEach(selector => {
-          try {
-            const elements = document.querySelectorAll(selector);
-            elements.forEach(element => {
-              const el = element as HTMLElement;
-              el.style.setProperty('font-family', headingFont, 'important');
-              el.style.fontFamily = headingFont;
-              // Remove any conflicting Tailwind classes
-              el.classList.remove('font-sans', 'font-serif', 'font-mono');
-            });
-            if (elements.length > 0) {
-              console.log(`✅ Applied heading font to ${elements.length} elements with selector: ${selector}`);
-            }
-          } catch (error) {
-            console.warn(`Failed to apply to selector ${selector}:`, error);
-          }
+    if (saveAsGlobal) {
+      saveThemeGlobally();
+    } else {
+      // Save locally (user theme)
+      const success = saveUserTheme(theme);
+      if (success) {
+        toast({
+          title: "💾 User Theme Saved",
+          description: "Theme saved locally for this user only.",
+        });
+      } else {
+        toast({
+          title: "❌ Theme Override Disabled",
+          description: "User theme override is currently disabled by admin.",
+          variant: "destructive",
         });
       }
-      
-      // Apply body font to ALL body elements
-      if (theme['--font-main']) {
-        const bodyFont = formatFontValue(theme['--font-main']);
-        console.log(`🎯 Forcing body font: ${bodyFont}`);
-        
-        // Apply to body first
-        document.body.style.setProperty('font-family', bodyFont, 'important');
-        document.body.style.fontFamily = bodyFont;
-        
-        // Target ALL possible body text selectors
-        const bodySelectors = [
-          'p', 'span', 'div', 'body', 'main', 'section', 'article',
-          '.prose p', '.prose span', '.prose div',
-          '.text-base', '.text-sm', '.text-xs', '.text-lg'
-        ];
-        
-        bodySelectors.forEach(selector => {
-          try {
-            const elements = document.querySelectorAll(selector);
-            elements.forEach(element => {
-              const el = element as HTMLElement;
-              // Only apply if it's not a heading
-              if (!el.matches('h1, h2, h3, h4, h5, h6')) {
-                el.style.setProperty('font-family', bodyFont, 'important');
-                el.style.fontFamily = bodyFont;
-                // Remove any conflicting Tailwind classes
-                el.classList.remove('font-sans', 'font-serif', 'font-mono');
-              }
-            });
-            if (elements.length > 0) {
-              console.log(`✅ Applied body font to ${elements.length} elements with selector: ${selector}`);
-            }
-          } catch (error) {
-            console.warn(`Failed to apply to selector ${selector}:`, error);
-          }
-        });
-      }
-    };
-
-    // 🔥 STEP 3: Inject temporary CSS for immediate visual change
-    const injectTemporaryCSS = () => {
-      // Remove any existing temporary styles
-      const existingStyle = document.getElementById('temp-font-override');
-      if (existingStyle) {
-        existingStyle.remove();
-      }
-
-      const tempStyle = document.createElement('style');
-      tempStyle.id = 'temp-font-override';
-      tempStyle.textContent = `
-        /* NUCLEAR FONT OVERRIDE */
-        * {
-          font-family: inherit !important;
-        }
-        
-        html {
-          font-family: var(--font-main) !important;
-        }
-        
-        h1, h2, h3, h4, h5, h6,
-        .text-4xl, .text-5xl, .text-6xl, .text-3xl, .text-2xl, .text-xl,
-        .font-bold, .font-semibold, .font-medium,
-        [class*="title"], [class*="heading"], [class*="header"] {
-          font-family: var(--font-secondary) !important;
-        }
-        
-        body, p, span, div, main, section, article,
-        .text-base, .text-sm, .text-xs, .text-lg {
-          font-family: var(--font-main) !important;
-        }
-        
-        /* Override Tailwind font classes */
-        .font-sans, .font-sans * {
-          font-family: var(--font-main) !important;
-        }
-        
-        .font-serif, .font-serif * {
-          font-family: var(--font-secondary) !important;
-        }
-      `;
-      
-      document.head.appendChild(tempStyle);
-      console.log('💉 Injected temporary CSS override');
-      
-      // Remove temporary CSS after 2 seconds (the permanent CSS should take over)
-      setTimeout(() => {
-        const tempEl = document.getElementById('temp-font-override');
-        if (tempEl) {
-          tempEl.remove();
-          console.log('🗑️ Removed temporary CSS override');
-        }
-      }, 2000);
-    };
-
-    // 🔥 STEP 4: Force browser recalculation
-    const forceBrowserRecalculation = () => {
-      // Method 1: Hide/show body
-      const originalDisplay = document.body.style.display;
-      document.body.style.display = 'none';
-      document.body.offsetHeight; // Force reflow
-      document.body.style.display = originalDisplay || '';
-      
-      // Method 2: Add/remove class
-      document.documentElement.classList.add('theme-updating');
-      setTimeout(() => {
-        document.documentElement.classList.remove('theme-updating');
-      }, 100);
-      
-      // Method 3: Force font re-rendering by changing a non-visible property
-      document.body.style.letterSpacing = '0.001px';
-      setTimeout(() => {
-        document.body.style.letterSpacing = '';
-      }, 10);
-      
-      console.log('🔄 Forced browser recalculation');
-    };
-
-    // Execute all steps
-    console.log('🚀 STARTING AGGRESSIVE FONT APPLICATION...');
-    
-    // Step 1: Inject CSS immediately for instant visual feedback
-    injectTemporaryCSS();
-    
-    // Step 2: Force apply to existing elements
-    setTimeout(() => {
-      forceApplyFontsEverywhere();
-    }, 10);
-    
-    // Step 3: Force browser recalculation
-    setTimeout(() => {
-      forceBrowserRecalculation();
-    }, 50);
-    
-    // Step 4: Reapply after everything settles
-    setTimeout(() => {
-      forceApplyFontsEverywhere();
-      console.log('✅ AGGRESSIVE FONT APPLICATION COMPLETED');
-    }, 200);
-
-    // 🔥 STEP 5: Set up observer for dynamic content
-    const setupFontObserver = () => {
-      // Disconnect any existing observer
-      if ((window as any).fontObserver) {
-        (window as any).fontObserver.disconnect();
-      }
-
-      const observer = new MutationObserver((mutations) => {
-        let needsReapply = false;
-        
-        mutations.forEach((mutation) => {
-          if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
-            mutation.addedNodes.forEach((node) => {
-              if (node.nodeType === Node.ELEMENT_NODE) {
-                const element = node as Element;
-                if (element.matches('h1, h2, h3, h4, h5, h6, p, span, div') ||
-                    element.querySelector('h1, h2, h3, h4, h5, h6, p, span, div')) {
-                  needsReapply = true;
-                }
-              }
-            });
-          }
-        });
-        
-        if (needsReapply) {
-          console.log('🔄 New elements detected, reapplying fonts...');
-          setTimeout(forceApplyFontsEverywhere, 100);
-        }
-      });
-
-      observer.observe(document.body, {
-        childList: true,
-        subtree: true
-      });
-
-      (window as any).fontObserver = observer;
-      console.log('👁️ Font observer setup complete');
-    };
-
-    setTimeout(setupFontObserver, 500);
-
-    // Trigger events for other components
-    window.dispatchEvent(new StorageEvent('storage', {
-      key: 'app-theme',
-      newValue: JSON.stringify(theme),
-      oldValue: null,
-      storageArea: localStorage,
-      url: window.location.href
-    }));
-    
-    queryClient.invalidateQueries({ queryKey: ['app-theme'] });
-    
-    toast({
-      title: "🎨 Theme Saved & Applied Aggressively!",
-      description: "Fonts have been forcefully applied to all elements. Check the console for details.",
-    });
-
-    // 🔥 VERIFICATION: Log results after 1 second
-    setTimeout(() => {
-      console.log('🔍 FINAL FONT VERIFICATION:');
-      console.log('CSS --font-secondary:', getComputedStyle(document.documentElement).getPropertyValue('--font-secondary'));
-      console.log('CSS --font-main:', getComputedStyle(document.documentElement).getPropertyValue('--font-main'));
-      
-      const h1 = document.querySelector('h1');
-      const h2 = document.querySelector('h2');
-      const p = document.querySelector('p');
-      
-      if (h1) {
-        console.log('H1 computed font-family:', getComputedStyle(h1).fontFamily);
-        console.log('H1 inline font-family:', (h1 as HTMLElement).style.fontFamily);
-      }
-      
-      if (h2) {
-        console.log('H2 computed font-family:', getComputedStyle(h2).fontFamily);
-      }
-      
-      if (p) {
-        console.log('P computed font-family:', getComputedStyle(p).fontFamily);
-      }
-      
-      // Count elements with custom fonts applied
-      const headingsWithCustomFont = document.querySelectorAll('h1, h2, h3, h4, h5, h6').length;
-      const bodyElementsWithCustomFont = document.querySelectorAll('p, span').length;
-      
-      console.log(`📊 Font application summary:`);
-      console.log(`- ${headingsWithCustomFont} headings found`);
-      console.log(`- ${bodyElementsWithCustomFont} body text elements found`);
-      console.log(`🎯 If fonts still don't look right, check for CSS conflicts or cached styles.`);
-    }, 1000);
+    }
   };
 
   const resetTheme = () => {
@@ -878,6 +638,73 @@ const applyPresetToElements = (preset: 'all-serif' | 'all-sans' | 'mixed-traditi
     });
   };
 
+  // 🔥 NEW: Save theme globally
+  const saveThemeGlobally = async () => {
+    try {
+      await saveGlobalTheme(themeName, theme);
+      
+      toast({
+        title: "🌍 Global Theme Saved!",
+        description: "Theme has been applied globally to all users.",
+      });
+      
+      queryClient.invalidateQueries({ queryKey: ['global-theme'] });
+      queryClient.invalidateQueries({ queryKey: ['all-global-themes'] });
+    } catch (error) {
+      toast({
+        title: "Failed to save global theme",
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // 🔥 NEW: Activate existing global theme
+  const activateTheme = async (themeId: string) => {
+    try {
+      await activateGlobalTheme(themeId);
+      
+      toast({
+        title: "✅ Theme Activated",
+        description: "Global theme has been activated for all users.",
+      });
+      
+      queryClient.invalidateQueries({ queryKey: ['global-theme'] });
+      queryClient.invalidateQueries({ queryKey: ['all-global-themes'] });
+    } catch (error) {
+      toast({
+        title: "Failed to activate theme",
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // 🔥 NEW: Update theme enforcement setting
+  const updateThemeEnforcement = async (allowOverride: boolean) => {
+    try {
+      await updateSiteSetting('theme_enforcement', {
+        enabled: true,
+        allow_user_override: allowOverride
+      }, 'theme');
+      
+      setAllowUserOverride(allowOverride);
+      
+      toast({
+        title: "✅ Theme Enforcement Updated",
+        description: `Users ${allowOverride ? 'can' : 'cannot'} override global themes.`,
+      });
+      
+      queryClient.invalidateQueries({ queryKey: ['theme-override-permission'] });
+    } catch (error) {
+      toast({
+        title: "Failed to update theme enforcement",
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <main className="container mx-auto px-4 py-8">
       <div className="max-w-4xl mx-auto">
@@ -890,6 +717,142 @@ const applyPresetToElements = (preset: 'all-serif' | 'all-sans' | 'mixed-traditi
             Manage API keys, system configuration, and workflow settings.
           </p>
         </div>
+
+        {/* 🔥 NEW: Theme Source Indicator */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Palette className="h-5 w-5" />
+              Current Theme Source
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-4">
+              <Badge variant={themeSource === 'global' ? 'default' : 'secondary'}>
+                {themeSource === 'global' ? '🌍 Global Theme' : 
+                 themeSource === 'user' ? '👤 User Theme' : '⚙️ Default Theme'}
+              </Badge>
+              <span className="text-sm text-muted-foreground">
+                {themeSource === 'global' ? 'Applied globally to all users' :
+                 themeSource === 'user' ? 'Applied locally to this user only' :
+                 'Using system default theme'}
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* 🔥 NEW: Global Theme Management */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Globe className="h-5 w-5" />
+              Global Theme Management
+            </CardTitle>
+            <CardDescription>
+              Manage themes that apply to all users across the site.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Save as Global Theme */}
+            <div className="space-y-2">
+              <Label htmlFor="theme-name">Theme Name</Label>
+              <Input
+                id="theme-name"
+                value={themeName}
+                onChange={(e) => setThemeName(e.target.value)}
+                placeholder="Enter theme name..."
+              />
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="save-as-global"
+                checked={saveAsGlobal}
+                onCheckedChange={(checked) => setSaveAsGlobal(checked as boolean)}
+              />
+              <Label htmlFor="save-as-global">Save as Global Theme (applies to all users)</Label>
+            </div>
+
+            <Button onClick={saveTheme} className="w-full">
+              {saveAsGlobal ? '🌍 Save as Global Theme' : '�� Save as User Theme'}
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* 🔥 NEW: Existing Global Themes */}
+        {allGlobalThemes && allGlobalThemes.length > 0 && (
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <List className="h-5 w-5" />
+                Existing Global Themes
+              </CardTitle>
+              <CardDescription>
+                Activate any of these themes to apply globally.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {allGlobalThemes.map((globalTheme) => (
+                  <div key={globalTheme.id} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div>
+                      <div className="font-medium">{globalTheme.theme_name}</div>
+                      <div className="text-sm text-muted-foreground">
+                        Created: {new Date(globalTheme.created_at).toLocaleDateString()}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {globalTheme.is_active && (
+                        <Badge variant="default">Active</Badge>
+                      )}
+                      <Button
+                        size="sm"
+                        onClick={() => activateTheme(globalTheme.id)}
+                        disabled={globalTheme.is_active}
+                      >
+                        {globalTheme.is_active ? 'Active' : 'Activate'}
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* 🔥 NEW: Theme Enforcement Settings */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Shield className="h-5 w-5" />
+              Theme Enforcement
+            </CardTitle>
+            <CardDescription>
+              Control whether users can override global themes with their own preferences.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="allow-user-override"
+                  checked={allowUserOverride}
+                  onCheckedChange={(checked) => updateThemeEnforcement(checked as boolean)}
+                />
+                <Label htmlFor="allow-user-override">
+                  Allow users to override global themes with their own preferences
+                </Label>
+              </div>
+              
+              <div className="text-sm text-muted-foreground">
+                {allowUserOverride 
+                  ? "Users can save their own theme preferences that override the global theme."
+                  : "Users cannot override the global theme - only admins can change themes."
+                }
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* System Status */}
         <Card className="mb-6">

@@ -1,6 +1,12 @@
-// Updated src/hooks/useGlobalTheme.ts
-
-import { useEffect } from 'react';
+// src/hooks/useEnhancedGlobalTheme.ts
+import { useEffect, useState, useCallback, useRef } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { 
+  fetchActiveGlobalTheme, 
+  canUserOverrideTheme, 
+  subscribeToGlobalThemeChanges,
+  type GlobalTheme
+} from '../services/globalTheme';
 
 interface Theme {
   '--primary': string;
@@ -9,261 +15,169 @@ interface Theme {
   '--card': string;
   '--muted': string;
   '--border': string;
-  '--font-main': string;
-  '--font-secondary': string;
   '--radius': string;
-  '--p-font-size': string;
+  '--h1-font-family': string;
+  '--h2-font-family': string;
+  '--h3-font-family': string;
+  '--p-font-family': string;
   '--h1-font-size': string;
   '--h2-font-size': string;
   '--h3-font-size': string;
-  '--h4-font-size': string;
-  '--h5-font-size': string;
-  '--h6-font-size': string;
+  '--p-font-size': string;
+  [key: string]: string;
 }
 
-// 🔥 ENHANCED: Helper function to properly format font values
-const formatFontValue = (value: string): string => {
-  if (!value) return value;
-  
-  // Handle font stacks with commas
-  const fonts = value.split(',').map(f => f.trim());
-  const processedFonts = fonts.map(font => {
-    // Remove existing quotes
-    font = font.replace(/["']/g, '');
-    // If font name has spaces and isn't already quoted, quote it
-    if (font.includes(' ') && 
-        !font.includes('sans-serif') && 
-        !font.includes('serif') && 
-        !font.includes('monospace') &&
-        !font.includes('cursive') &&
-        !font.includes('fantasy')) {
-      return `"${font}"`;
-    }
-    return font;
-  });
-  
-  return processedFonts.join(', ');
-};
-
-// 🔥 NUCLEAR: Force font application to all elements
-const forceApplyFontsToAllElements = (theme: Theme) => {
-  if (theme['--font-secondary']) {
-    const headingFont = formatFontValue(theme['--font-secondary']);
-    console.log('🎯 Force applying heading font:', headingFont);
-    
-    // Apply to all headings
-    const headings = document.querySelectorAll('h1, h2, h3, h4, h5, h6');
-    headings.forEach((heading) => {
-      (heading as HTMLElement).style.fontFamily = headingFont;
-      (heading as HTMLElement).style.setProperty('font-family', headingFont, 'important');
-    });
-    
-    // Apply to elements with heading-like classes
-    const headingLikes = document.querySelectorAll('.text-4xl, .text-5xl, .text-6xl, .text-3xl, .text-2xl, .text-xl, .font-bold, .font-semibold');
-    headingLikes.forEach((element) => {
-      (element as HTMLElement).style.fontFamily = headingFont;
-      (element as HTMLElement).style.setProperty('font-family', headingFont, 'important');
-    });
-    
-    console.log(`✅ Applied heading font to ${headings.length} headings and ${headingLikes.length} heading-like elements`);
-  }
-  
-  if (theme['--font-main']) {
-    const bodyFont = formatFontValue(theme['--font-main']);
-    console.log('🎯 Force applying body font:', bodyFont);
-    
-    // Apply to body and common elements
-    document.body.style.fontFamily = bodyFont;
-    document.body.style.setProperty('font-family', bodyFont, 'important');
-    
-    const bodyElements = document.querySelectorAll('p, span, div:not(:has(h1, h2, h3, h4, h5, h6))');
-    bodyElements.forEach((element) => {
-      (element as HTMLElement).style.fontFamily = bodyFont;
-    });
-    
-    console.log(`✅ Applied body font to body + ${bodyElements.length} elements`);
-  }
-};
-
-// 🔥 ENHANCED: Helper function to apply theme with aggressive font handling
-const applyThemeToDocument = (theme: Theme) => {
-  Object.entries(theme).forEach(([key, value]) => {
-    if (value) {
-      let finalValue = value;
-      
-      // 🔥 IMPROVED: Special handling for font properties
-      if (key.includes('font')) {
-        finalValue = formatFontValue(value);
-        console.log(`✅ Applied ${key}: ${finalValue}`);
-      }
-      
-      try {
-        document.documentElement.style.setProperty(key, finalValue);
-      } catch (error) {
-        console.warn(`⚠️ Failed to apply ${key}: ${finalValue}`, error);
-      }
-    }
-  });
-  
-  // 🔥 CRITICAL: Force apply fonts to all elements immediately
-  setTimeout(() => {
-    forceApplyFontsToAllElements(theme);
-  }, 10);
-  
-  // 🔥 NUCLEAR: Force browser to recalculate styles for fonts
-  const hasFontChanges = ['--font-main', '--font-secondary'].some(key => theme[key as keyof Theme]);
-  
-  if (hasFontChanges) {
-    // Method 1: Force reflow
-    const originalDisplay = document.body.style.display;
-    document.body.style.display = 'none';
-    document.body.offsetHeight; // Force reflow
-    document.body.style.display = originalDisplay || '';
-    
-    // Method 2: Add/remove class to trigger recalculation
-    document.documentElement.classList.add('theme-updating');
-    setTimeout(() => {
-      document.documentElement.classList.remove('theme-updating');
-    }, 100);
-    
-    // Method 3: Inject temporary CSS to force refresh
-    const tempStyle = document.createElement('style');
-    tempStyle.id = 'temp-font-refresh';
-    tempStyle.textContent = `
-      h1, h2, h3, h4, h5, h6 { 
-        font-family: var(--font-secondary) !important; 
-      }
-      body, p, span, div {
-        font-family: var(--font-main) !important;
-      }
-      * {
-        font-family: inherit !important;
-      }
-    `;
-    document.head.appendChild(tempStyle);
-    
-    setTimeout(() => {
-      const existingStyle = document.getElementById('temp-font-refresh');
-      if (existingStyle) {
-        document.head.removeChild(existingStyle);
-      }
-    }, 200);
-    
-    console.log('🔄 Forced font style recalculation');
-  }
+const DEFAULT_THEME: Theme = {
+  '--primary': '217 91% 34%',
+  '--background': '0 0% 100%',
+  '--foreground': '222.2 84% 4.9%',
+  '--card': '0 0% 100%',
+  '--muted': '210 40% 96.1%',
+  '--border': '214.3 31.8% 91.4%',
+  '--radius': '0.5rem',
+  '--h1-font-family': 'Playfair Display, serif',
+  '--h2-font-family': 'Playfair Display, serif',
+  '--h3-font-family': 'Source Sans Pro, sans-serif',
+  '--p-font-family': 'Source Sans Pro, sans-serif',
+  '--h1-font-size': '2.5rem',
+  '--h2-font-size': '2rem',
+  '--h3-font-size': '1.5rem',
+  '--p-font-size': '1rem',
 };
 
 export const useGlobalTheme = () => {
-  useEffect(() => {
-    // Load and apply theme on every page load
-    const loadAndApplyTheme = () => {
-      const savedTheme = localStorage.getItem('app-theme');
-      if (savedTheme) {
-        try {
-          const theme: Theme = JSON.parse(savedTheme);
-          
-          console.log('🎨 Loading saved theme:', theme);
-          
-          // 🔥 IMPROVED: Apply theme using the enhanced function
-          applyThemeToDocument(theme);
-          
-          console.log('✅ Global theme applied successfully');
-        } catch (error) {
-          console.error('❌ Failed to parse saved theme:', error);
-          localStorage.removeItem('app-theme'); // Remove corrupted theme
-        }
-      } else {
-        console.log('🎨 No saved theme found, using CSS defaults');
-      }
-    };
+  const [currentTheme, setCurrentTheme] = useState<Theme>(DEFAULT_THEME);
+  const [themeSource, setThemeSource] = useState<'global' | 'user' | 'default'>('default');
+  const [userCanOverride, setUserCanOverride] = useState(true);
+  const [hasGlobalTheme, setHasGlobalTheme] = useState(false);
+  const [globalTheme, setGlobalTheme] = useState<GlobalTheme | null>(null);
+  const subscriptionRef = useRef<(() => void) | null>(null);
+  const isSubscribedRef = useRef(false);
 
-    // Apply theme immediately
-    loadAndApplyTheme();
+  // 🔥 FETCH GLOBAL THEME
+  const { data: activeGlobalTheme, isLoading: loadingGlobalTheme } = useQuery({
+    queryKey: ['global-theme'],
+    queryFn: fetchActiveGlobalTheme,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
 
-    // 🔥 IMPROVED: Listen for theme changes from other tabs/windows AND same page
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'app-theme') {
-        console.log('🔄 Theme change detected from storage event');
-        loadAndApplyTheme();
-      }
-    };
+  // 🔥 CHECK USER OVERRIDE PERMISSION
+  const { data: canOverride } = useQuery({
+    queryKey: ['can-override-theme'],
+    queryFn: canUserOverrideTheme,
+    staleTime: 10 * 60 * 1000, // 10 minutes
+  });
 
-    // 🔥 NEW: Listen for custom theme change events (for same-page updates)
-    const handleCustomThemeChange = (e: CustomEvent) => {
-      if (e.detail && e.detail.theme) {
-        console.log('🔄 Theme change detected from custom event');
-        applyThemeToDocument(e.detail.theme);
-      }
-    };
-
-    // 🔥 NEW: Listen for DOM changes to reapply fonts to new elements
-    const handleDOMChanges = () => {
-      const savedTheme = localStorage.getItem('app-theme');
-      if (savedTheme) {
-        try {
-          const theme: Theme = JSON.parse(savedTheme);
-          setTimeout(() => forceApplyFontsToAllElements(theme), 100);
-        } catch (error) {
-          console.warn('Failed to reapply fonts on DOM change:', error);
-        }
-      }
-    };
-
-    // Set up observers for dynamic content
-    const observer = new MutationObserver((mutations) => {
-      let shouldReapplyFonts = false;
-      mutations.forEach((mutation) => {
-        if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
-          // Check if any added nodes contain headings or text elements
-          mutation.addedNodes.forEach((node) => {
-            if (node.nodeType === Node.ELEMENT_NODE) {
-              const element = node as Element;
-              if (element.matches('h1, h2, h3, h4, h5, h6, p, span, div') ||
-                  element.querySelector('h1, h2, h3, h4, h5, h6, p, span, div')) {
-                shouldReapplyFonts = true;
-              }
-            }
-          });
-        }
-      });
-      
-      if (shouldReapplyFonts) {
-        handleDOMChanges();
-      }
+  // 🔥 APPLY THEME TO DOM
+  const applyTheme = useCallback((theme: Theme) => {
+    console.log('🎨 Applying theme:', theme);
+    Object.entries(theme).forEach(([key, value]) => {
+      document.documentElement.style.setProperty(key, value);
     });
-
-    observer.observe(document.body, {
-      childList: true,
-      subtree: true
-    });
-
-    window.addEventListener('storage', handleStorageChange);
-    window.addEventListener('themeChange', handleCustomThemeChange as EventListener);
-    
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('themeChange', handleCustomThemeChange as EventListener);
-      observer.disconnect();
-    };
   }, []);
-};
 
-// 🔥 ENHANCED: Helper function to trigger theme change events
-export const triggerThemeChange = (theme: Theme) => {
-  // Apply theme immediately
-  applyThemeToDocument(theme);
-  
-  // Dispatch custom event for same-page components
-  window.dispatchEvent(new CustomEvent('themeChange', {
-    detail: { theme }
-  }));
-  
-  // Also trigger storage event for cross-tab communication
-  window.dispatchEvent(new StorageEvent('storage', {
-    key: 'app-theme',
-    newValue: JSON.stringify(theme),
-    oldValue: localStorage.getItem('app-theme'),
-    storageArea: localStorage,
-    url: window.location.href
-  }));
+  // 🔥 DETERMINE ACTIVE THEME
+  useEffect(() => {
+    const determineActiveTheme = () => {
+      const hasGlobal =
+        !!activeGlobalTheme &&
+        typeof activeGlobalTheme === 'object' &&
+        activeGlobalTheme !== null &&
+        'theme_data' in activeGlobalTheme &&
+        typeof activeGlobalTheme.theme_data === 'object' &&
+        activeGlobalTheme.theme_data !== null &&
+        Object.keys(activeGlobalTheme.theme_data).length > 0;
+      const canOverrideTheme = canOverride !== false;
+
+      console.log('🔍 Determining active theme...', {
+        hasGlobalTheme: hasGlobal,
+        canOverride: canOverrideTheme,
+        userCanOverride: userCanOverride
+      });
+
+      if (hasGlobal && !canOverrideTheme) {
+        // 🔥 GLOBAL THEME (user override disabled)
+        console.log('✅ Using GLOBAL theme (user override disabled)');
+        setThemeSource('global');
+        setHasGlobalTheme(true);
+        setGlobalTheme(activeGlobalTheme);
+        setCurrentTheme(activeGlobalTheme.theme_data as Theme);
+        applyTheme(activeGlobalTheme.theme_data as Theme);
+      } else if (hasGlobal && canOverrideTheme) {
+        // 🔥 GLOBAL THEME (user can override)
+        console.log('✅ Using GLOBAL theme (user can override)');
+        setThemeSource('global');
+        setHasGlobalTheme(true);
+        setGlobalTheme(activeGlobalTheme);
+        setCurrentTheme(activeGlobalTheme.theme_data as Theme);
+        applyTheme(activeGlobalTheme.theme_data as Theme);
+      } else {
+        // 🔥 DEFAULT THEME
+        console.log('✅ Using DEFAULT theme');
+        setThemeSource('default');
+        setHasGlobalTheme(false);
+        setGlobalTheme(null);
+        setCurrentTheme(DEFAULT_THEME);
+        applyTheme(DEFAULT_THEME);
+      }
+    };
+
+    determineActiveTheme();
+  }, [activeGlobalTheme, canOverride, userCanOverride, applyTheme]);
+
+  // 🔥 SETUP REAL-TIME SUBSCRIPTION (with cleanup) - ONLY ONCE
+  useEffect(() => {
+    // Prevent multiple subscriptions
+    if (isSubscribedRef.current) {
+      return;
+    }
+
+    // Cleanup previous subscription
+    if (subscriptionRef.current) {
+      subscriptionRef.current();
+      subscriptionRef.current = null;
+    }
+
+    // Setup new subscription
+    const unsubscribe = subscribeToGlobalThemeChanges((updatedTheme) => {
+      console.log('🔄 Global theme updated:', updatedTheme);
+      if (updatedTheme && updatedTheme.is_active) {
+        setGlobalTheme(updatedTheme);
+        setCurrentTheme(updatedTheme.theme_data as Theme);
+        applyTheme(updatedTheme.theme_data as Theme);
+      }
+    });
+
+    subscriptionRef.current = unsubscribe;
+    isSubscribedRef.current = true;
+
+    // Cleanup on unmount
+    return () => {
+      if (subscriptionRef.current) {
+        subscriptionRef.current();
+        subscriptionRef.current = null;
+      }
+      isSubscribedRef.current = false;
+    };
+  }, []); // Empty dependency array - only run once
+
+  // 🔥 SAVE USER THEME
+  const saveUserTheme = useCallback((theme: Theme) => {
+    const themeString = JSON.stringify(theme);
+    localStorage.setItem('user-theme', themeString);
+    setCurrentTheme(theme);
+    setThemeSource('user');
+    applyTheme(theme);
+    console.log('💾 User theme saved:', theme);
+  }, [applyTheme]);
+
+  return {
+    currentTheme,
+    themeSource,
+    userCanOverride: canOverride !== false,
+    hasGlobalTheme,
+    globalTheme,
+    saveUserTheme,
+    isLoading: loadingGlobalTheme,
+  };
 };

@@ -39,65 +39,73 @@ import UnsubscribePage from './pages/UnsubscribePage';
 
 const queryClient = new QueryClient();
 
+// 🔥 NEW: Separate component that uses the theme hook
+function AppContent() {
+  useGlobalTheme(); // ← Now inside QueryClientProvider!
+  
+  return (
+    <TooltipProvider>
+      <Toaster />
+      <Sonner />
+      <AuthProvider>
+        <SidebarProvider>
+          <BrowserRouter>
+            <ScrollToTop /> {/* Add this component inside BrowserRouter */}
+            <Routes>
+              <Route element={<MainLayout />}>
+                <Route path="/" element={<Index />} />
+                <Route path="/articles" element={<ArticlesPage />} />
+                <Route path="/categories" element={<CategoriesPage />} />
+                <Route path="/article/:slug" element={<ArticlePage />} />
+                <Route path="/about" element={<AboutPage />} />
+                <Route path="/contact" element={<ContactPage />} />
+                <Route path="/category/:category" element={<CategoryPage />} />
+              </Route>
+
+              <Route path="/auth" element={<AuthPage />} />
+              <Route path="/unsubscribe" element={<UnsubscribePage />} />
+
+              <Route path="/sitemap.xml" element={<SitemapPage />} />
+
+              <Route
+                element={
+                  <ProtectedRoute>
+                    <AdminLayout>
+                      <Outlet />
+                    </AdminLayout>
+                  </ProtectedRoute>
+                }
+              >
+                <Route path="/admin" element={<AdminPage />} />
+                <Route path="/admin/ai-copilot" element={<AICoPilotPage />} />
+                <Route path="/admin/analytics" element={<AnalyticsPage />} />
+                <Route path="/admin/settings" element={<AdminSettingsPage />} />
+                <Route path="/admin/workflow-builder" element={<WorkflowBuilderPage />} />
+                <Route path="/admin/editor" element={<ArticleEditorPage />} />
+                <Route path="/admin/editor/:articleId" element={<ArticleEditorPage />} />
+                <Route path="/admin/ai-generator" element={<AIContentGeneratorPage />} />
+                <Route path="/admin/ai-agent-advanced" element={<AIAgentAdvancedPage />} />
+                <Route path="/admin/performance-analytics" element={<PerformanceAnalyticsPage />} />
+                <Route path="/admin/automated-workflows" element={<AutomatedWorkflowsPage />} />
+                <Route path="/admin/ai-agents" element={<AIAgentManagementPage />} />
+                <Route path="/admin/articles" element={<ArticlesManagementPage />} />
+                <Route path="/admin/content-queue" element={<ContentQueuePage />} />
+                <Route path="/admin/reporters" element={<ProtectedRoute requireAdmin><AdminLayout><ReportersManagementPage /></AdminLayout></ProtectedRoute>} />
+              </Route>
+              
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </SidebarProvider>
+      </AuthProvider>
+    </TooltipProvider>
+  );
+}
+
 function App() {
-  useGlobalTheme(); // ← Add this line!
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <AuthProvider>
-          <SidebarProvider>
-            <BrowserRouter>
-              <ScrollToTop /> {/* Add this component inside BrowserRouter */}
-              <Routes>
-                <Route element={<MainLayout />}>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/articles" element={<ArticlesPage />} />
-                  <Route path="/categories" element={<CategoriesPage />} />
-                  <Route path="/article/:slug" element={<ArticlePage />} />
-                  <Route path="/about" element={<AboutPage />} />
-                  <Route path="/contact" element={<ContactPage />} />
-                  <Route path="/category/:category" element={<CategoryPage />} />
-                </Route>
-
-                <Route path="/auth" element={<AuthPage />} />
-                <Route path="/unsubscribe" element={<UnsubscribePage />} />
-
-                <Route path="/sitemap.xml" element={<SitemapPage />} />
-
-                <Route
-                  element={
-                    <ProtectedRoute>
-                      <AdminLayout>
-                        <Outlet />
-                      </AdminLayout>
-                    </ProtectedRoute>
-                  }
-                >
-                  <Route path="/admin" element={<AdminPage />} />
-                  <Route path="/admin/ai-copilot" element={<AICoPilotPage />} />
-                  <Route path="/admin/analytics" element={<AnalyticsPage />} />
-                  <Route path="/admin/settings" element={<AdminSettingsPage />} />
-                  <Route path="/admin/workflow-builder" element={<WorkflowBuilderPage />} />
-                  <Route path="/admin/editor" element={<ArticleEditorPage />} />
-                  <Route path="/admin/editor/:articleId" element={<ArticleEditorPage />} />
-                  <Route path="/admin/ai-generator" element={<AIContentGeneratorPage />} />
-                  <Route path="/admin/ai-agent-advanced" element={<AIAgentAdvancedPage />} />
-                  <Route path="/admin/performance-analytics" element={<PerformanceAnalyticsPage />} />
-                  <Route path="/admin/automated-workflows" element={<AutomatedWorkflowsPage />} />
-                  <Route path="/admin/ai-agents" element={<AIAgentManagementPage />} />
-                  <Route path="/admin/articles" element={<ArticlesManagementPage />} />
-                  <Route path="/admin/content-queue" element={<ContentQueuePage />} />
-                  <Route path="/admin/reporters" element={<ProtectedRoute requireAdmin><AdminLayout><ReportersManagementPage /></AdminLayout></ProtectedRoute>} />
-                </Route>
-                
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </BrowserRouter>
-          </SidebarProvider>
-        </AuthProvider>
-      </TooltipProvider>
+      <AppContent />
     </QueryClientProvider>
   );
 }

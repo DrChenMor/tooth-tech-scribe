@@ -184,7 +184,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'DentAI <noreply@dentai.com>',
+        from: 'DentAI <onboarding@resend.dev>',
         to: email,
         subject: welcomeSubject,
         html: welcomeHtml,

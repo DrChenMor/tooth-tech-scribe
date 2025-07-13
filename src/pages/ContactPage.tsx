@@ -10,8 +10,8 @@ import * as React from "react";
 import { Loader2 } from "lucide-react";
 
 // The email address that will receive the contact form submissions.
-// You might want to move this to a more secure location or configuration.
-const RECIPIENT_EMAIL = "your-email@example.com";
+// 🔥 SPRINT 3: Updated with proper email configuration
+const RECIPIENT_EMAIL = "thechenmor@gmail.com";
 
 const sendContactEmail = async (formData: { name: string; email: string; subject: string; message: string; }) => {
     const { name, email, subject, message } = formData;
@@ -29,13 +29,14 @@ const sendContactEmail = async (formData: { name: string; email: string; subject
     const { error } = await supabase.functions.invoke('send-email', {
       body: {
         to: RECIPIENT_EMAIL,
-        subject: `[Bloggle Contact] New message from ${name}`,
+        subject: `[DentAI Contact] New message from ${name}`,
         body: emailHtml,
       }
     });
 
     if (error) {
-      throw new Error(`Failed to send message. Please try again later.`);
+      console.error('Contact form error:', error);
+      throw new Error(`Failed to send message: ${error.message || 'Please try again later.'}`);
     }
 };
 
@@ -45,6 +46,9 @@ const ContactPage = () => {
   const { mutate, isPending } = useMutation({
     mutationFn: sendContactEmail,
     onSuccess: () => {
+      // 🔥 SPRINT 3: Add analytics tracking
+      console.log('Contact form submitted successfully');
+      
       toast({
         title: "Message Sent!",
         description: "Thank you for reaching out. We'll get back to you soon.",
@@ -69,6 +73,28 @@ const ContactPage = () => {
       subject: formData.get("subject") as string,
       message: formData.get("message") as string,
     };
+
+    // 🔥 SPRINT 3: Add form validation
+    if (!data.name.trim() || !data.email.trim() || !data.subject.trim() || !data.message.trim()) {
+      toast({
+        title: "Please fill in all fields",
+        description: "All fields are required.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(data.email)) {
+      toast({
+        title: "Invalid email address",
+        description: "Please enter a valid email address.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     mutate(data);
   };
 

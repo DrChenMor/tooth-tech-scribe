@@ -127,7 +127,6 @@ return (
               className="w-8 h-8 mt-1"
               loading="eager"
               decoding="async"
-              fetchPriority="high"
               sizes="32px"
               onError={(e) => {
                 console.warn('Sidebar icon failed to load');

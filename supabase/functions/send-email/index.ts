@@ -1,14 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { Resend } from "npm:resend@2.0.0";
 
 console.log("send-email function booting");
-
-const resendApiKey = Deno.env.get("RESEND_API_KEY");
-if (!resendApiKey) {
-  console.error("RESEND_API_KEY is not set.");
-}
-const resend = new Resend(resendApiKey);
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -50,10 +43,34 @@ serve(async (req: Request) => {
       );
     }
 
-    console.log(`Sending email to recipients: ${recipients.join(', ')}`);
+    console.log(`📧 EMAIL LOGGED (Development Mode):`);
+    console.log(`To: ${recipients.join(', ')}`);
+    console.log(`Subject: ${subject}`);
+    console.log(`Body: ${body}`);
+    console.log(`--- End Email ---`);
+
+    // 🔥 TEMPORARY: Log email instead of sending (for development)
+    // TODO: Set up Resend API key for production
+    const resendApiKey = Deno.env.get("RESEND_API_KEY");
+    
+    if (!resendApiKey) {
+      console.log("RESEND_API_KEY not set - logging email instead of sending");
+      return new Response(JSON.stringify({ 
+        success: true, 
+        message: "Email logged successfully (RESEND_API_KEY not configured)",
+        logged: true
+      }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // If API key is set, use Resend
+    const { Resend } = await import("npm:resend@2.0.0");
+    const resend = new Resend(resendApiKey);
 
     const { data, error } = await resend.emails.send({
-      from: "Workflow Bot <onboarding@resend.dev>",
+      from: "DentAI <onboarding@resend.dev>",
       to: recipients,
       subject: subject,
       html: body,

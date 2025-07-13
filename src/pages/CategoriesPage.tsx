@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -5,37 +6,128 @@ import { Link } from 'react-router-dom';
 import Footer from '@/components/Footer';
 import { Card } from '@/components/ui/card';
 
-// 🆕 NEW: Function to try multiple image formats
-const getImageWithFallbacks = (categoryName: string, fallbackImage: string): string => {
-  const supabaseUrl = 'https://nuhjsrmkkqtecfkjrcox.supabase.co';
-  const slug = categoryName.toLowerCase().replace(/[^a-z0-9]/g, '-');
-  
-  // List of formats to try in order of preference
-  const formats = ['png', 'jpg', 'jpeg', 'webp'];
-  
-  // Create a CSS background-image with multiple fallbacks
-  const imageUrls = formats.map(format => 
-    `url("${supabaseUrl}/storage/v1/object/public/article-images/category-${slug}.${format}")`
-  );
-  
-  // Add the final fallback (Unsplash)
-  imageUrls.push(`url("${fallbackImage}")`);
-  
-  return imageUrls.join(', ');
+// 🔧 UPDATED: Smart image loading with preload and fallback
+const useImageWithFallback = (categoryName: string, fallbackImage: string) => {
+  const [imageUrl, setImageUrl] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const loadImage = async () => {
+      const supabaseUrl = 'https://nuhjsrmkkqtecfkjrcox.supabase.co';
+      const slug = categoryName.toLowerCase().replace(/[^a-z0-9]/g, '-');
+      
+      // List of formats to try in order of preference
+      const formats = ['png', 'jpg', 'jpeg', 'webp'];
+      
+      // Try each format until one loads successfully
+      for (const format of formats) {
+        const testUrl = `${supabaseUrl}/storage/v1/object/public/article-images/category-${slug}.${format}`;
+        
+        try {
+          // Test if the image exists and loads
+          const response = await fetch(testUrl, { method: 'HEAD' });
+          if (response.ok) {
+            // Image exists, verify it actually loads
+            const img = new Image();
+            img.onload = () => {
+              setImageUrl(testUrl);
+              setIsLoading(false);
+            };
+            img.src = testUrl;
+            return; // Exit the loop if successful
+          } else {
+            // Continue to next format or fallback
+            continue;
+          }
+        } catch (error) {
+          // Continue to next format
+          continue;
+        }
+      }
+      
+      // If no Supabase image worked, use fallback
+      setImageUrl(fallbackImage);
+      setIsLoading(false);
+    };
+
+    loadImage();
+  }, [categoryName, fallbackImage]);
+
+  return { imageUrl, isLoading };
 };
 
-// 🔧 UPDATED: Fallback images if Supabase images don't exist
+// 🔧 UPDATED: Fallback images with better variety
 const getFallbackImage = (index: number): string => {
   const fallbackImages = [
-    'https://images.unsplash.com/photo-1606811841689-23dfddce3e95?w=400&h=250&fit=crop', // General/Medical
-    'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400&h=250&fit=crop', // Industry/Business
-    'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=400&h=250&fit=crop', // Tools/Equipment
-    'https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=400&h=250&fit=crop', // Tech/Digital
-    'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=250&fit=crop', // AI/Innovation
-    'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=400&h=250&fit=crop', // News/Research
-    'https://images.unsplash.com/photo-1551601651-2a8555f1a136?w=400&h=250&fit=crop', // Default for new categories
+    'https://images.unsplash.com/photo-1606811841689-23dfddce3e95?w=400&h=250&fit=crop&crop=center', // Medical/General
+    'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400&h=250&fit=crop&crop=center', // Industry/Business
+    'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=400&h=250&fit=crop&crop=center', // Tools/Equipment
+    'https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=400&h=250&fit=crop&crop=center', // Tech/Digital
+    'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=250&fit=crop&crop=center', // AI/Innovation
+    'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=400&h=250&fit=crop&crop=center', // News/Research
+    'https://images.unsplash.com/photo-1551601651-2a8555f1a136?w=400&h=250&fit=crop&crop=center', // Default
   ];
   return fallbackImages[index % fallbackImages.length];
+};
+
+// Individual category card component for better performance
+const CategoryCard = ({ category, index }: { category: { name: string; count: number }, index: number }) => {
+  const fallbackImage = getFallbackImage(index);
+  const { imageUrl, isLoading } = useImageWithFallback(category.name, fallbackImage);
+
+  return (
+    <Link
+      to={`/category/${encodeURIComponent(category.name)}`}
+      className="group"
+    >
+      <Card className="p-0 h-64 border-0 shadow-none transition-all duration-300 hover:shadow-xl hover:scale-105 cursor-pointer relative overflow-hidden">
+        
+        {/* 🔥 LOADING STATE */}
+        {isLoading && (
+          <div className="absolute inset-0 bg-gradient-to-br from-gray-200 to-gray-300 animate-pulse">
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          </div>
+        )}
+        
+        {/* 🔥 ACTUAL IMAGE - Only shown when loaded */}
+        {!isLoading && imageUrl && (
+          <div 
+            className="absolute inset-0 bg-cover bg-center transition-opacity duration-300"
+            style={{ backgroundImage: `url("${imageUrl}")` }}
+          />
+        )}
+        
+        {/* Content overlay */}
+        <div className="relative z-10 p-8 h-full flex flex-col justify-between text-white">
+          
+          {/* Category name badge */}
+          <div className="bg-white/20 backdrop-blur-sm rounded-full px-4 py-2 w-fit">
+            <span className="text-white font-medium text-sm">
+              {category.name}
+            </span>
+          </div>
+          
+          {/* Bottom section with article count */}
+          <div className="flex items-end justify-between">
+            <div>
+              <p className="text-white/80 text-sm mb-1">
+                {category.count} article{category.count !== 1 ? 's' : ''}
+              </p>
+            </div>
+            
+            {/* Arrow icon */}
+            <div className="bg-black/20 backdrop-blur-sm rounded-full p-2 group-hover:bg-black/30 transition-colors">
+              <svg className="w-4 h-4 text-white transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </div>
+          </div>
+        </div>
+      </Card>
+    </Link>
+  );
 };
 
 const fetchCategoriesWithCounts = async () => {
@@ -81,7 +173,13 @@ const CategoriesPage = () => {
             </div>
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {[...Array(6)].map((_, i) => (
-                <Skeleton key={i} className="h-64 w-full rounded-lg" />
+                <div key={i} className="h-64 relative overflow-hidden rounded-lg">
+                  <Skeleton className="absolute inset-0" />
+                  <div className="absolute bottom-4 left-4">
+                    <Skeleton className="h-6 w-24 mb-2" />
+                    <Skeleton className="h-4 w-16" />
+                  </div>
+                </div>
               ))}
             </div>
           </div>
@@ -117,53 +215,13 @@ const CategoriesPage = () => {
           {/* Categories Grid */}
           {categories && categories.length > 0 ? (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 pb-12">
-              {categories.map((category, index) => {
-                // 🔧 UPDATED: Smart image selection with multiple format support
-                const fallbackImage = getFallbackImage(index);
-                
-                return (
-                  <Link
-                    key={category.name}
-                    to={`/category/${encodeURIComponent(category.name)}`}
-                    className="group"
-                  >
-                    <Card className="p-0 h-64 border-0 shadow-none transition-all duration-300 hover:shadow-xl hover:scale-105 cursor-pointer relative overflow-hidden">
-                      {/* Background image remains */}
-                      <div 
-                        className="absolute inset-0 bg-cover bg-center"
-                        style={{ backgroundImage: getImageWithFallbacks(category.name, fallbackImage) }}
-                      />
-                      {/* Remove the blur and overlay for flat look */}
-                      {/* <div className="absolute inset-0 bg-black/5" /> */}
-                      <div className="relative z-10 p-8 h-full flex flex-col justify-between text-white">
-                        
-                        {/* Category name badge */}
-                        <div className="bg-white/20 rounded-full px-4 py-2 w-fit">
-                          <span className="text-white font-medium text-sm">
-                            {category.name}
-                          </span>
-                        </div>
-                        
-                        {/* Bottom section with article count */}
-                        <div className="flex items-end justify-between">
-                          <div>
-                            <p className="text-white/80 text-sm mb-1">
-                              {category.count} article{category.count !== 1 ? 's' : ''}
-                            </p>
-                          </div>
-                          
-                          {/* Arrow icon */}
-                          <div className="bg-black/20 rounded-full p-2 group-hover:bg-black/30 transition-colors">
-                            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                            </svg>
-                          </div>
-                        </div>
-                      </div>
-                    </Card>
-                  </Link>
-                );
-              })}
+              {categories.map((category, index) => (
+                <CategoryCard 
+                  key={category.name} 
+                  category={category} 
+                  index={index} 
+                />
+              ))}
             </div>
           ) : (
             <div className="text-center py-16">

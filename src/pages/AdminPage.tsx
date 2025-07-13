@@ -262,7 +262,11 @@ const AdminPage = () => {
                     />
                   </TableCell>
                   <TableCell>
-                    <div className="font-semibold">{article.title}</div>
+                    <div className="font-semibold">
+                      <Link to={`/article/${article.slug}`} className="hover:text-primary hover:underline">
+                        {article.title}
+                      </Link>
+                    </div>
                     <div className="text-xs text-muted-foreground">{article.slug}</div>
                   </TableCell>
                   <TableCell>

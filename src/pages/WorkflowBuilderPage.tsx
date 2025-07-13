@@ -85,13 +85,21 @@ const WorkflowBuilderPage = () => {
                 body: { url, selector: node.config.selector }
               });
               if (error) throw new Error(error.message);
-              scrapedContent.push({ url, content: data.content });
+              scrapedContent.push({ 
+                url, 
+                content: data.content,
+                source_reference: data.source_reference // ✅ This is already working - each scraped item has source_reference
+              });
               addLog(node.id, node.label, 'completed', `Scraped content from ${url}`);
             } catch (error) {
               addLog(node.id, node.label, 'error', `Failed to scrape ${url}: ${error.message}`);
             }
           }
-          result = { scrapedContent, urls: node.config.urls };
+          result = { 
+            scrapedContent, 
+            urls: node.config.urls,
+            // ✅ This is already working - each scraped item has source_reference
+          };
           break;
 
         case 'rss-aggregator':
@@ -304,18 +312,23 @@ case 'image-generator':
             }
           });
           if (seoError) throw new Error(seoError.message);
+          
           result = { 
-            ...previousData, // Pass through previous data
+            ...previousData, // 🔥 CRITICAL: Pass through ALL previous data including source_references
             seoAnalysis: seoData.analysis,
             seoScore: seoData.analysis.seo_score,
             seoSuggestions: seoData.analysis.improvements
+            // source_references will be preserved from previousData spread
           };
+          
+          console.log('SEO Analyzer: Preserved source references:', result.source_references?.length || 0);
           addLog(node.id, node.label, 'completed', `SEO analysis completed. Score: ${seoData.analysis.seo_score}/100`);
           break;
           
         case 'multi-source-synthesizer':
           // Enhanced input handling - accept various data formats
           let sources = [];
+          let allSourceReferences = [];
           
           if (previousData) {
             if (previousData.scrapedContent && Array.isArray(previousData.scrapedContent)) {
@@ -324,6 +337,11 @@ case 'image-generator':
                 url: item.url || '',
                 content: item.content || ''
               })));
+              
+              // 🔥 COLLECT SOURCE REFERENCES
+              allSourceReferences.push(...previousData.scrapedContent
+                .map((item: any) => item.source_reference)
+                .filter(ref => ref));
             }
             
             if (previousData.articles && Array.isArray(previousData.articles)) {
@@ -332,6 +350,11 @@ case 'image-generator':
                 url: item.link || item.url || '',
                 content: item.description || item.content || item.summary || ''
               })));
+              
+              // 🔥 COLLECT SOURCE REFERENCES
+              allSourceReferences.push(...previousData.articles
+                .map((item: any) => item.source_reference)
+                .filter(ref => ref));
             }
             
             if (previousData.papers && Array.isArray(previousData.papers)) {
@@ -340,6 +363,16 @@ case 'image-generator':
                 url: item.url || '',
                 content: item.abstract || item.content || ''
               })));
+              
+              // 🔥 COLLECT SOURCE REFERENCES
+              allSourceReferences.push(...previousData.papers
+                .map((item: any) => item.source_reference)
+                .filter(ref => ref));
+            }
+            
+            // Also check for existing source_references
+            if (previousData.source_references && Array.isArray(previousData.source_references)) {
+              allSourceReferences.push(...previousData.source_references);
             }
             
             // Handle research data from Perplexity
@@ -390,12 +423,20 @@ case 'image-generator':
           
           if (synthError) throw new Error(synthError.message);
           
+          // Remove duplicate source references
+          allSourceReferences = allSourceReferences.filter((ref, index, arr) => 
+            arr.findIndex(r => r.url === ref.url) === index
+          );
+          
           result = { 
             synthesizedContent: synthData.synthesizedContent,
             sourceCount: synthData.sourceCount,
-            style: synthData.style
+            style: synthData.style,
+            source_references: allSourceReferences // 🔥 PRESERVE ALL SOURCES
           };
-          addLog(node.id, node.label, 'completed', `Synthesized content from ${synthData.sourceCount} sources`);
+          
+          addLog(node.id, node.label, 'completed', 
+            `Synthesized content from ${synthData.sourceCount} sources with ${allSourceReferences.length} source references`);
           break;
 
 // FIX: Update the AI Processor case in executeNode function
@@ -407,6 +448,55 @@ case 'ai-processor':
     
     // Get the content to process from previous data
     const contentToProcess = previousData || {};
+    
+    // 🔥 ENHANCED: Extract source references from ALL possible data formats
+    let sourceReferences = [];
+    
+    // Method 1: Direct source_references array (from single item processing)
+    if (contentToProcess.source_references && Array.isArray(contentToProcess.source_references)) {
+      sourceReferences.push(...contentToProcess.source_references);
+      console.log('AI Processor: Found direct source_references:', contentToProcess.source_references.length);
+    }
+    
+    // Method 2: From scraped content array
+    if (contentToProcess.scrapedContent && Array.isArray(contentToProcess.scrapedContent)) {
+      const scrapedRefs = contentToProcess.scrapedContent
+        .map((item: any) => item.source_reference)
+        .filter(ref => ref);
+      sourceReferences.push(...scrapedRefs);
+      console.log('AI Processor: Found scraped source references:', scrapedRefs.length);
+    }
+    
+    // Method 3: From articles array (news, RSS, etc.)
+    if (contentToProcess.articles && Array.isArray(contentToProcess.articles)) {
+      const articleRefs = contentToProcess.articles
+        .map((article: any) => article.source_reference)
+        .filter(ref => ref);
+      sourceReferences.push(...articleRefs);
+      console.log('AI Processor: Found article source references:', articleRefs.length);
+    }
+    
+    // Method 4: From papers array (Google Scholar)
+    if (contentToProcess.papers && Array.isArray(contentToProcess.papers)) {
+      const paperRefs = contentToProcess.papers
+        .map((paper: any) => paper.source_reference)
+        .filter(ref => ref);
+      sourceReferences.push(...paperRefs);
+      console.log('AI Processor: Found paper source references:', paperRefs.length);
+    }
+    
+    // Method 5: Single source reference
+    if (contentToProcess.source_reference) {
+      sourceReferences.push(contentToProcess.source_reference);
+      console.log('AI Processor: Found single source reference');
+    }
+    
+    // Remove duplicates based on URL
+    sourceReferences = sourceReferences.filter((ref, index, arr) => 
+      arr.findIndex(r => r.url === ref.url) === index
+    );
+    
+    console.log('AI Processor: Total unique source references:', sourceReferences.length);
     
     // Get ALL configuration from node.config
     const contentType = node.config.contentType || 'article';
@@ -567,14 +657,17 @@ Generate the ${contentType} now following all specifications above:`;
     // 🔥 CRITICAL FIX: Return data in the format expected by downstream nodes
     // DO NOT return articles array - return flat structure
     result = {
-      // 🔥 CRITICAL: Pass through original data that might be needed
+      // Pass through original data that might be needed
       ...contentToProcess,
       
-      // 🔥 CRITICAL: Add the processed content at the top level
+      // Add the processed content at the top level
       title: extractedTitle,
       content: contentWithoutTitle,
       processedContent: contentWithoutTitle,
       processedBy: `AI Processor (${agentConfig.ai_model})`,
+      
+      // 🔥 PRESERVE SOURCE REFERENCES
+      source_references: sourceReferences,
       
       // Include all the configuration that was used
       category: category,
@@ -597,6 +690,8 @@ Generate the ${contentType} now following all specifications above:`;
         wordCount, contentFocus, tone, language, outputFormat
       }
     };
+    
+    console.log('AI Processor: Preserved', sourceReferences.length, 'source references');
     
     // 🔥 REMOVE: Do NOT include articles array that triggers fan-out
     // Delete any articles property to prevent another fan-out
@@ -628,6 +723,11 @@ case 'publisher':
   // Get image URL from previous nodes (Image Generator)
   const articleImageUrl = previousData.imageUrl || null;
   
+  // 🔥 CRITICAL: Extract source references from previous data
+  const sourceReferences = previousData.source_references || [];
+  
+  console.log('Publisher: Publishing with', sourceReferences.length, 'source references');
+  
   // Use English slug if available (from translator), otherwise create one
   let slugToUse = '';
   if (previousData.englishSlug) {
@@ -642,7 +742,8 @@ case 'publisher':
       .trim();
   }
   
-  addLog(node.id, node.label, 'running', `Publishing article: "${titleToPublish}" with slug: ${slugToUse}${articleImageUrl ? ' (with featured image)' : ''}`);
+  addLog(node.id, node.label, 'running', 
+    `Publishing article: "${titleToPublish}" with slug: ${slugToUse}${articleImageUrl ? ' (with featured image)' : ''} and ${sourceReferences.length} sources`);
   
   const formattedContent = {
     title: titleToPublish,
@@ -653,14 +754,15 @@ case 'publisher':
     targetLanguage: previousData.targetLanguage || 'en'
   };
   
-  // 🔥 FIXED: Add reporterId to the request
+  // 🔥 CRITICAL: Pass source references to create-article-from-ai function
   const { data: publishResult, error: publishError } = await supabase.functions.invoke('create-article-from-ai', {
     body: {
       content: JSON.stringify(formattedContent),
       category: node.config.category || previousData.category || 'AI Generated',
       provider: previousData.aiModel || 'AI Processor',
       status: node.config.status || 'draft',
-      reporterId: node.config.reporterId // 🔥 ADD THIS LINE
+      reporterId: node.config.reporterId,
+      source_references: sourceReferences // 🔥 ADD THIS LINE
     }
   });
 
@@ -672,9 +774,12 @@ case 'publisher':
     slug: publishResult.article.slug,
     status: publishResult.article.status,
     imageUrl: articleImageUrl,
-    url: `/articles/${publishResult.article.slug}`
+    url: `/articles/${publishResult.article.slug}`,
+    source_references: sourceReferences
   };
-  addLog(node.id, node.label, 'completed', `Article published: "${publishResult.article.title}" (${publishResult.article.status})${articleImageUrl ? ' with featured image' : ''}`);
+  
+  addLog(node.id, node.label, 'completed', 
+    `Article published: "${publishResult.article.title}" (${publishResult.article.status})${articleImageUrl ? ' with featured image' : ''} and ${sourceReferences.length} sources`);
   break;
 
 // FIND AND COMPLETELY REPLACE the existing 'translator' case in your executeNode function
@@ -864,8 +969,11 @@ case 'translator':
     category: previousData.category,
     aiModel: previousData.aiModel,
     imageUrl: previousData.imageUrl,
-    seoAnalysis: previousData.seoAnalysis
+    seoAnalysis: previousData.seoAnalysis,
+    source_references: previousData.source_references || [] // 🔥 PRESERVE SOURCES
   };
+  
+  console.log('Translator: Preserved', result.source_references?.length || 0, 'source references');
   
   console.log('🌍 TRANSLATOR: =============== FINAL RESULT ===============');
   console.log('🌍 TRANSLATOR: Final result:', {
@@ -1031,7 +1139,7 @@ const handleFanOut = async (currentNode: WorkflowNode, originalData: any, itemsT
       `Starting branch for: "${(item.title || item.url || 'Untitled').substring(0, 50)}..."`);
 
     try {
-      // Convert single item to the expected format
+      // 🔥 CRITICAL: Package the single item with its source reference
       let itemData: any;
       
       if (originalData.scrapedContent) {
@@ -1040,10 +1148,16 @@ const handleFanOut = async (currentNode: WorkflowNode, originalData: any, itemsT
             title: item.url || 'Scraped Content',
             content: item.content,
             url: item.url
-          }]
+          }],
+          // 🔥 PRESERVE SOURCE REFERENCE
+          source_references: [item.source_reference].filter(ref => ref)
         };
       } else if (originalData.articles) {
-        itemData = { articles: [item] };
+        itemData = { 
+          articles: [item],
+          // 🔥 PRESERVE SOURCE REFERENCE
+          source_references: [item.source_reference].filter(ref => ref)
+        };
       } else if (originalData.papers) {
         itemData = {
           articles: [{
@@ -1052,11 +1166,22 @@ const handleFanOut = async (currentNode: WorkflowNode, originalData: any, itemsT
             url: item.url,
             authors: item.authors,
             year: item.year
-          }]
+          }],
+          // 🔥 PRESERVE SOURCE REFERENCE
+          source_references: [item.source_reference].filter(ref => ref)
         };
       } else {
-        itemData = { articles: [item] };
+        itemData = { 
+          articles: [item],
+          source_references: [item.source_reference].filter(ref => ref)
+        };
       }
+
+      console.log(`🔄 Initial data for branch ${i + 1}:`, {
+        hasArticles: !!itemData.articles,
+        sourceReferencesCount: itemData.source_references?.length || 0,
+        dataKeys: Object.keys(itemData)
+      });
 
       console.log(`🔄 Processing item ${i + 1}/${processedItems.length}:`, {
         itemTitle: item.title || item.url || 'Untitled',

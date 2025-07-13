@@ -294,6 +294,8 @@ async function calculateSEOScore(title: string, content: string): Promise<{score
   return { score: Math.min(100, score), details };
 }
 
+// UPDATED: Key part of create-article-from-ai/index.ts with source references support
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -305,10 +307,10 @@ serve(async (req) => {
       contentLength: request.content?.length,
       category: request.category,
       provider: request.provider,
-      contentPreview: request.content?.substring(0, 100)
+      contentPreview: request.content?.substring(0, 100),
+      sourceReferencesCount: request.source_references?.length || 0
     });
 
-    // 🔥 FIX: Use Deno.env.get() instead of process.env
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
@@ -328,7 +330,8 @@ serve(async (req) => {
       slug: slug,
       image_url: image_url,
       isRTL: isRTL,
-      targetLanguage: targetLanguage
+      targetLanguage: targetLanguage,
+      sourceReferencesCount: request.source_references?.length || 0
     });
 
     // Check if slug already exists and make it unique if needed
@@ -377,8 +380,20 @@ serve(async (req) => {
 
     // Calculate SEO score
     const { score: seoScore, details: seoDetails } = await calculateSEOScore(title, actualContent);
+    
+    // 🔥 PROCESS SOURCE REFERENCES
+    let processedSourceReferences = [];
+    if (request.source_references && Array.isArray(request.source_references)) {
+      processedSourceReferences = request.source_references.map(ref => ({
+        title: ref.title || 'Unknown Source',
+        url: ref.url || '',
+        type: ref.type || 'web',
+        date: ref.date || new Date().toISOString()
+      }));
+      console.log('Processed', processedSourceReferences.length, 'source references');
+    }
         
-    // Create the article with properly formatted content INCLUDING SEO DATA
+    // Create the article with properly formatted content INCLUDING SOURCE REFERENCES
     const articleData = {
       title,
       slug: finalSlug,
@@ -393,7 +408,7 @@ serve(async (req) => {
       published_date: published_date,
       seo_score: seoScore,
       seo_details: seoDetails,
-      source_references: request.source_references || [] // Will be populated by workflows later
+      source_references: processedSourceReferences // 🔥 ADD SOURCE REFERENCES
     };
 
     console.log('Creating article with final data:', {
@@ -402,7 +417,8 @@ serve(async (req) => {
       contentLength: articleData.content.length,
       excerptLength: articleData.excerpt.length,
       image_url: articleData.image_url,
-      authorName: articleData.author_name
+      authorName: articleData.author_name,
+      sourceReferencesCount: articleData.source_references.length
     });
     
     const { data, error } = await supabase
@@ -416,14 +432,15 @@ serve(async (req) => {
       throw new Error(`Failed to create article: ${error.message}`);
     }
 
-    console.log('Article created successfully:', data.id);
+    console.log('Article created successfully:', data.id, 'with', data.source_references?.length || 0, 'sources');
 
     return new Response(JSON.stringify({ 
       success: true, 
       article: data,
-      message: `Article "${title}" created successfully as ${status}`,
+      message: `Article "${title}" created successfully as ${status} with ${processedSourceReferences.length} sources`,
       isRTL: isRTL,
-      targetLanguage: targetLanguage
+      targetLanguage: targetLanguage,
+      sourceReferencesCount: processedSourceReferences.length
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

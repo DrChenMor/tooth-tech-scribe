@@ -1,4 +1,4 @@
-// UPDATED create-article-from-ai/index.ts
+// FIXED create-article-from-ai/index.ts
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 
@@ -308,8 +308,9 @@ serve(async (req) => {
       contentPreview: request.content?.substring(0, 100)
     });
 
-    const supabaseUrl = process.env.SUPABASE_URL!;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+    // 🔥 FIX: Use Deno.env.get() instead of process.env
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Parse the AI-generated content properly
@@ -374,26 +375,26 @@ serve(async (req) => {
       }
     }
 
-// Calculate SEO score
-const { score: seoScore, details: seoDetails } = await calculateSEOScore(title, actualContent);
-    
-// Create the article with properly formatted content INCLUDING SEO DATA
-const articleData = {
-  title,
-  slug: finalSlug,
-  content: actualContent,
-  excerpt,
-  image_url: image_url || null,
-  category: request.category || 'AI Generated',
-  author_name: authorName,
-  author_avatar_url: authorAvatarUrl,
-  reporter_id: request.reporterId || null,
-  status: status,
-  published_date: published_date,
-  seo_score: seoScore,
-  seo_details: seoDetails,
-  source_references: request.source_references || [] // Will be populated by workflows later
-};
+    // Calculate SEO score
+    const { score: seoScore, details: seoDetails } = await calculateSEOScore(title, actualContent);
+        
+    // Create the article with properly formatted content INCLUDING SEO DATA
+    const articleData = {
+      title,
+      slug: finalSlug,
+      content: actualContent,
+      excerpt,
+      image_url: image_url || null,
+      category: request.category || 'AI Generated',
+      author_name: authorName,
+      author_avatar_url: authorAvatarUrl,
+      reporter_id: request.reporterId || null,
+      status: status,
+      published_date: published_date,
+      seo_score: seoScore,
+      seo_details: seoDetails,
+      source_references: request.source_references || [] // Will be populated by workflows later
+    };
 
     console.log('Creating article with final data:', {
       title: articleData.title,

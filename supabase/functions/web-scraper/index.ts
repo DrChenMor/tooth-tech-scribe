@@ -55,7 +55,15 @@ serve(async (req) => {
 
     console.log(`Scraped content length: ${content.length}`);
 
-    return new Response(JSON.stringify({ content }), {
+    // Add source_reference to response
+    const source_reference = {
+      title: url,
+      url: url,
+      type: 'web',
+      date: new Date().toISOString()
+    };
+
+    return new Response(JSON.stringify({ content, source_reference }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 

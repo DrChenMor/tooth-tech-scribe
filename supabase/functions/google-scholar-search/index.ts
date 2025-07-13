@@ -74,7 +74,13 @@ serve(async (req) => {
       citations: parseInt(result.inline_links?.cited_by?.total || '0'),
       venue: result.publication_info?.summary || 'Unknown Venue',
       pdf_link: result.resources?.find((r: any) => r.title?.toLowerCase().includes('pdf'))?.link || null,
-      source: 'Google Scholar (SerpAPI)'
+      source: 'Google Scholar (SerpAPI)',
+      source_reference: {
+        title: result.title || 'Untitled Paper',
+        url: result.link || '',
+        type: 'research',
+        date: new Date().toISOString()
+      }
     }))
 
     console.log(`Found ${papers.length} academic papers`)

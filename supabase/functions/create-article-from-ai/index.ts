@@ -13,6 +13,12 @@ interface CreateArticleRequest {
   provider: string;
   status?: 'draft' | 'published';
   reporterId?: string;
+  source_references?: Array<{
+    title: string;
+    url: string;
+    type: string;
+    date: string;
+  }>;
 }
 
 function parseAIContent(content: string): { 
@@ -386,7 +392,7 @@ const articleData = {
   published_date: published_date,
   seo_score: seoScore,
   seo_details: seoDetails,
-  source_references: [] // Will be populated by workflows later
+  source_references: request.source_references || [] // Will be populated by workflows later
 };
 
     console.log('Creating article with final data:', {

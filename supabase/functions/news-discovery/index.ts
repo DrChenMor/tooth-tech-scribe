@@ -56,7 +56,13 @@ async function searchPubMed(keywords: string, maxResults: number) {
           description: result.title || '',
           type: 'research',
           authors: result.authors || [],
-          pmid: pmid
+          pmid: pmid,
+          source_reference: {
+            title: result.title || 'Untitled',
+            url: `https://pubmed.ncbi.nlm.nih.gov/${pmid}/`,
+            type: 'research',
+            date: result.pubdate || new Date().toISOString()
+          }
         });
       }
     }
@@ -96,7 +102,13 @@ async function searchEuropePMC(keywords: string, maxResults: number) {
           type: 'research',
           authors: result.authorString || '',
           citedByCount: result.citedByCount || 0,
-          pmid: result.pmid
+          pmid: result.pmid,
+          source_reference: {
+            title: result.title || 'Untitled',
+            url: `https://europepmc.org/article/${result.source}/${result.id}`,
+            type: 'research',
+            date: result.firstPublicationDate || new Date().toISOString()
+          }
         });
       }
     }
@@ -138,7 +150,13 @@ async function searchGNews(keywords: string, maxResults: number) {
           publishedAt: article.publishedAt || new Date().toISOString(),
           description: article.description || article.title || '',
           type: 'news',
-          image: article.image || null
+          image: article.image || null,
+          source_reference: {
+            title: article.title || 'Untitled',
+            url: article.url || '',
+            type: 'news',
+            date: article.publishedAt || new Date().toISOString()
+          }
         });
       }
     }
@@ -180,7 +198,13 @@ async function searchGuardian(keywords: string, maxResults: number) {
           publishedAt: article.webPublicationDate || new Date().toISOString(),
           description: article.fields?.headline || article.webTitle || '',
           type: 'news',
-          image: article.fields?.thumbnail || null
+          image: article.fields?.thumbnail || null,
+          source_reference: {
+            title: article.fields?.headline || article.webTitle || 'Untitled',
+            url: article.fields?.shortUrl || article.webUrl || '',
+            type: 'news',
+            date: article.webPublicationDate || new Date().toISOString()
+          }
         });
       }
     }
@@ -220,7 +244,13 @@ async function searchHackerNews(keywords: string, maxResults: number) {
           description: hit.title || '',
           type: 'tech_news',
           score: hit.points || 0,
-          comments: hit.num_comments || 0
+          comments: hit.num_comments || 0,
+          source_reference: {
+            title: hit.title || 'Untitled',
+            url: hit.url || `https://news.ycombinator.com/item?id=${hit.objectID}`,
+            type: 'tech_news',
+            date: hit.created_at || new Date().toISOString()
+          }
         });
       }
     }

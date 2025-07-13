@@ -49,6 +49,12 @@ serve(async (req) => {
               link: item.link,
               description: item.description,
               pubDate: item.pubDate,
+              source_reference: {
+                title: url,
+                url: url,
+                type: 'rss',
+                date: new Date().toISOString()
+              }
             };
           }
           // Atom mapping
@@ -58,6 +64,12 @@ serve(async (req) => {
               link: typeof item.link === 'object' ? item.link['@href'] : item.link,
               description: item.summary || item.content,
               pubDate: item.updated,
+              source_reference: {
+                title: url,
+                url: url,
+                type: 'rss',
+                date: new Date().toISOString()
+              }
             };
           }
           return null;

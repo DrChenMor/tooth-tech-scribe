@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { Article } from '@/types';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
+import { useNavigate } from 'react-router-dom';
 
 interface ArticleCardProps {
   article: Article;
@@ -9,6 +10,8 @@ interface ArticleCardProps {
 }
 
 const ArticleCard = ({ article, index }: ArticleCardProps) => {
+  const navigate = useNavigate();
+
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
     console.error('Image failed to load:', article.image_url);
     e.currentTarget.src = 'https://placehold.co/400x250/EEE/BDBDBD?text=Denti-AI';
@@ -17,6 +20,12 @@ const ArticleCard = ({ article, index }: ArticleCardProps) => {
   const handleImageLoad = () => {
     // This is useful for confirming when an image *does* load.
     // console.log('Image loaded successfully:', article.image_url);
+  };
+
+  const handleCategoryClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    navigate(`/category/${encodeURIComponent(article.category)}`);
   };
   
   // Debugging log to inspect the URL being passed to the img tag
@@ -36,12 +45,11 @@ const ArticleCard = ({ article, index }: ArticleCardProps) => {
             onError={handleImageError}
             onLoad={handleImageLoad}
           />
-{/* Category and SEO badges overlay */}
-<div className="absolute top-3 left-3 z-10 flex flex-col gap-2">
+          {/* Category and SEO badges overlay */}
+          <div className="absolute top-3 left-3 z-10 flex flex-col gap-2">
             {article.category && (
-              <Link 
-                to={`/category/${encodeURIComponent(article.category)}`}
-                onClick={(e) => e.stopPropagation()}
+              <button
+                onClick={handleCategoryClick}
                 className="inline-block"
               >
                 <Badge 
@@ -50,7 +58,7 @@ const ArticleCard = ({ article, index }: ArticleCardProps) => {
                 >
                   {article.category}
                 </Badge>
-              </Link>
+              </button>
             )}
             {article.seo_score && (
               <Badge 
@@ -77,27 +85,27 @@ const ArticleCard = ({ article, index }: ArticleCardProps) => {
           
           {/* Author/Date section with fixed spacing */}
           <div className="flex items-center mt-6 article-author-info">
-  <img 
-    src={
-      article.reporter?.avatar_url || 
-      article.author_avatar_url || 
-      `https://ui-avatars.com/api/?name=${encodeURIComponent(article.reporter?.name || article.author_name || 'Author')}&size=32`
-    } 
-    alt={article.reporter?.name || article.author_name || ''} 
-    className="w-8 h-8 rounded-full mr-3 object-cover"
-    onError={(e) => {
-      e.currentTarget.style.display = 'none';
-    }}
-  />
-  <div className="text-sm">
-    <p className="font-semibold text-foreground">
-      {article.reporter?.name || article.author_name}
-    </p>
-    <p className="text-muted-foreground">
-      {format(new Date(article.published_date), 'MMMM d, yyyy')}
-    </p>
-  </div>
-</div>
+            <img 
+              src={
+                article.reporter?.avatar_url || 
+                article.author_avatar_url || 
+                `https://ui-avatars.com/api/?name=${encodeURIComponent(article.reporter?.name || article.author_name || 'Author')}&size=32`
+              } 
+              alt={article.reporter?.name || article.author_name || ''} 
+              className="w-8 h-8 rounded-full mr-3 object-cover"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+              }}
+            />
+            <div className="text-sm">
+              <p className="font-semibold text-foreground">
+                {article.reporter?.name || article.author_name}
+              </p>
+              <p className="text-muted-foreground">
+                {format(new Date(article.published_date), 'MMMM d, yyyy')}
+              </p>
+            </div>
+          </div>
         </div>
       </Link>
     </div>

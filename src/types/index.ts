@@ -13,6 +13,8 @@ export interface Article {
   category: string | null;
   status: ArticleStatus;
   views: number;
+  seo_score?: number;
+  source_references?: string[] | any[]; // Adjust type based on your data structure
   reporter_id?: string; // 🔧 NEW
   reporter?: {          // 🔧 NEW
     id: string;

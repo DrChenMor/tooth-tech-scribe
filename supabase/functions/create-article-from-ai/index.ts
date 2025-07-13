@@ -181,6 +181,113 @@ function extractExcerpt(content: string): string {
     : firstParagraph.trim();
 }
 
+// SEO Analysis Function
+async function calculateSEOScore(title: string, content: string): Promise<{score: number, details: any}> {
+  let score = 0;
+  const details: any = {
+    title_analysis: {},
+    content_analysis: {},
+    readability: {},
+    structure: {},
+    analyzed_at: new Date().toISOString()
+  };
+  
+  // Title Analysis (25 points)
+  if (title) {
+    const titleLength = title.length;
+    if (titleLength >= 30 && titleLength <= 60) {
+      score += 25;
+      details.title_analysis.score = 25;
+      details.title_analysis.status = "optimal";
+    } else if (titleLength >= 20 && titleLength <= 80) {
+      score += 15;
+      details.title_analysis.score = 15;
+      details.title_analysis.status = "good";
+    } else {
+      score += 5;
+      details.title_analysis.score = 5;
+      details.title_analysis.status = "needs_improvement";
+    }
+    details.title_analysis.length = titleLength;
+    details.title_analysis.optimal_range = "30-60 characters";
+  }
+  
+  // Content Length Analysis (25 points)
+  const wordCount = content.split(/\s+/).filter(word => word.length > 0).length;
+  if (wordCount >= 300) {
+    score += 25;
+    details.content_analysis.score = 25;
+    details.content_analysis.status = "optimal";
+  } else if (wordCount >= 150) {
+    score += 15;
+    details.content_analysis.score = 15;
+    details.content_analysis.status = "good";
+  } else {
+    score += 5;
+    details.content_analysis.score = 5;
+    details.content_analysis.status = "too_short";
+  }
+  details.content_analysis.word_count = wordCount;
+  details.content_analysis.optimal_count = "300+ words";
+  
+  // Heading Structure Analysis (25 points)
+  const headings = content.match(/^#{1,6}\s+.+$/gm) || [];
+  const headingCount = headings.length;
+  if (headingCount >= 3) {
+    score += 25;
+    details.structure.score = 25;
+    details.structure.status = "excellent";
+  } else if (headingCount >= 1) {
+    score += 15;
+    details.structure.score = 15;
+    details.structure.status = "good";
+  } else {
+    score += 0;
+    details.structure.score = 0;
+    details.structure.status = "no_headings";
+  }
+  details.structure.heading_count = headingCount;
+  details.structure.optimal_count = "3+ headings";
+  
+  // Readability Analysis (25 points)
+  const sentences = content.split(/[.!?]+/).filter(s => s.trim().length > 0);
+  const avgWordsPerSentence = wordCount / (sentences.length || 1);
+  if (avgWordsPerSentence <= 20) {
+    score += 25;
+    details.readability.score = 25;
+    details.readability.status = "excellent";
+  } else if (avgWordsPerSentence <= 30) {
+    score += 15;
+    details.readability.score = 15;
+    details.readability.status = "good";
+  } else {
+    score += 5;
+    details.readability.score = 5;
+    details.readability.status = "complex";
+  }
+  details.readability.avg_words_per_sentence = Math.round(avgWordsPerSentence);
+  details.readability.sentence_count = sentences.length;
+  details.readability.optimal_range = "15-20 words per sentence";
+  
+  // Overall Assessment
+  details.overall_score = Math.min(100, score);
+  if (score >= 80) {
+    details.grade = "A";
+    details.assessment = "Excellent SEO optimization";
+  } else if (score >= 60) {
+    details.grade = "B";
+    details.assessment = "Good SEO optimization";
+  } else if (score >= 40) {
+    details.grade = "C";
+    details.assessment = "Needs improvement";
+  } else {
+    details.grade = "D";
+    details.assessment = "Poor SEO optimization";
+  }
+  
+  return { score: Math.min(100, score), details };
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -195,8 +302,8 @@ serve(async (req) => {
       contentPreview: request.content?.substring(0, 100)
     });
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabaseUrl = process.env.SUPABASE_URL!;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Parse the AI-generated content properly
@@ -261,20 +368,26 @@ serve(async (req) => {
       }
     }
 
-    // Create the article with properly formatted content INCLUDING IMAGE
-    const articleData = {
-      title,
-      slug: finalSlug,
-      content: actualContent,
-      excerpt,
-      image_url: image_url || null,
-      category: request.category || 'AI Generated',
-      author_name: authorName,
-      author_avatar_url: authorAvatarUrl,
-      reporter_id: request.reporterId || null,
-      status: status,
-      published_date: published_date,
-    };
+// Calculate SEO score
+const { score: seoScore, details: seoDetails } = await calculateSEOScore(title, actualContent);
+    
+// Create the article with properly formatted content INCLUDING SEO DATA
+const articleData = {
+  title,
+  slug: finalSlug,
+  content: actualContent,
+  excerpt,
+  image_url: image_url || null,
+  category: request.category || 'AI Generated',
+  author_name: authorName,
+  author_avatar_url: authorAvatarUrl,
+  reporter_id: request.reporterId || null,
+  status: status,
+  published_date: published_date,
+  seo_score: seoScore,
+  seo_details: seoDetails,
+  source_references: [] // Will be populated by workflows later
+};
 
     console.log('Creating article with final data:', {
       title: articleData.title,

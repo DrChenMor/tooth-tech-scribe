@@ -36,12 +36,12 @@ const ArticleCard = ({ article, index }: ArticleCardProps) => {
             onError={handleImageError}
             onLoad={handleImageLoad}
           />
-          {/* Category badge overlay - clickable */}
-          {article.category && (
-            <div className="absolute top-3 left-3 z-10">
+{/* Category and SEO badges overlay */}
+<div className="absolute top-3 left-3 z-10 flex flex-col gap-2">
+            {article.category && (
               <Link 
                 to={`/category/${encodeURIComponent(article.category)}`}
-                onClick={(e) => e.stopPropagation()} // Prevent parent link from triggering
+                onClick={(e) => e.stopPropagation()}
                 className="inline-block"
               >
                 <Badge 
@@ -51,8 +51,23 @@ const ArticleCard = ({ article, index }: ArticleCardProps) => {
                   {article.category}
                 </Badge>
               </Link>
-            </div>
-          )}
+            )}
+            {article.seo_score && (
+              <Badge 
+                variant="outline"
+                className={`text-xs font-medium backdrop-blur-sm border border-white/20 ${
+                  article.seo_score >= 80 
+                    ? 'bg-green-100/90 text-green-800 hover:bg-green-200/90' 
+                    : article.seo_score >= 60 
+                    ? 'bg-yellow-100/90 text-yellow-800 hover:bg-yellow-200/90' 
+                    : 'bg-red-100/90 text-red-800 hover:bg-red-200/90'
+                }`}
+              >
+                SEO: {article.seo_score}/100
+                {article.seo_score >= 80 && ' ⭐'}
+              </Badge>
+            )}
+          </div>
         </div>
         
         <div className="py-4">

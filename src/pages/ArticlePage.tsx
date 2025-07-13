@@ -180,6 +180,52 @@ const ArticlePage = () => {
               />
             </div>
             
+{/* Sources Section */}
+{article.source_references && Array.isArray(article.source_references) && article.source_references.length > 0 && (
+              <div className="mt-16">
+                <hr className="border-t border-gray-200 mb-8" />
+                <h5 className="text-lg font-semibold mb-6 text-gray-800">📚 Sources & References</h5>
+                <div className="space-y-4">
+                  {article.source_references.map((ref, index) => (
+                    <div key={index} className="bg-gray-50 border border-gray-200 rounded-lg p-4 hover:bg-gray-100 transition-colors">
+                      <div className="flex items-start gap-3">
+                        <span className="inline-flex items-center justify-center w-6 h-6 bg-blue-100 text-blue-800 text-sm font-medium rounded-full flex-shrink-0 mt-1">
+                          {index + 1}
+                        </span>
+                        <div className="flex-1">
+                          {ref.title && (
+                            <h6 className="font-medium text-gray-900 mb-1">{ref.title}</h6>
+                          )}
+                          {ref.url && (
+                            <a 
+                              href={ref.url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-800 hover:underline text-sm break-all"
+                            >
+                              {ref.url}
+                            </a>
+                          )}
+                          <div className="flex items-center gap-3 mt-2">
+                            {ref.type && (
+                              <span className="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded">
+                                {ref.type}
+                              </span>
+                            )}
+                            {ref.date && (
+                              <span className="text-xs text-gray-500">
+                                📅 {new Date(ref.date).toLocaleDateString()}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            
             <div className="mt-12 text-center">
               <Link to="/articles" className="text-primary font-semibold hover:underline">
                 ← Back to all articles

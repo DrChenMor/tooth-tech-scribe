@@ -12,6 +12,8 @@ import { deleteArticle, updateArticleStatus } from '@/services/articles';
 import { toast } from '@/components/ui/use-toast';
 import DeleteArticleDialog from '@/components/admin/DeleteArticleDialog';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
+
 
 const fetchAllArticles = async (): Promise<Article[]> => {
   const { data, error } = await supabase
@@ -227,10 +229,9 @@ const AdminPage = () => {
           <div className="text-destructive">Failed to load articles.</div>
         ) : (
           <Table>
-            <TableHeader>
+<TableHeader>
               <TableRow>
                 <TableHead className="w-12">
-                  {/* 🔥 NEW: Select All Checkbox */}
                   <Checkbox
                     checked={allSelected}
                     onCheckedChange={handleSelectAll}
@@ -239,6 +240,8 @@ const AdminPage = () => {
                 </TableHead>
                 <TableHead>Title</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>SEO Score</TableHead>
+                <TableHead>Sources</TableHead>
                 <TableHead>Category</TableHead>
                 <TableHead>Published</TableHead>
                 <TableHead>Actions</TableHead>
@@ -248,7 +251,6 @@ const AdminPage = () => {
               {articles?.map((article) => (
                 <TableRow key={article.id}>
                   <TableCell>
-                    {/* 🔥 NEW: Individual Article Checkbox */}
                     <Checkbox
                       checked={selectedArticles.includes(article.id)}
                       onCheckedChange={(checked) => handleSelectArticle(article.id, checked as boolean)}
@@ -263,6 +265,32 @@ const AdminPage = () => {
                     <span className={`px-2 py-1 rounded text-xs font-medium ${statusColor(article.status)}`}>
                       {article.status}
                     </span>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Badge 
+                        variant={
+                          (article.seo_score || 0) >= 80 ? "default" : 
+                          (article.seo_score || 0) >= 60 ? "secondary" : "destructive"
+                        }
+                        className="text-xs"
+                      >
+                        {article.seo_score || 0}/100
+                      </Badge>
+                      {article.seo_score && article.seo_score >= 80 && (
+                        <span className="text-green-600">⭐</span>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1">
+                      <span className="text-sm">
+                        {(article.source_references && Array.isArray(article.source_references) 
+                          ? article.source_references.length 
+                          : 0)}
+                      </span>
+                      <span className="text-xs text-muted-foreground">sources</span>
+                    </div>
                   </TableCell>
                   <TableCell>{article.category}</TableCell>
                   <TableCell>

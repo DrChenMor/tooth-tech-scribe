@@ -1,4 +1,5 @@
-// src/services/globalTheme.ts
+// 🔧 FIXED: src/services/globalTheme.ts
+
 import { supabase } from '@/integrations/supabase/client';
 
 export interface GlobalTheme {
@@ -11,20 +12,172 @@ export interface GlobalTheme {
   updated_at: string;
 }
 
-export interface SiteSetting {
-  id: string;
-  setting_key: string;
-  setting_value: any;
-  setting_type: string;
-  description?: string;
-  updated_by?: string;
-  updated_at: string;
-}
+// 🔥 FIX 1: Use correct table name consistently
+const GLOBAL_THEME_TABLE = 'global_theme_settings'; // Or 'global_theme' - pick ONE
 
-// 🔥 SINGLETON SUBSCRIPTION MANAGER
+// 🔥 FIX 2: Add proper error handling
+export const fetchActiveGlobalTheme = async (): Promise<GlobalTheme | null> => {
+  try {
+    console.log('🎨 Fetching active global theme...');
+    
+    const { data, error } = await supabase
+      .from(GLOBAL_THEME_TABLE)
+      .select('*')
+      .eq('is_active', true)
+      .single();
+
+    if (error) {
+      console.error('❌ Error fetching active global theme:', error);
+      return null;
+    }
+
+    if (data) {
+      console.log('✅ Found active global theme:', data.theme_name);
+      return {
+        ...data,
+        theme_data: data.theme_data as Record<string, string>
+      };
+    }
+
+    console.log('⚠️ No active global theme found');
+    return null;
+  } catch (error) {
+    console.error('💥 Failed to fetch active global theme:', error);
+    return null;
+  }
+};
+
+// 🔥 FIX 3: Correct updateSiteSetting function with proper parameter handling
+export const updateSiteSetting = async (
+  key: string, 
+  value: any, 
+  settingType: string = 'object'
+): Promise<boolean> => {
+  try {
+    console.log('🔧 Updating site setting:', key);
+    
+    const { error } = await supabase
+      .from('site_settings')
+      .upsert({
+        setting_key: key,
+        setting_value: value,
+        setting_type: settingType, // 🔥 FIX: Add missing parameter
+        updated_at: new Date().toISOString(),
+      });
+
+    if (error) {
+      console.error('❌ Error updating site setting:', error);
+      return false;
+    }
+
+    console.log('✅ Site setting updated successfully');
+    return true;
+  } catch (error) {
+    console.error('💥 Failed to update site setting:', error);
+    return false;
+  }
+};
+
+// 🔥 FIX 4: Better user override checking
+export const canUserOverrideTheme = async (): Promise<boolean> => {
+  try {
+    console.log('🔍 Checking if user can override theme...');
+    
+    const { data, error } = await supabase
+      .from('site_settings')
+      .select('setting_value')
+      .eq('setting_key', 'theme_enforcement')
+      .single();
+
+    if (error) {
+      console.warn('⚠️ Error checking theme override permission, defaulting to allow:', error);
+      return true; // Default to allowing override
+    }
+
+    const settingValue = data?.setting_value as any;
+    const canOverride = settingValue?.allow_user_override !== false;
+    
+    console.log('✅ User override permission:', canOverride);
+    return canOverride;
+  } catch (error) {
+    console.warn('⚠️ Failed to check theme override permission, defaulting to allow:', error);
+    return true; // Default to allowing override
+  }
+};
+
+// 🔥 FIX 5: Better saveGlobalTheme function
+export const saveGlobalTheme = async (
+  themeName: string, 
+  themeData: Record<string, string>
+): Promise<GlobalTheme | null> => {
+  try {
+    console.log('💾 Saving global theme:', themeName);
+    
+    const { data, error } = await supabase
+      .from(GLOBAL_THEME_TABLE)
+      .insert({
+        theme_name: themeName,
+        theme_data: themeData,
+        is_active: false, // New themes are inactive by default
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('❌ Error saving global theme:', error);
+      throw new Error(`Failed to save theme: ${error.message}`);
+    }
+
+    console.log('✅ Global theme saved successfully:', data.id);
+    return data ? {
+      ...data,
+      theme_data: data.theme_data as Record<string, string>
+    } : null;
+  } catch (error) {
+    console.error('💥 Failed to save global theme:', error);
+    throw error;
+  }
+};
+
+// 🔥 FIX 6: Better activateGlobalTheme function
+export const activateGlobalTheme = async (themeId: string): Promise<boolean> => {
+  try {
+    console.log('🎯 Activating global theme:', themeId);
+    
+    // Step 1: Deactivate all themes
+    const { error: deactivateError } = await supabase
+      .from(GLOBAL_THEME_TABLE)
+      .update({ is_active: false })
+      .eq('is_active', true);
+
+    if (deactivateError) {
+      console.error('❌ Error deactivating themes:', deactivateError);
+      return false;
+    }
+
+    // Step 2: Activate the selected theme
+    const { error: activateError } = await supabase
+      .from(GLOBAL_THEME_TABLE)
+      .update({ is_active: true })
+      .eq('id', themeId);
+
+    if (activateError) {
+      console.error('❌ Error activating theme:', activateError);
+      return false;
+    }
+
+    console.log('✅ Global theme activated successfully');
+    return true;
+  } catch (error) {
+    console.error('💥 Failed to activate global theme:', error);
+    return false;
+  }
+};
+
+// 🔥 FIX 7: Better real-time subscription management
 class GlobalThemeSubscriptionManager {
   private static instance: GlobalThemeSubscriptionManager;
-  private subscription: any = null; // RealtimeChannel type
+  private subscription: any = null;
   private callbacks: Set<(theme: GlobalTheme | null) => void> = new Set();
   private isSubscribed = false;
 
@@ -38,18 +191,17 @@ class GlobalThemeSubscriptionManager {
   }
 
   subscribe(callback: (theme: GlobalTheme | null) => void): () => void {
+    console.log('🔔 Adding theme subscription callback');
     this.callbacks.add(callback);
 
-    // If not already subscribed, create the subscription
     if (!this.isSubscribed) {
       this.createSubscription();
     }
 
-    // Return unsubscribe function
     return () => {
+      console.log('🔕 Removing theme subscription callback');
       this.callbacks.delete(callback);
       
-      // If no more callbacks, cleanup subscription
       if (this.callbacks.size === 0) {
         this.cleanup();
       }
@@ -59,6 +211,8 @@ class GlobalThemeSubscriptionManager {
   private createSubscription() {
     if (this.isSubscribed) return;
 
+    console.log('🎧 Creating real-time theme subscription...');
+    
     this.subscription = supabase
       .channel('global-theme-changes')
       .on(
@@ -66,7 +220,7 @@ class GlobalThemeSubscriptionManager {
         {
           event: '*',
           schema: 'public',
-          table: 'global_theme_settings',
+          table: GLOBAL_THEME_TABLE, // 🔥 FIX: Use consistent table name
         },
         (payload) => {
           console.log('🔄 Global theme change detected:', payload);
@@ -86,7 +240,13 @@ class GlobalThemeSubscriptionManager {
           }
 
           // Notify all callbacks
-          this.callbacks.forEach(callback => callback(theme));
+          this.callbacks.forEach(callback => {
+            try {
+              callback(theme);
+            } catch (error) {
+              console.error('❌ Error in theme subscription callback:', error);
+            }
+          });
         }
       )
       .subscribe();
@@ -97,172 +257,47 @@ class GlobalThemeSubscriptionManager {
 
   private cleanup() {
     if (this.subscription) {
+      console.log('🧹 Cleaning up theme subscription...');
       this.subscription.unsubscribe();
       this.subscription = null;
     }
     this.isSubscribed = false;
-    console.log('🧹 Global theme subscription cleaned up');
   }
 }
 
-// 🔥 FETCH ACTIVE GLOBAL THEME
-export const fetchActiveGlobalTheme = async (): Promise<GlobalTheme | null> => {
-  try {
-    const { data, error } = await supabase
-      .from('global_theme_settings')
-      .select('*')
-      .eq('is_active', true)
-      .single();
-
-    if (error) {
-      console.error('Error fetching active global theme:', error);
-      return null;
-    }
-
-    // Cast the data to our interface type
-    return data ? {
-      ...data,
-      theme_data: data.theme_data as Record<string, string>
-    } : null;
-  } catch (error) {
-    console.error('Failed to fetch active global theme:', error);
-    return null;
-  }
+// Export the subscription function
+export const subscribeToGlobalThemeChanges = (callback: (theme: GlobalTheme | null) => void) => {
+  const manager = GlobalThemeSubscriptionManager.getInstance();
+  return manager.subscribe(callback);
 };
 
-// 🔥 FETCH ALL GLOBAL THEMES
+// 🔥 FIX 8: Export all other functions
 export const fetchAllGlobalThemes = async (): Promise<GlobalTheme[]> => {
   try {
+    console.log('📋 Fetching all global themes...');
+    
     const { data, error } = await supabase
-      .from('global_theme_settings')
+      .from(GLOBAL_THEME_TABLE)
       .select('*')
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Error fetching all global themes:', error);
+      console.error('❌ Error fetching all global themes:', error);
       return [];
     }
 
-    // Cast the data to our interface type
+    console.log('✅ Found', data?.length || 0, 'global themes');
     return (data || []).map(theme => ({
       ...theme,
       theme_data: theme.theme_data as Record<string, string>
     }));
   } catch (error) {
-    console.error('Failed to fetch all global themes:', error);
+    console.error('💥 Failed to fetch all global themes:', error);
     return [];
   }
 };
 
-// 🔥 CHECK IF USER CAN OVERRIDE THEME
-export const canUserOverrideTheme = async (): Promise<boolean> => {
-  try {
-    const { data, error } = await supabase
-      .from('site_settings')
-      .select('setting_value')
-      .eq('setting_key', 'theme_enforcement')
-      .single();
-
-    if (error) {
-      console.error('Error checking theme override permission:', error);
-      return true; // Default to allowing override
-    }
-
-    const settingValue = data?.setting_value as any;
-    return settingValue?.allow_user_override !== false;
-  } catch (error) {
-    console.error('Failed to check theme override permission:', error);
-    return true; // Default to allowing override
-  }
-};
-
-// 🔥 SAVE GLOBAL THEME
-export const saveGlobalTheme = async (themeName: string, themeData: Record<string, string>): Promise<GlobalTheme | null> => {
-  try {
-    const { data, error } = await supabase
-      .from('global_theme_settings')
-      .insert({
-        theme_name: themeName,
-        theme_data: themeData,
-        is_active: false, // New themes are inactive by default
-      })
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Error saving global theme:', error);
-      return null;
-    }
-
-    // Cast the data to our interface type
-    return data ? {
-      ...data,
-      theme_data: data.theme_data as Record<string, string>
-    } : null;
-  } catch (error) {
-    console.error('Failed to save global theme:', error);
-    return null;
-  }
-};
-
-// 🔥 ACTIVATE GLOBAL THEME
-export const activateGlobalTheme = async (themeId: string): Promise<boolean> => {
-  try {
-    // First, deactivate all themes
-    const { error: deactivateError } = await supabase
-      .from('global_theme_settings')
-      .update({ is_active: false })
-      .eq('is_active', true);
-
-    if (deactivateError) {
-      console.error('Error deactivating themes:', deactivateError);
-      return false;
-    }
-
-    // Then activate the selected theme
-    const { error: activateError } = await supabase
-      .from('global_theme_settings')
-      .update({ is_active: true })
-      .eq('id', themeId);
-
-    if (activateError) {
-      console.error('Error activating theme:', activateError);
-      return false;
-    }
-
-    return true;
-  } catch (error) {
-    console.error('Failed to activate global theme:', error);
-    return false;
-  }
-};
-
-// 🔥 UPDATE SITE SETTING
-export const updateSiteSetting = async (key: string, value: any): Promise<boolean> => {
-  try {
-    const { error } = await supabase
-      .from('site_settings')
-      .upsert({
-        setting_key: key,
-        setting_value: value,
-        setting_type: typeof value,
-        updated_at: new Date().toISOString(),
-      });
-
-    if (error) {
-      console.error('Error updating site setting:', error);
-      return false;
-    }
-
-    return true;
-  } catch (error) {
-    console.error('Failed to update site setting:', error);
-    return false;
-  }
-};
-
-// 🔥 FETCH SITE SETTING
-export const fetchSiteSetting = async (key: string): Promise<SiteSetting | null> => {
+export const fetchSiteSetting = async (key: string): Promise<any> => {
   try {
     const { data, error } = await supabase
       .from('site_settings')
@@ -271,19 +306,13 @@ export const fetchSiteSetting = async (key: string): Promise<SiteSetting | null>
       .single();
 
     if (error) {
-      console.error('Error fetching site setting:', error);
+      console.error('❌ Error fetching site setting:', error);
       return null;
     }
 
     return data;
   } catch (error) {
-    console.error('Failed to fetch site setting:', error);
+    console.error('💥 Failed to fetch site setting:', error);
     return null;
   }
 };
-
-// 🔥 SUBSCRIBE TO GLOBAL THEME CHANGES (SINGLETON)
-export const subscribeToGlobalThemeChanges = (callback: (theme: GlobalTheme | null) => void) => {
-  const manager = GlobalThemeSubscriptionManager.getInstance();
-  return manager.subscribe(callback);
-}; 

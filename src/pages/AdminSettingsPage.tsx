@@ -681,29 +681,36 @@ const applyPresetToElements = (preset: 'all-serif' | 'all-sans' | 'mixed-traditi
   };
 
   // 🔥 NEW: Update theme enforcement setting
-  const updateThemeEnforcement = async (allowOverride: boolean) => {
-    try {
-      await updateSiteSetting('theme_enforcement', {
-        enabled: true,
-        allow_user_override: allowOverride
-      }, 'theme');
-      
-      setAllowUserOverride(allowOverride);
-      
-      toast({
-        title: "✅ Theme Enforcement Updated",
-        description: `Users ${allowOverride ? 'can' : 'cannot'} override global themes.`,
-      });
-      
-      queryClient.invalidateQueries({ queryKey: ['theme-override-permission'] });
-    } catch (error) {
-      toast({
-        title: "Failed to update theme enforcement",
-        description: error instanceof Error ? error.message : "Unknown error",
-        variant: "destructive",
-      });
-    }
-  };
+// 🔧 FIXED: AdminSettingsPage.tsx - Theme Enforcement Section
+// Only showing the part that needs to be fixed
+
+// In your AdminSettingsPage.tsx, replace this function:
+
+// 🔥 NEW: Update theme enforcement setting with correct parameters
+const updateThemeEnforcement = async (allowOverride: boolean) => {
+  try {
+    // 🔧 FIX: Add the missing 'type' parameter
+    await updateSiteSetting('theme_enforcement', {
+      enabled: true,
+      allow_user_override: allowOverride
+    }, 'object'); // 🔥 ADD THIS: The missing 'type' parameter
+    
+    setAllowUserOverride(allowOverride);
+    
+    toast({
+      title: "✅ Theme Enforcement Updated",
+      description: `Users ${allowOverride ? 'can' : 'cannot'} override global themes.`,
+    });
+    
+    queryClient.invalidateQueries({ queryKey: ['theme-override-permission'] });
+  } catch (error) {
+    toast({
+      title: "Failed to update theme enforcement",
+      description: error instanceof Error ? error.message : "Unknown error",
+      variant: "destructive",
+    });
+  }
+};
 
   return (
     <main className="container mx-auto px-4 py-8">

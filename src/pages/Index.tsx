@@ -185,12 +185,10 @@ const Index = () => {
                         >
                           
                           {/* ✅ FIX: Changed to a robust flex layout that pins content to top and bottom */}
-                          <div className="flex flex-col justify-between order-2 lg:order-1 p-6 md:p-8 lg:p-8">
-                            
-                            {/* --- Top Content Group --- */}
-                            <div className="space-y-2 md:space-y-8">
-                            <h1 className="text-lg sm:text-xl md:text-2xl xl:text-3xl font-serif font-medium leading-tight group-hover:text-primary transition-colors duration-300 carousel-title">
-                            {article.title}
+                          <div className="flex flex-col order-2 lg:order-1 p-6 md:p-8 lg:p-8 space-y-8">
+                            <div className="space-y-2">
+                              <h1 className="text-lg sm:text-xl md:text-2xl xl:text-3xl font-serif font-medium leading-tight group-hover:text-primary transition-colors duration-300 carousel-title">
+                                {article.title}
                               </h1>
                               <p className="text-sm md:text-base text-muted-foreground leading-relaxed hidden sm:block">
                                 {article.excerpt}

@@ -641,6 +641,12 @@ a[data-sidebar]:active {
 /* 🔥 MINIMAL TOUCH IMPROVEMENTS - ADD TO END OF YOUR EXISTING index.css */
 
 @media (max-width: 768px) {
+  .container h1 {
+    margin-bottom: 0 !important;
+  }
+}
+
+@media (max-width: 768px) {
 
   .container h2 {
     font-size: 1.3rem !important; /* Smaller h2 on mobile */

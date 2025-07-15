@@ -185,7 +185,7 @@ dir={textDirection}
               <div className="mt-16">
                 <hr className="border-t border-gray-200 mb-8" />
                 <h5 className="text-lg font-semibold mb-6 text-gray-800">📚 Sources & References</h5>
-                <div className="space-y-4">
+                <div className="space-y-7">
                   {article.source_references.map((ref, index) => (
                     <div key={index} className="bg-gray-50 border border-gray-200 rounded-lg p-4 hover:bg-gray-100 transition-colors">
                       <div className="flex items-start gap-3">

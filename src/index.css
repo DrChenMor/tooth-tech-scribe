@@ -48,8 +48,8 @@
     --radius: 0.5rem;
     
     /* 🔥 GRANULAR FONT CONTROL: Individual Font Families */
-    --h1-font-family: "Playfair Display", serif;
-    --h2-font-family: "Playfair Display", serif;
+    --h1-font-family: "Lato", sans-serif;
+    --h2-font-family: "Lato", sans-serif;
     --h3-font-family: "Source Sans Pro", sans-serif;
     --h4-font-family: "Source Sans Pro", sans-serif;
     --h5-font-family: "Source Sans Pro", sans-serif;
@@ -59,11 +59,11 @@
     --button-font-family: "Source Sans Pro", sans-serif;
     --input-font-family: "Source Sans Pro", sans-serif;
     --nav-font-family: "Source Sans Pro", sans-serif;
-    --card-title-font-family: "Playfair Display", serif;
+    --card-title-font-family: "Lato", sans-serif;
     
     /* Font Sizes */
     --h1-font-size: 2.5rem;
-    --h2-font-size: 2rem;
+    --h2-font-size: 1.5rem;
     --h3-font-size: 1.5rem;
     --h4-font-size: 1.5rem;
     --h5-font-size: 1.125rem;
@@ -85,6 +85,7 @@
   }
 }
 
+
 @layer base {
   * {
     @apply border-border;
@@ -103,7 +104,7 @@
     font-family: var(--h1-font-family) !important;
     font-weight: var(--h1-font-weight) !important;
     line-height: 1.2 !important;
-    margin-bottom: 1rem !important;
+    margin-bottom: 1.5rem !important;
   }
 
   h2, .h2-style {
@@ -178,6 +179,9 @@
     font-family: var(--p-font-family) !important;
   }
 
+  .carousel-title {
+    font-weight: 500 !important;
+  }
   /* 🔥 MAXIMUM SPECIFICITY OVERRIDES */
   html body h1,
   html body .text-4xl,
@@ -236,11 +240,7 @@
     font-size: var(--h1-font-size) !important;
     font-weight: var(--h1-font-weight) !important;
   }
-  .prose h2, .wmde-markdown h2 { 
-    font-family: var(--h2-font-family) !important;
-    font-size: var(--h2-font-size) !important;
-    font-weight: var(--h2-font-weight) !important;
-  }
+
   .prose h3, .wmde-markdown h3 { 
     font-family: var(--h3-font-family) !important;
     font-size: var(--h3-font-size) !important;
@@ -290,8 +290,8 @@
 @media (max-width: 768px) {
   :root {
     --h1-font-size: 1.875rem; /* Smaller on mobile */
-    --h2-font-size: 1.625rem;
-    --h3-font-size: 1.5rem;
+    --h2-font-size: 1.525rem;
+    --h3-font-size: 1.4rem;
     --h4-font-size: 1.375rem;
     --h5-font-size: 1.375rem;
     --h6-font-size: 1.25rem;
@@ -302,8 +302,8 @@
 @media (max-width: 480px) {
   :root {
     --h1-font-size: 1.875rem; /* Even smaller on very small screens */
-    --h2-font-size: 1.625rem;
-    --h3-font-size: 1.5rem;
+    --h2-font-size: 1.525rem;
+    --h3-font-size: 1.4rem;
     --h4-font-size: 1.375rem;
     --h5-font-size: 1.375rem;
     --h6-font-size: 1.25rem;
@@ -640,6 +640,13 @@ a[data-sidebar]:active {
 
 /* 🔥 MINIMAL TOUCH IMPROVEMENTS - ADD TO END OF YOUR EXISTING index.css */
 
+@media {
+
+  .container h2 {
+    font-size: 1.3rem !important; /* Smaller h2 on mobile */
+    font-weight: 500 !important;
+  }
+}
 /* Only add these rules to your existing index.css - don't replace anything */
 
 
@@ -901,3 +908,4 @@ nav {
     padding-right: 1.25rem !important;
   }
 }
+

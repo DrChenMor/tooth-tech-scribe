@@ -8,7 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { useCategories } from '@/hooks/use-categories';
-import { useMemo, useState, useRef } from 'react';
+import { useMemo, useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import {
@@ -50,10 +50,29 @@ const Index = () => {
   });
   const { data: categories, isLoading: isLoadingCategories } = useCategories();
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [showArrows, setShowArrows] = useState(true);
 
   const autoplayPlugin = useRef(
     Autoplay({ delay: 8000, stopOnInteraction: true })
   );
+
+  // Hide arrows after 3 seconds on mobile/tablet
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowArrows(false);
+    }, 3000);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Show arrows on touch/interaction
+  const handleInteraction = () => {
+    setShowArrows(true);
+    // Hide again after 3 seconds
+    setTimeout(() => {
+      setShowArrows(false);
+    }, 3000);
+  };
 
   const filteredArticles = useMemo(() => {
     if (!articles) return [];
@@ -68,9 +87,9 @@ const Index = () => {
           <div className="container mx-auto px-4 md:px-6 lg:px-12">
             <div className="pt-6 md:pt-8 pb-8 md:pb-12 px-4 md:px-8 lg:px-16">
               <div className="max-w-7xl mx-auto">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 lg:h-[450px] overflow-hidden rounded-2xl bg-card border">
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-0 xl:h-[450px] overflow-hidden rounded-2xl bg-card border">
                   {/* ✅ FIX: Skeleton now mimics the robust two-group layout */}
-                  <div className="flex flex-col justify-between order-2 lg:order-1 p-6 md:p-8 lg:p-8">
+                  <div className="flex flex-col justify-between order-2 xl:order-1 p-6 md:p-8 xl:p-8">
                     <div className="space-y-4">
                       <Skeleton className="h-8 md:h-10 w-full" />
                       <Skeleton className="h-6 md:h-8 w-4/5" />
@@ -87,7 +106,7 @@ const Index = () => {
                       <Skeleton className="h-12 w-48" />
                     </div>
                   </div>
-                  <div className="order-1 lg:order-2 h-64 sm:h-80 md:h-96 lg:h-full">
+                  <div className="order-1 xl:order-2 h-64 sm:h-80 md:h-96 xl:h-full">
                     <Skeleton className="w-full h-full" />
                   </div>
                 </div>
@@ -144,7 +163,7 @@ const Index = () => {
         <div className="container mx-auto px-4 md:px-6 lg:px-12">
           
           {heroArticles.length > 0 && (
-            <div className="pt-6 md:pt-8 pb-8 md:pb-12 px-4 md:px-8 lg:px-16">
+            <div className="pt-6 md:pt-8 pb-6 md:pb-12 px-4 md:px-8 lg:px-16">
               <Carousel
                 plugins={[autoplayPlugin.current]}
                 className="w-full max-w-7xl mx-auto"
@@ -159,15 +178,19 @@ const Index = () => {
                   {heroArticles.map((article, index) => (
                     <CarouselItem key={article.id}>
                       <Link to={`/article/${article.slug}`} className="group block">
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 lg:h-[450px] overflow-hidden rounded-2xl bg-card hover:shadow-sm transition-shadow duration-300">
+                        <div 
+                          className="grid grid-cols-1 lg:grid-cols-2 gap-0 lg:h-[450px] overflow-hidden rounded-2xl bg-card hover:shadow-sm transition-shadow duration-300"
+                          onTouchStart={handleInteraction}
+                          onTouchMove={handleInteraction}
+                        >
                           
                           {/* ✅ FIX: Changed to a robust flex layout that pins content to top and bottom */}
                           <div className="flex flex-col justify-between order-2 lg:order-1 p-6 md:p-8 lg:p-8">
                             
                             {/* --- Top Content Group --- */}
                             <div className="space-y-2 md:space-y-8">
-                              <h1 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-serif leading-tight group-hover:text-primary transition-colors duration-300">
-                                {article.title}
+                            <h1 className="text-lg sm:text-xl md:text-2xl xl:text-3xl font-serif font-medium leading-tight group-hover:text-primary transition-colors duration-300 carousel-title">
+                            {article.title}
                               </h1>
                               <p className="text-sm md:text-base text-muted-foreground leading-relaxed hidden sm:block">
                                 {article.excerpt}
@@ -209,7 +232,7 @@ const Index = () => {
                               <div>
                                 <Button 
                                   size="lg"
-                                  className="group/btn bg-primary hover:bg-primary/90 text-primary-foreground px-4 md:px-6 py-2 md:py-3 rounded-full text-sm md:text-base font-medium transition-all duration-300 w-full sm:w-auto"
+                                  className="group/btn bg-blue-700 hover:bg-blue-800 text-primary-foreground px-4 md:px-6 py-2 md:py-3 rounded-full text-sm md:text-base font-medium transition-all duration-300 w-full sm:w-auto"
                                 >
                                   <span className="hidden sm:inline">Read Full Article</span>
                                   <span className="sm:hidden">Read Article</span>
@@ -219,7 +242,7 @@ const Index = () => {
                             </div>
                           </div>
                           
-                          <div className="order-1 lg:order-2 relative h-64 sm:h-80 md:h-96 lg:h-full">
+                          <div className="order-1 xl:order-2 relative h-64 sm:h-80 md:h-96 lg:h-full xl:h-full">
                             <img 
                               src={article.image_url || 'https://placehold.co/800x600/EEE/BDBDBD?text=Denti-AI'} 
                               alt={article.title}
@@ -247,10 +270,20 @@ const Index = () => {
                     </CarouselItem>
                   ))}
                 </CarouselContent>   
-                {/* Inside the image container */}
-                <div className="hidden lg:flex absolute bottom-8 right-16 gap-2 z-10">
-                  <CarouselPrevious className="w-10 h-10 rounded-full bg-background hover:bg-muted transition-colors duration-200 shadow-sm" />
-                  <CarouselNext className="w-10 h-10 rounded-full bg-background hover:bg-muted transition-colors duration-200 shadow-sm" />
+                {/* Desktop arrows - for screens 1200px+ */}
+                <div className="hidden xl:flex absolute bottom-8 right-16 gap-2 z-10">
+                  <CarouselPrevious className="w-10 h-10 rounded-full bg-background border hover:bg-muted transition-colors duration-200 shadow-sm" />
+                  <CarouselNext className="w-10 h-10 rounded-full bg-background border hover:bg-muted transition-colors duration-200 shadow-sm" />
+                </div>
+                {/* Mobile/Tablet arrow - only right arrow, positioned in viewport */}
+                <div className={cn(
+                  "flex xl:hidden absolute bottom-64 -right-6 z-10 transition-opacity duration-700",
+                  showArrows ? "opacity-60" : "opacity-0"
+                )}>
+                  <CarouselNext 
+                    className="w-10 h-10 rounded-full bg-background/70 border border-muted-foreground/20 hover:bg-muted/80 transition-all duration-200 shadow-sm backdrop-blur-sm relative left-0 top-0 translate-x-0 translate-y-0" 
+                    onClick={handleInteraction}
+                  />
                 </div>
               </Carousel>
             </div>
@@ -265,7 +298,7 @@ const Index = () => {
                 "rounded-full px-3 md:px-4 py-2 h-8 md:h-9 text-sm font-medium transition-all duration-200",
                 !selectedCategory
                   ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                  : 'bg-muted text-foreground hover:bg-muted/80'
+                  : 'bg-muted text-foreground hover:brightness-90'
               )}
             >
               All
@@ -283,7 +316,7 @@ const Index = () => {
                     "rounded-full px-3 md:px-4 py-2 h-8 md:h-9 text-sm font-medium transition-all duration-200",
                     selectedCategory === category 
                       ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                      : 'bg-muted text-foreground hover:bg-muted/80'
+                      : 'bg-muted text-foreground hover:brightness-90'
                   )}
                 >
                   {category}
@@ -314,4 +347,3 @@ const Index = () => {
 };
 
 export default Index;
-

@@ -107,14 +107,14 @@ const Footer = () => {
         <div className="bg-white/60 backdrop-blur-xl rounded-2xl py-4 px-6 shadow-none border border-white/20 transition-all duration-300">
           <div className="container mx-auto">
             <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-              <div className="flex flex-col md:flex-row items-center gap-x-6 gap-y-2 text-sm">
+<div className="flex flex-col md:flex-row items-center text-center md:text-left gap-6 text-sm">
 <span className="text-gray-600 text-sm leading-none">© 2025 DentaAI Insights. All rights reserved.</span>
                 <div className="flex space-x-4">
                   <a href="#" className="text-gray-500 hover:text-blue-600 transition-colors duration-300 px-3 py-1 rounded-xl hover:bg-blue-50/50">Privacy Policy</a>
                   <a href="#" className="text-gray-500 hover:text-blue-600 transition-colors duration-300 px-3 py-1 rounded-xl hover:bg-blue-50/50">Terms of Service</a>
                 </div>
               </div>
-              <Button variant="ghost" size="sm" onClick={scrollToTop} className="text-gray-500 hover:text-blue-600 hover:bg-blue-50/80 rounded-2xl transition-all duration-300 hover:shadow-md hover:-translate-y-0.5">
+              <Button variant="ghost" size="sm" onClick={scrollToTop} className="text-gray-500 bg-blue-50 hover:text-blue-600 hover:bg-blue-50/80 rounded-2xl transition-all duration-300 hover:shadow-md hover:-translate-y-0.5">
                 <ArrowUp size={16} className="mr-1" />
                 Back to Top
               </Button>

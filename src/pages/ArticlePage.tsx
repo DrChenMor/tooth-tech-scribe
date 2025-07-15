@@ -111,8 +111,8 @@ const ArticlePage = () => {
               </div>
 
               <h1 
-                className={`text-4xl md:text-5xl font-bold mt-4 leading-tight text-center text-gray-900 ${isRTL ? 'text-right' : 'text-left'}`}
-                dir={textDirection}
+className={`text-3xl md:text-5xl font-medium mt-4 leading-tight text-center text-gray-900 ${isRTL ? 'text-right' : 'text-left'}`}
+dir={textDirection}
               >
                 {article.title}
               </h1>

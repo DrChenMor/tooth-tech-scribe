@@ -70,7 +70,7 @@ const CategoryPage = () => {
   return (
     <>
       <div className="flex-grow container mx-auto px-4 py-8">
-        <h1 className="text-4xl font-bold mb-8">Category: {decodedCategory}</h1>
+        <h1 className="text-4xl font-bold !mb-10">Category: {decodedCategory}</h1>
         {articles && articles.length > 0 ? (
           <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
             {articles.map((article, index) => (

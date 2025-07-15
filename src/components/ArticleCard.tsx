@@ -7,9 +7,10 @@ import { useNavigate } from 'react-router-dom';
 interface ArticleCardProps {
   article: Article;
   index: number;
+  showSEO?: boolean; // Add this prop
 }
 
-const ArticleCard = ({ article, index }: ArticleCardProps) => {
+const ArticleCard = ({ article, index, showSEO = false }: ArticleCardProps) => {
   const navigate = useNavigate();
 
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
@@ -60,7 +61,7 @@ const ArticleCard = ({ article, index }: ArticleCardProps) => {
                 </Badge>
               </button>
             )}
-            {article.seo_score && (
+            {showSEO && article.seo_score && (
               <Badge 
                 variant="outline"
                 className={`text-xs font-medium backdrop-blur-sm border border-white/20 ${

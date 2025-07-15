@@ -64,8 +64,8 @@
     /* Font Sizes */
     --h1-font-size: 2.5rem;
     --h2-font-size: 1.5rem;
-    --h3-font-size: 1.5rem;
-    --h4-font-size: 1.5rem;
+    --h3-font-size: 1.4rem;
+    --h4-font-size: 1.4rem;
     --h5-font-size: 1.125rem;
     --h6-font-size: 1rem;
     --p-font-size: 1rem;
@@ -645,6 +645,24 @@ a[data-sidebar]:active {
   .container h2 {
     font-size: 1.3rem !important; /* Smaller h2 on mobile */
     font-weight: 500 !important;
+  }
+}
+@media (max-width: 768px) {
+
+.container h3 {
+  font-size: 1.2rem !important; /* Smaller h2 on mobile */
+  font-weight: 400 !important;
+}
+}
+
+@media (min-width: 769px) {
+  .container h2 {
+    font-size: 1.5rem !important; /* Example size for desktop */
+    font-weight: 500 !important;
+  }
+  .container h3 {
+    font-size: 1.3rem !important; /* Example size for desktop */
+    font-weight: 400 !important;
   }
 }
 /* Only add these rules to your existing index.css - don't replace anything */

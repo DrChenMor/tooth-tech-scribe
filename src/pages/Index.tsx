@@ -246,11 +246,11 @@ const Index = () => {
                       </Link>
                     </CarouselItem>
                   ))}
-                </CarouselContent>
-                
-                <div className="absolute bottom-4 right-4 md:bottom-6 md:right-6 flex gap-2 z-10">
-                  <CarouselPrevious className="static relative translate-y-0 w-10 h-10 rounded-full bg-background border hover:bg-muted transition-colors duration-200 shadow-sm" />
-                  <CarouselNext className="static relative translate-y-0 w-10 h-10 rounded-full bg-background border hover:bg-muted transition-colors duration-200 shadow-sm" />
+                </CarouselContent>   
+                {/* Inside the image container */}
+                <div className="hidden lg:flex absolute bottom-8 right-16 gap-2 z-10">
+                  <CarouselPrevious className="w-10 h-10 rounded-full bg-background hover:bg-muted transition-colors duration-200 shadow-sm" />
+                  <CarouselNext className="w-10 h-10 rounded-full bg-background hover:bg-muted transition-colors duration-200 shadow-sm" />
                 </div>
               </Carousel>
             </div>

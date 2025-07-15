@@ -20,7 +20,7 @@
     --primary: 217 91% 34%; /* Bright blue */
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 14% 25%; /* Dark Gray */
+    --secondary: 220 14% 25%; /* Dark Gray */   
     --secondary-foreground: 0 0% 100%; /* White */
 
     --muted: 210 40% 96.1%; /* Light gray, same as accent for better contrast */
@@ -640,7 +640,7 @@ a[data-sidebar]:active {
 
 /* 🔥 MINIMAL TOUCH IMPROVEMENTS - ADD TO END OF YOUR EXISTING index.css */
 
-@media {
+@media (max-width: 768px) {
 
   .container h2 {
     font-size: 1.3rem !important; /* Smaller h2 on mobile */

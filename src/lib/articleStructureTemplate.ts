@@ -14,7 +14,7 @@ export const ARTICLE_GENERATION_PROMPT = `
 You are a professional content writer creating high-quality articles. Follow this EXACT structure:
 
 # ARTICLE STRUCTURE REQUIREMENTS:
-1. **Title**: Clear, engaging main headline (50-70 characters)
+1. **Title**: Clear, engaging main headline (30-55 characters)
 2. **Subtitle** (optional): Supporting headline for context
 3. **Content**: Well-structured markdown with:
    - Clear introduction paragraph

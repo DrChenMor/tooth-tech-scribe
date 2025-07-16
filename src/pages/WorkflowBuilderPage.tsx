@@ -11,6 +11,265 @@ import { WorkflowNode, ExecutionLog } from '@/types/WorkflowTypes';
 import { executeArticleValidation } from '@/components/workflow/ArticleStructureValidator';
 import { useQueryClient } from '@tanstack/react-query';
 
+// --- NEW: Enhanced style playbooks -----------------------------------
+const STYLE_GUIDELINES: Record<string, string> = {
+  Funny: `
+ROLE: You are a witty commentator and expert entertainer. Your primary goal is not just to be funny, but to use humor to make the core message more engaging and memorable.
+
+HUMOR PHILOSOPHY:
+- Relevance is Key: Jokes, analogies, and sarcastic remarks must directly relate to the topic. The humor should illuminate the point, not distract from it.
+- Vary the Format: Mix witty one-liners, playful analogies, light-hearted sarcasm, and funny (but plausible) anecdotes.
+- Punch Up, Not Down: Humor must be inclusive, clever, and good-natured. Strictly avoid jokes that rely on stereotypes, are mean-spirited, or target disadvantaged groups.
+
+STRUCTURE & PACING:
+- Sprinkle humor naturally throughout the text, aiming for 1-2 humorous moments every ~300 words.
+- End the article with a sharp, witty one-liner that summarises the takeaway.
+
+TONE:
+Playful, smart, and slightly irreverent. Emoji are acceptable if they genuinely add to the tone. 😉
+`,
+  Academic: `
+ROLE: You are an academic researcher with a PhD in the relevant field. Your reputation hinges on the credibility, objectivity, and rigour of your work.
+
+THESIS-DRIVEN STRUCTURE:
+- Begin with a clear, arguable thesis statement in the introduction.
+- Develop a logical argument in the body that supports this thesis.
+- Conclude by summarising the argument and restating the thesis.
+
+EVIDENCE & CITATION (CRITICAL RULES):
+- PRIORITISE PROVIDED SOURCES: Base all factual claims on them and cite using APA 7 inline citations.
+- IF NO SOURCES ARE PROVIDED: State that information is synthesised from general knowledge. Generate illustrative, correctly-formatted citations.
+
+TONE & VOICE:
+Formal, objective, and analytical. Avoid hyperbole and emotive language. Write in the third person.
+
+REQUIRED SECTIONS:
+Abstract (120-150 words) • Introduction • Main Body • Conclusion • References
+`,
+  Conversational: `
+ROLE: You are a friendly mentor. Write directly to the reader using "you" and "we." 
+
+ENGAGEMENT:
+- Ask rhetorical questions to guide thinking.
+- Lead sections with short relatable anecdotes.
+
+STRUCTURE:
+- Short paragraphs.
+- Sub-headings that sound like reader questions.
+`,
+  Technical: `
+ROLE: You are a senior software engineer and technical writer. Produce clear, accurate, safe documentation.
+
+PROBLEM-SOLUTION FOCUS:
+- State the problem before presenting code.
+
+CODE QUALITY & SAFETY (CRITICAL RULES):
+- Snippets must be syntactically correct and follow best practices.
+- **CRITICAL:** If a command is destructive (e.g., \`rm -rf\`, \`DROP TABLE\`), add a bold warning and suggest a backup.
+- Include comments in code and specify language tags.
+
+CLARITY & PRECISION:
+- Define acronyms on first use.
+- Use \`backticks\` for inline code; fenced blocks for multi-line snippets.
+
+REQUIRED SECTIONS:
+Prerequisites/Requirements • Key Specs/Configuration • Step-by-step headings
+`,
+  Creative: `
+ROLE: You are a master storyteller weaving a compelling narrative.
+
+NARRATIVE CRAFT:
+- "Show, don't tell" with vivid sensory detail.
+- Opening scene (50-80 words) introduces the central theme.
+- Conclusion must call back to the opening scene.
+
+TONE:
+Evocative, emotive, descriptive.
+`,
+  Investigative: `
+ROLE: You are an investigative journalist committed to factual integrity.
+
+GUARDRAILS:
+- NEVER invent facts, events, quotes, or sources.
+- Attribute every claim with [source] markers.
+- Distinguish fact from analysis clearly.
+
+STRUCTURE:
+- Inverted-pyramid (lede first).
+- Include a timeline box of key events.
+`
+};
+// ---------------------------------------------------------------------
+
+// --- NEW: Enhanced audience playbooks --------------------------------
+const AUDIENCE_GUIDELINES: Record<string, string> = {
+  Beginners: `
+• Avoid jargon; when unavoidable, explain in plain language immediately.
+• Use real-world analogies and step-by-step walkthroughs.
+• Maintain an encouraging, supportive tone that empowers the reader.
+`,
+  Experts: `
+• Assume deep prior knowledge; do **not** re-explain fundamentals.
+• Focus on nuanced details, edge-cases, and performance trade-offs.
+• Include data tables, benchmarks, or citations where relevant.
+`,
+  Students: `
+• Frame explanations as a learning journey.
+• End each major section with a one-sentence summary *in italics*.
+• Add 2–3 self-assessment questions ("Check Your Understanding").
+`,
+  "General readers": `
+• Use clear, everyday language and avoid specialised jargon.
+• Provide broad context before diving into details so anyone can follow.
+• Keep paragraphs short and include real-world examples.
+`,
+  Professionals: `
+• Assume readers work in the field; use correct terminology but skip 101-level explanations.
+• Emphasise actionable insights, best practices, and case studies.
+• Include bullet lists for quick scanning and time-saving charts/tables.
+`,
+  Researchers: `
+• Focus on methodology, data integrity, and replicability.
+• Cite primary literature; include brief discussions of limitations and future work.
+• Present results with figures/tables and statistical context where applicable.
+`,
+  "Business Leaders": `
+• Highlight strategic implications, ROI, and market impact rather than low-level details.
+• Use concise executive summaries and bullet-point key takeaways.
+• Provide real-world examples of business outcomes or case studies.
+`,
+  Practitioners: `
+• Deliver hands-on, step-by-step instructions that can be applied immediately.
+• Include screenshots, diagrams, or checklists where they aid comprehension.
+• Address common pitfalls and troubleshooting tips.
+`,
+  Consumers: `
+• Explain benefits and drawbacks in plain language with no technical jargon.
+• Provide clear, practical advice and usage tips.
+• Include any relevant safety or disclaimer information.
+`,
+  Educators: `
+• Present information in teaching modules with clear learning objectives.
+• Incorporate discussion prompts or classroom activities.
+• Provide references and further-reading suggestions for students.
+`
+};
+// ---------------------------------------------------------------------
+
+// --- NEW: Content-Focus playbooks ------------------------------------
+const CONTENT_FOCUS_GUIDELINES: Record<string, string> = {
+  informative: `
+• Prioritise clarity and breadth of information.
+• Provide definitions, background context, and key facts.
+• Use neutral, objective language.
+`,
+  analytical: `
+• Break down causes, effects, and relationships.
+• Incorporate data, charts, or comparative tables where relevant.
+• Present pros, cons, and nuanced insights rather than simple summaries.
+`,
+  practical: `
+• Focus on step-by-step instructions and actionable advice.
+• Use numbered lists, checklists, or flow-charts to aid implementation.
+• Highlight common pitfalls and troubleshooting tips.
+`,
+  persuasive: `
+• Present a clear stance backed with evidence and logical reasoning.
+• Address potential counter-arguments respectfully.
+• Finish with a strong call-to-action.
+`,
+  balanced: `
+• Provide multiple viewpoints with equal weight.
+• Use neutral language and disclose sources of bias when known.
+• Conclude with a fair synthesis rather than taking a side.
+`,
+  narrative: `
+• Tell the story of the topic through characters, conflict, and resolution.
+• Use chronological or thematic progression to maintain reader engagement.
+• Employ vivid descriptions to create an immersive experience.
+`,
+  comparative: `
+• Lay out two or more options side-by-side in clear categories.
+• Use comparison tables or bullet lists for quick reference.
+• Conclude with guidance on choosing between the options.
+`
+};
+// ---------------------------------------------------------------------
+
+// --- NEW: Tone-of-Voice playbooks ------------------------------------
+const TONE_GUIDELINES: Record<string, string> = {
+  neutral: `
+• Present information objectively without emotional language.
+• Focus on clarity and completeness of facts.
+`,
+  optimistic: `
+• Emphasise positive outcomes, opportunities, and forward-looking statements.
+• Use encouraging language but remain credible.
+`,
+  cautious: `
+• Highlight potential risks and uncertainties.
+• Use careful, measured phrasing (e.g., "may", "could").
+`,
+  confident: `
+• State claims assertively with supporting evidence.
+• Avoid tentative language unless absolutely necessary.
+`,
+  empathetic: `
+• Acknowledge reader concerns or challenges.
+• Use supportive language and inclusive "we" statements.
+`,
+  enthusiastic: `
+• Convey excitement and energy with lively verbs.
+• Keep sentences active and upbeat while avoiding hype.
+`,
+  critical: `
+• Evaluate pros and cons rigorously, pointing out flaws or gaps.
+• Maintain respectful, evidence-based critique.
+`,
+  supportive: `
+• Offer reassurance, practical help, and encouragement.
+• Use positive reinforcement and solution-oriented language.
+`
+};
+// ---------------------------------------------------------------------
+
+// --- NEW: Content-Type playbooks -------------------------------------
+const CONTENT_TYPE_GUIDELINES: Record<string, string> = {
+  article: `
+• Provide an engaging introduction, body with sub-headings, and a clear conclusion.
+• Aim for comprehensive coverage of the topic (depending on word-count target).
+`,
+  summary: `
+• Condense the main ideas into key points or short paragraphs.
+• Highlight only the most relevant facts, omitting minor details.
+`,
+  analysis: `
+• Explain causes, effects, implications, and underlying trends.
+• Support assertions with data, citations, or comparative examples.
+`,
+  "news-report": `
+• Follow the inverted pyramid: who, what, when, where, why first.
+• Keep paragraphs short and stick to verified facts.
+`,
+  tutorial: `
+• Use step-by-step instructions with code, commands, or screenshots.
+• Verify each step works on the stated platform or version.
+`,
+  "blog-post": `
+• Adopt a personable tone; open with a hook or anecdote.
+• Encourage discussion or sharing at the end.
+`,
+  "opinion-piece": `
+• State a clear stance early and support it with evidence.
+• Address counter-arguments respectfully.
+`,
+  "research-report": `
+• Include abstract, methodology, results, discussion, and references.
+• Present data in tables or figures where appropriate.
+`
+};
+// ---------------------------------------------------------------------
+
 const WorkflowBuilderPage = () => {
   const queryClient = useQueryClient();
   const [nodes, setNodes] = useState<WorkflowNode[]>([]);
@@ -577,24 +836,19 @@ ${customInstructions || 'No additional instructions provided.'}
 - The title should be descriptive and engaging, not generic
 
 **TARGET AUDIENCE GUIDELINES:**
-${targetAudience === 'Experts' ? 'Use technical terminology and assume deep knowledge of the subject.' :
-  targetAudience === 'Beginners' ? 'Explain concepts clearly and avoid jargon.' :
-  targetAudience === 'Students' ? 'Make content educational and easy to understand.' :
-  'Write for a general audience with clear explanations.'}
+${AUDIENCE_GUIDELINES[targetAudience] || 'Write for a general audience with clear explanations.'}
 
 **WRITING STYLE GUIDELINES:**
-${writingStyle === 'Academic' ? 'Use formal language, citations, and structured arguments.' :
-  writingStyle === 'Funny' ? 'Use funny language like you are comedian.' :
-  writingStyle === 'Conversational' ? 'Use friendly, approachable language like talking to a friend.' :
-  writingStyle === 'Technical' ? 'Focus on precise, technical details and specifications.' :
-  writingStyle === 'Creative' ? 'Use engaging storytelling and creative elements.' :
-  'Use professional but accessible language.'}
+${STYLE_GUIDELINES[writingStyle] || 'Use professional but accessible language.'}
 
 **CONTENT FOCUS GUIDELINES:**
-${contentFocus === 'informative' ? 'Focus on providing educational value and comprehensive information.' :
-  contentFocus === 'practical' ? 'Emphasize actionable advice and step-by-step guidance.' :
-  contentFocus === 'analytical' ? 'Provide deep analysis and critical thinking.' :
-  'Balance information, analysis, and practical insights.'}
+${CONTENT_FOCUS_GUIDELINES[contentFocus] || 'Balance information, analysis, and practical insights.'}
+
+**TONE OF VOICE GUIDELINES:**
+${TONE_GUIDELINES[tone] || 'Maintain a consistent, clear tone throughout.'}
+
+**CONTENT TYPE GUIDELINES:**
+${CONTENT_TYPE_GUIDELINES[contentType] || 'Organise the piece according to best practices for this content type.'}
 
 **Source Content to Transform:**
 ${sourceContent}

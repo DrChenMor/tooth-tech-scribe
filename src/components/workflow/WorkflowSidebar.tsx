@@ -372,6 +372,50 @@ const NodeConfiguration = ({
               onCheckedChange={(checked) => handleConfigChange('includeAbstracts', checked)}
             />
           </div>
+          <div className="space-y-2">
+            <Label>Sort By</Label>
+            <Select
+              key={`sort-${node.id}`}
+              value={localConfig.sort || 'relevance'}
+              onValueChange={(value) => handleConfigChange('sort', value)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="relevance">Relevance</SelectItem>
+                <SelectItem value="date">Newest</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Language</Label>
+            <Select
+              key={`language-${node.id}`}
+              value={localConfig.language || 'en'}
+              onValueChange={(value) => handleConfigChange('language', value)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="en">English</SelectItem>
+                <SelectItem value="es">Spanish</SelectItem>
+                <SelectItem value="fr">French</SelectItem>
+                <SelectItem value="de">German</SelectItem>
+                <SelectItem value="he">Hebrew</SelectItem>
+                <SelectItem value="zh-CN">Chinese (Simplified)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2 flex items-center gap-2">
+            <Switch
+              key={`includeCitations-${node.id}`}
+              checked={localConfig.includeCitations || false}
+              onCheckedChange={(checked) => handleConfigChange('includeCitations', checked)}
+            />
+            <Label>Only results with citations/PDF</Label>
+          </div>
           {renderCustomInstructions("Add specific instructions for academic paper filtering...")}
         </div>
       )}
@@ -435,9 +479,30 @@ const NodeConfiguration = ({
                 <SelectItem value="day">Last 24 Hours</SelectItem>
                 <SelectItem value="week">Last Week</SelectItem>
                 <SelectItem value="month">Last Month</SelectItem>
+                <SelectItem value="custom">Custom Range</SelectItem>
               </SelectContent>
             </Select>
           </div>
+          {localConfig.timeRange === 'custom' && (
+            <div className="space-y-2">
+              <Label>Custom Date Range</Label>
+              <div className="flex gap-2">
+                <Input
+                  key={`fromDate-${node.id}`}
+                  type="date"
+                  value={localConfig.fromDate || ''}
+                  onChange={(e) => handleConfigChange('fromDate', e.target.value)}
+                />
+                <span className="self-center text-sm">to</span>
+                <Input
+                  key={`toDate-${node.id}`}
+                  type="date"
+                  value={localConfig.toDate || ''}
+                  onChange={(e) => handleConfigChange('toDate', e.target.value)}
+                />
+              </div>
+            </div>
+          )}
           <div className="space-y-2">
             <Label>Maximum Articles</Label>
             <Input

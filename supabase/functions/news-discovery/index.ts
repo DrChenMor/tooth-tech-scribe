@@ -122,13 +122,18 @@ async function searchEuropePMC(keywords: string, maxResults: number) {
 }
 
 // GNews API integration
-async function searchGNews(keywords: string, maxResults: number) {
+async function searchGNews(keywords: string, maxResults: number, fromDate: string | null, toDate: string | null) {
   const GNEWS_API_KEY = '2f09c637683eac28e9f1bc2bec089d44';
   
   try {
-    const searchUrl = `https://gnews.io/api/v4/search?q=${encodeURIComponent(keywords)}&lang=en&country=us&max=${maxResults}&apikey=${GNEWS_API_KEY}`;
-    
     console.log(`Searching GNews for: ${keywords}`);
+    
+    const from = fromDate || null;
+    const to   = toDate || null;
+    
+    let searchUrl = `https://gnews.io/api/v4/search?q=${encodeURIComponent(keywords)}&lang=en&country=us&max=${maxResults}&apikey=${GNEWS_API_KEY}`;
+    if (from) searchUrl += `&from=${from}`;
+    if (to)   searchUrl += `&to=${to}`;
     
     const response = await fetch(searchUrl);
     
@@ -170,12 +175,15 @@ async function searchGNews(keywords: string, maxResults: number) {
 }
 
 // Guardian API integration
-async function searchGuardian(keywords: string, maxResults: number) {
+async function searchGuardian(keywords: string, maxResults: number, fromDate: string | null, toDate: string | null) {
   const GUARDIAN_API_KEY = 'b5e3ab61-d3dc-46e7-b3cf-8f510fae9cf3';
   
   try {
-    const searchUrl = `https://content.guardianapis.com/search?q=${encodeURIComponent(keywords)}&show-fields=headline,byline,thumbnail,short-url&page-size=${maxResults}&api-key=${GUARDIAN_API_KEY}`;
+    let searchUrl = `https://content.guardianapis.com/search?q=${encodeURIComponent(keywords)}&show-fields=headline,byline,thumbnail,short-url&page-size=${maxResults}&api-key=${GUARDIAN_API_KEY}`;
+    if (fromDate) searchUrl += `&from-date=${fromDate}`;
+    if (toDate)   searchUrl += `&to-date=${toDate}`;
     
+    console.log('🌐 Guardian search URL:', searchUrl);
     console.log(`Searching Guardian for: ${keywords}`);
     
     const response = await fetch(searchUrl);
@@ -363,11 +371,23 @@ serve(async (req) => {
   try {
     const { 
       keywords, 
-      sources = ['all'], // Now accepts array of sources
+      source = 'all', 
       timeRange = 'day', 
-      maxResults = 10,
-      saveToQueue = true // Option to save to content queue
+      maxResults = 10, 
+      saveToQueue = true,
+      fromDate, // optional ISO string
+      toDate    // optional ISO string
     } = await req.json()
+    
+    console.log('📋 Received request body:', {
+      keywords,
+      source,
+      timeRange,
+      maxResults,
+      fromDate,
+      toDate,
+      saveToQueue
+    });
     
     if (!keywords) {
       throw new Error('Keywords are required')
@@ -375,7 +395,7 @@ serve(async (req) => {
 
     const keywordArray = Array.isArray(keywords) ? keywords : [keywords];
     const keywordString = keywordArray.join(' ');
-    const sourcesArray = Array.isArray(sources) ? sources : [sources];
+    const sourcesArray = Array.isArray(source) ? source : [source];
 
     console.log(`🔍 News Discovery: Searching for "${keywordString}" from sources: ${sourcesArray.join(', ')}`);
     
@@ -393,10 +413,10 @@ serve(async (req) => {
         searchPromises.push(searchEuropePMC(keywordString, resultsPerSource));
       }
       if (source === 'all' || source === 'gnews') {
-        searchPromises.push(searchGNews(keywordString, resultsPerSource));
+        searchPromises.push(searchGNews(keywordString, resultsPerSource, fromDate, toDate));
       }
       if (source === 'all' || source === 'guardian') {
-        searchPromises.push(searchGuardian(keywordString, resultsPerSource));
+        searchPromises.push(searchGuardian(keywordString, resultsPerSource, fromDate, toDate));
       }
       if (source === 'all' || source === 'hackernews') {
         searchPromises.push(searchHackerNews(keywordString, resultsPerSource));

@@ -16,7 +16,10 @@ serve(async (req) => {
       maxResults = 20, 
       yearFrom, 
       yearTo, 
-      includeAbstracts = true 
+      includeAbstracts = true,
+      sort = 'relevance',
+      language = 'en',
+      includeCitations = false
     } = await req.json()
     
     if (!query) {
@@ -29,22 +32,26 @@ serve(async (req) => {
     }
 
     console.log(`Searching Google Scholar for: "${query}"`)
-    console.log(`Parameters: maxResults=${maxResults}, yearFrom=${yearFrom}, yearTo=${yearTo}, includeAbstracts=${includeAbstracts}`)
+    console.log(`Parameters: maxResults=${maxResults}, yearFrom=${yearFrom}, yearTo=${yearTo}, includeAbstracts=${includeAbstracts}, sort=${sort}, language=${language}, includeCitations=${includeCitations}`)
     
-    // Build SerpAPI request parameters
     const params = new URLSearchParams({
       engine: 'google_scholar',
       q: query,
       api_key: serpApiKey,
-      num: Math.min(maxResults, 20).toString(), // SerpAPI limit is 20 per request
+      num: Math.min(maxResults, 20).toString(),
+      sort: sort,
+      hl: language
     })
 
-    // Add year filters if provided
     if (yearFrom) {
       params.append('as_ylo', yearFrom.toString())
     }
     if (yearTo) {
       params.append('as_yhi', yearTo.toString())
+    }
+
+    if (includeCitations) {
+      params.append('as_vis', '1')
     }
 
     const serpApiUrl = `https://serpapi.com/search?${params.toString()}`
@@ -62,7 +69,6 @@ serve(async (req) => {
       throw new Error(`SerpAPI error: ${data.error}`)
     }
 
-    // Process the organic results
     const organicResults = data.organic_results || []
     
     const papers = organicResults.map((result: any) => ({
@@ -94,7 +100,10 @@ serve(async (req) => {
           maxResults,
           yearFrom,
           yearTo,
-          includeAbstracts
+          includeAbstracts,
+          sort,
+          language,
+          includeCitations
         },
         source: 'SerpAPI'
       }),
@@ -112,7 +121,6 @@ serve(async (req) => {
   }
 })
 
-// Helper function to extract year from publication info
 function extractYear(publicationInfo: string): number {
   const yearMatch = publicationInfo.match(/\b(19|20)\d{2}\b/)
   return yearMatch ? parseInt(yearMatch[0]) : new Date().getFullYear()

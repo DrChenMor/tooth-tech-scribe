@@ -389,7 +389,10 @@ const WorkflowBuilderPage = () => {
               yearFrom: node.config.yearFrom,
               yearTo: node.config.yearTo,
               includeAbstracts: node.config.includeAbstracts,
-              multiplePages: true // 🔥 Enable multiple page fetching
+              multiplePages: true, // 🔥 Enable multiple page fetching
+              sort: node.config.sort || 'relevance', // New: sort by relevance or date
+              language: node.config.language || 'en', // New: interface language
+              citationsOnly: node.config.citationsOnly || false // New: include only papers with public citations
             }
           });
           if (scholarError) throw new Error(scholarError.message);
@@ -408,7 +411,9 @@ const WorkflowBuilderPage = () => {
               keywords: node.config.keywords,
               source: node.config.source || 'all',
               timeRange: node.config.timeRange || 'day',
-              maxResults: node.config.maxResults || 10
+              maxResults: node.config.maxResults || 10,
+              fromDate: node.config.fromDate, // New: fromDate for date filtering
+              toDate: node.config.toDate // New: toDate for date filtering
             }
           });
           if (newsError) throw new Error(newsError.message);
@@ -834,6 +839,7 @@ ${customInstructions || 'No additional instructions provided.'}
 - Focus on ${contentFocus} approach
 - Use lists, emphasis, and proper paragraph structure
 - The title should be descriptive and engaging, not generic
+- Limit the title to 30-60 characters
 
 **TARGET AUDIENCE GUIDELINES:**
 ${AUDIENCE_GUIDELINES[targetAudience] || 'Write for a general audience with clear explanations.'}
@@ -901,7 +907,18 @@ Generate the ${contentType} now following all specifications above:`;
 
     // Extract the title from the markdown and remove it from content
     const titleMatch = processedContent.match(/^#\s+(.+)/m);
-    const extractedTitle = titleMatch ? titleMatch[1].trim() : 'Untitled Article';
+    let extractedTitle = titleMatch ? titleMatch[1].trim() : 'Untitled Article';
+    
+    // Enforce 30-60 character limit
+    if (extractedTitle.length < 30 || extractedTitle.length > 60) {
+      // Instruct AI earlier, but as a safeguard we clamp/extend here
+      if (extractedTitle.length > 60) {
+        extractedTitle = extractedTitle.slice(0, 57).trimEnd() + '…';
+      } else {
+        // Too short: pad with a brief descriptor from category or topic
+        extractedTitle = `${extractedTitle} – ${category}`.slice(0, 60);
+      }
+    }
     
     // Remove the title line from content to prevent duplication
     const contentWithoutTitle = processedContent.replace(/^#\s+.+\n\n?/m, '').trim();
@@ -1391,7 +1408,7 @@ const handleFanOut = async (currentNode: WorkflowNode, originalData: any, itemsT
 
   console.log(`🔄 Fan-out: Will process ${processedItems.length} items through ${currentNode.connected.length} connected nodes`);
 
-  // 🔥 CRITICAL: Process EACH item through ALL connected chains
+  // 🔥 CRITICAL: Process EACH item through ALL connected nodes (not just the first one)
   for (let i = 0; i < processedItems.length; i++) {
     const item = processedItems[i];
     const branchLogId = `${currentNode.id}-branch-${i + 1}`;

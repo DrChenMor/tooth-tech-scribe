@@ -185,13 +185,52 @@ async function executeNewsDiscoveryNode(node: WorkflowNode, context: WorkflowExe
   console.log('🔍 Executing News Discovery node');
   
   try {
+    // Calculate fromDate / toDate based on preset
+    let fromDate: string | undefined;
+    let toDate: string | undefined;
+    const now = new Date();
+    
+    if (node.config.timeRange === 'custom') {
+      fromDate = node.config.fromDate;
+      toDate = node.config.toDate;
+      console.log('📅 Using custom date range:', { fromDate, toDate });
+    } else {
+      switch (node.config.timeRange) {
+      case 'hour':
+        fromDate = new Date(now.getTime() - 60 * 60 * 1000).toISOString();
+        break;
+      case 'day':
+        fromDate = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
+        break;
+      case 'week':
+        fromDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+        break;
+      case 'month':
+        fromDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
+        break;
+      default:
+        break;
+      }
+      console.log('📅 Using preset date range:', { timeRange: node.config.timeRange, fromDate });
+    }
+
+    console.log('🔧 News Discovery config:', {
+      keywords: node.config.keywords,
+      source: node.config.source,
+      timeRange: node.config.timeRange,
+      fromDate,
+      toDate
+    });
+
     const { data, error } = await supabase.functions.invoke('news-discovery', {
       body: {
         keywords: node.config.keywords || ['AI', 'technology'],
-        sources: node.config.sources || ['all'],
+        source: node.config.source || node.config.sources || 'all',
         maxResults: node.config.maxResults || 10,
         timeRange: node.config.timeRange || 'day',
-        saveToQueue: true // Always save to content queue
+        fromDate,
+        toDate,
+        saveToQueue: true
       }
     });
 
@@ -260,7 +299,13 @@ async function executeGoogleScholarNode(node: WorkflowNode, context: WorkflowExe
     const { data, error } = await supabase.functions.invoke('google-scholar-search', {
       body: {
         query: node.config.query || context.data.keywords || 'AI research',
-        maxResults: node.config.maxResults || 10
+        maxResults: node.config.maxResults || 10,
+        yearFrom: node.config.yearFrom,
+        yearTo: node.config.yearTo,
+        sort: node.config.sort || 'relevance',
+        language: node.config.language || 'en',
+        includeAbstracts: node.config.includeAbstracts !== false,
+        includeCitations: node.config.includeCitations || false
       }
     });
 

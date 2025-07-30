@@ -8,90 +8,78 @@ const corsHeaders = {
 
 interface GenerateEmbeddingsRequest {
   articleIds?: number[];
-  batchSize?: number;
-  forceUpdate?: boolean;
+  forceRegenerate?: boolean;
 }
 
-// Generate embeddings using Google's Gemini model
-async function getGeminiEmbedding(text: string): Promise<number[]> {
-  const googleApiKey = Deno.env.get('GOOGLE_API_KEY');
-  if (!googleApiKey) {
-    throw new Error('Google API key not configured');
-  }
-
-  // Clean and limit text
-  const cleanText = text
-    .replace(/<[^>]*>/g, '') // Remove HTML tags
-    .replace(/\s+/g, ' ')    // Normalize whitespace
-    .trim()
-    .substring(0, 10000);    // Limit to 10k chars
-
-  console.log(`Generating embedding for text of length: ${cleanText.length}`);
-
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent?key=${googleApiKey}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: 'models/gemini-embedding-001',
-      content: { parts: [{ text: cleanText }] },
-      outputDimensionality: 768
-    }),
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(`Gemini API error: ${response.statusText} - ${JSON.stringify(errorData)}`);
-  }
-
-  const data = await response.json();
-  if (!data.embedding?.values) {
-    throw new Error('No embedding values in response');
-  }
-
-  return data.embedding.values;
-}
-
-// Process articles one by one
-async function processArticle(supabase: any, article: any, forceUpdate: boolean = false) {
+// Generate embedding for a single article
+async function generateArticleEmbedding(article: any, googleApiKey: string): Promise<number[] | null> {
   try {
-    if (article.embedding && !forceUpdate) {
-      console.log(`Skipping article ${article.id} - embedding exists`);
-      return { success: true, skipped: true };
-    }
-
-    // Combine article text
-    const combinedText = [
+    // Combine title, excerpt, and content for embedding
+    const textForEmbedding = [
       article.title || '',
       article.excerpt || '',
-      article.content || ''
-    ].join(' ').trim();
+      article.content?.substring(0, 1000) || ''
+    ].filter(text => text.trim().length > 0).join('\n\n');
 
-    if (!combinedText) {
-      console.log(`Skipping article ${article.id} - no content`);
-      return { success: true, skipped: true };
+    if (textForEmbedding.trim().length < 10) {
+      console.log(`⚠️ Article ${article.id} has insufficient text for embedding`);
+      return null;
     }
 
-    console.log(`Processing article ${article.id}: "${article.title?.substring(0, 50)}..."`);
+    console.log(`🧠 Generating embedding for article: "${article.title}" (${textForEmbedding.length} chars)`);
 
-    // Generate embedding
-    const embedding = await getGeminiEmbedding(combinedText);
-    
-    // Update database
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent?key=${googleApiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'models/gemini-embedding-001',
+        content: { parts: [{ text: textForEmbedding }] },
+        outputDimensionality: 768
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`❌ Gemini API error for article ${article.id}: ${response.status} - ${errorText}`);
+      return null;
+    }
+
+    const data = await response.json();
+    const embedding = data.embedding?.values;
+
+    if (!embedding || embedding.length !== 768) {
+      console.error(`❌ Invalid embedding for article ${article.id}: ${embedding?.length} dimensions`);
+      return null;
+    }
+
+    console.log(`✅ Generated embedding for article ${article.id}: ${embedding.length} dimensions`);
+    return embedding;
+
+  } catch (error) {
+    console.error(`❌ Error generating embedding for article ${article.id}:`, error);
+    return null;
+  }
+}
+
+// Update article embedding in database
+async function updateArticleEmbedding(supabase: any, articleId: number, embedding: number[]): Promise<boolean> {
+  try {
     const { error } = await supabase.rpc('update_article_embedding', {
-      article_id: article.id,
+      article_id: articleId,
       new_embedding: embedding
     });
 
     if (error) {
-      throw new Error(`Database update failed: ${error.message}`);
+      console.error(`❌ Error updating embedding for article ${articleId}:`, error);
+      return false;
     }
 
-    console.log(`✅ Updated embedding for article ${article.id}`);
-    return { success: true, processed: true };
+    console.log(`✅ Updated embedding for article ${articleId}`);
+    return true;
 
   } catch (error) {
-    console.error(`❌ Error processing article ${article.id}:`, error);
-    return { success: false, error: error.message };
+    console.error(`❌ Error updating embedding for article ${articleId}:`, error);
+    return false;
   }
 }
 
@@ -102,95 +90,115 @@ serve(async (req) => {
 
   try {
     const request: GenerateEmbeddingsRequest = await req.json();
-    
+    const { articleIds, forceRegenerate = false } = request;
+
+    console.log('🚀 Starting batch embedding generation...');
+
+    const googleApiKey = Deno.env.get('GOOGLE_API_KEY');
+    if (!googleApiKey) {
+      throw new Error('Google API key not configured');
+    }
+
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
-    const batchSize = Math.min(request.batchSize || 3, 5); // Max 5 at a time
-    const forceUpdate = request.forceUpdate || false;
-
-    // Build query
+    // Get articles that need embeddings
     let query = supabase
       .from('articles')
-      .select('id, title, excerpt, content, embedding')
+      .select('id, title, excerpt, content, status')
       .eq('status', 'published');
 
-    if (request.articleIds && request.articleIds.length > 0) {
-      query = query.in('id', request.articleIds);
-    } else if (!forceUpdate) {
-      query = query.is('embedding', null);
+    if (articleIds && articleIds.length > 0) {
+      query = query.in('id', articleIds);
     }
 
-    const { data: articles, error: fetchError } = await query.limit(batchSize);
+    if (!forceRegenerate) {
+      query = query.or('embedding.is.null');
+    }
 
-    if (fetchError) {
-      throw new Error(`Failed to fetch articles: ${fetchError.message}`);
+    const { data: articles, error } = await query;
+
+    if (error) {
+      console.error('❌ Error fetching articles:', error);
+      throw error;
     }
 
     if (!articles || articles.length === 0) {
+      console.log('ℹ️ No articles found that need embeddings');
       return new Response(JSON.stringify({
         success: true,
-        message: 'No articles found to process',
+        message: 'No articles found that need embeddings',
         processed: 0,
-        total: 0,
-        provider: 'google-gemini',
-        model: 'gemini-embedding-001'
+        failed: 0
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    console.log(`Processing ${articles.length} articles with Google Gemini...`);
+    console.log(`📚 Found ${articles.length} articles to process`);
 
     let processed = 0;
-    let skipped = 0;
-    const errors: string[] = [];
+    let failed = 0;
+    const results = [];
 
-    // Process articles one by one with delay
-    for (const article of articles) {
-      const result = await processArticle(supabase, article, forceUpdate);
-      
-      if (result.success) {
-        if (result.processed) processed++;
-        if (result.skipped) skipped++;
-      } else {
-        errors.push(`Article ${article.id}: ${result.error}`);
-      }
+    // Process articles in batches to avoid rate limits
+    const batchSize = 5;
+    for (let i = 0; i < articles.length; i += batchSize) {
+      const batch = articles.slice(i, i + batchSize);
+      console.log(`🔄 Processing batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(articles.length / batchSize)}`);
 
-      // Add delay between requests to avoid rate limiting
-      if (articles.indexOf(article) < articles.length - 1) {
-        console.log('Waiting 2 seconds...');
-        await new Promise(resolve => setTimeout(resolve, 2000));
+      const batchPromises = batch.map(async (article) => {
+        try {
+          const embedding = await generateArticleEmbedding(article, googleApiKey);
+          if (embedding) {
+            const success = await updateArticleEmbedding(supabase, article.id, embedding);
+            if (success) {
+              processed++;
+              return { id: article.id, success: true };
+            } else {
+              failed++;
+              return { id: article.id, success: false, error: 'Failed to update database' };
+            }
+          } else {
+            failed++;
+            return { id: article.id, success: false, error: 'Failed to generate embedding' };
+          }
+        } catch (error) {
+          failed++;
+          return { id: article.id, success: false, error: error.message };
+        }
+      });
+
+      const batchResults = await Promise.all(batchPromises);
+      results.push(...batchResults);
+
+      // Add delay between batches to avoid rate limits
+      if (i + batchSize < articles.length) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
       }
     }
 
-    const response = {
+    console.log(`🎉 Batch embedding generation completed: ${processed} processed, ${failed} failed`);
+
+    return new Response(JSON.stringify({
       success: true,
-      message: `Processed ${articles.length} articles`,
+      message: `Generated embeddings for ${processed} articles, ${failed} failed`,
       processed,
-      skipped,
+      failed,
       total: articles.length,
-      errors,
-      provider: 'google-gemini',
-      model: 'gemini-embedding-001',
-      cost: '$0.00 (FREE)',
-      batchSize
-    };
-
-    console.log('Final result:', response);
-
-    return new Response(JSON.stringify(response), {
+      results
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (error) {
-    console.error('Error in generate-embeddings-batch:', error);
+    console.error('❌ Error in generate-embeddings-batch:', error);
+    
     return new Response(JSON.stringify({
       success: false,
-      error: error.message,
-      helpUrl: 'https://aistudio.google.com/app/apikey'
+      error: error.message
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

@@ -121,15 +121,17 @@ async function improvedVectorSearch(supabase: any, query: string, maxResults: nu
 
     console.log(`✅ Generated embedding with ${embedding.length} dimensions`);
 
-    // Search with lower threshold for better recall
-    const { data: vectorResults, error: vectorError } = await supabase.rpc('search_articles_by_similarity', {
-      query_embedding: embedding,
-      similarity_threshold: 0.3, // Lower threshold for better recall
-      match_count: maxResults
-    });
+    // Use direct SQL query instead of RPC function
+    const { data: vectorResults, error: vectorError } = await supabase
+      .from('articles')
+      .select('id, title, slug, excerpt, content, category, published_date')
+      .eq('status', 'published')
+      .not('embedding', 'is', null)
+      .order(`embedding <-> '[${embedding.join(',')}]'::vector`)
+      .limit(maxResults);
 
     if (vectorError) {
-      console.error('❌ Vector search RPC error:', vectorError);
+      console.error('❌ Vector search error:', vectorError);
       return null;
     }
 
@@ -138,8 +140,7 @@ async function improvedVectorSearch(supabase: any, query: string, maxResults: nu
       return null;
     }
 
-    console.log(`✅ Vector search successful: ${vectorResults.length} results with similarities:`, 
-      vectorResults.map(r => r.similarity?.toFixed(3)).join(', '));
+    console.log(`✅ Vector search successful: ${vectorResults.length} results`);
     
     return { results: vectorResults, searchType: 'vector' };
 

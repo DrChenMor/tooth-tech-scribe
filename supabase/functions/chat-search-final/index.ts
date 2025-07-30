@@ -209,18 +209,17 @@ You have access to these specific articles from our website:
 ${articlesContent}
 
 CRITICAL INSTRUCTIONS:
-1. Be conversational and friendly, like a real chat assistant
-2. Answer the user's question naturally, not like a formal report
-3. Always provide the full website URL (https://dentalai.live/article/[slug]) when referencing articles
-4. Mention specific authors, categories, and details from the articles
+1. Be conversational but CONCISE - keep responses under 100 words
+2. Answer the user's question directly and briefly
+3. Only mention articles that are actually relevant to the query
+4. Use "I" and "you" to make it conversational
 5. If asked about authors, mention their articles specifically
 6. If asked about categories, list articles in that category
-7. Keep responses engaging and helpful (150-300 words)
-8. Use "I" and "you" to make it conversational
-9. If the user asks follow-up questions, reference the conversation history
-10. Always provide actionable information and encourage further questions
+7. Don't be overly friendly or verbose - be helpful and direct
+8. If the user asks follow-up questions, reference the conversation history
+9. Focus on providing actionable information quickly
 
-Generate a conversational response now:`;
+Generate a concise, helpful response now:`;
 
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${googleApiKey}`, {
       method: 'POST',
@@ -232,7 +231,7 @@ Generate a conversational response now:`;
           temperature: 0.7,
           topK: 40,
           topP: 0.95,
-          maxOutputTokens: 800,
+          maxOutputTokens: 300,
         }
       })
     });

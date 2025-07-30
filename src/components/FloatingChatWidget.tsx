@@ -71,7 +71,7 @@ const FloatingChatWidget = () => {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 
-      const response = await fetch('https://nuhjsrmkkqtecfkjrcox.supabase.co/functions/v1/chat-search-v2', {
+      const response = await fetch('https://nuhjsrmkkqtecfkjrcox.supabase.co/functions/v1/chat-search-smart', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

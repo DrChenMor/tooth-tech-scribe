@@ -33,6 +33,7 @@ import ContentQueuePage from './pages/ContentQueuePage';
 import ScrollToTop from './components/ScrollToTop'; // Add this import
 import { useGlobalTheme } from './hooks/useGlobalTheme';
 import ReportersManagementPage from '@/pages/ReportersManagementPage';
+import ChatPage from '@/pages/ChatPage';
 import { SidebarProvider } from "@/components/ui/sidebar";
 import UnsubscribePage from './pages/UnsubscribePage';
 
@@ -60,6 +61,7 @@ function AppContent() {
                 <Route path="/about" element={<AboutPage />} />
                 <Route path="/contact" element={<ContactPage />} />
                 <Route path="/category/:category" element={<CategoryPage />} />
+                <Route path="/chat" element={<ChatPage />} />
               </Route>
 
               <Route path="/auth" element={<AuthPage />} />

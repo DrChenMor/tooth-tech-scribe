@@ -338,6 +338,8 @@ const Index = () => {
             ))}
           </div>
         </div>
+        
+
       </main>
       <Footer />
     </div>

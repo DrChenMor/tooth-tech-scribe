@@ -2,6 +2,7 @@
 
 import { AppSidebar } from '@/components/AppSidebar';
 import Header from '@/components/Header'; // Assuming Header is your TopNavigation
+import FloatingChatWidget from '@/components/FloatingChatWidget';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { Outlet } from 'react-router-dom';
 
@@ -19,6 +20,8 @@ const MainLayout = () => {
             <Outlet />
           </main>
         </div>
+        {/* Floating Chat Widget */}
+        <FloatingChatWidget />
       </div>
     </SidebarProvider>
   );

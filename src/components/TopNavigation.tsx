@@ -11,6 +11,7 @@ const TopNavigation = () => {
   const navItems = [
     { title: 'Articles', href: '/articles' },
     { title: 'Categories', href: '/categories' },
+    { title: 'AI Chat', href: '/chat' },
     { title: 'About Us', href: '/about' },
   ];
 

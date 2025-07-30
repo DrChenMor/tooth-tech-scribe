@@ -10,25 +10,107 @@ interface ChatSearchRequest {
   query: string;
   language?: string;
   maxResults?: number;
+  conversationHistory?: Array<{role: 'user' | 'assistant', content: string}>;
 }
 
-// Enhanced keyword search with better relevance
-async function enhancedKeywordSearch(supabase: any, query: string, maxResults: number = 5) {
+// Enhanced search with multiple strategies
+async function smartSearch(supabase: any, query: string, maxResults: number = 5) {
   const cleanQuery = query.toLowerCase().trim();
+  console.log(`🧠 Smart search for: "${cleanQuery}"`);
+
+  // Strategy 1: Author/Reporter search
+  if (cleanQuery.includes('author') || cleanQuery.includes('reporter') || cleanQuery.includes('writer') || cleanQuery.includes('by')) {
+    const authorMatch = cleanQuery.match(/(?:author|reporter|writer|by)\s+(.+)/i);
+    if (authorMatch) {
+      const authorName = authorMatch[1].trim();
+      console.log(`👤 Searching for author: "${authorName}"`);
+      
+      const { data: authorResults, error: authorError } = await supabase
+        .from('articles')
+        .select('id, title, slug, excerpt, content, category, published_date, author_name, reporter_id')
+        .eq('status', 'published')
+        .ilike('author_name', `%${authorName}%`)
+        .order('published_date', { ascending: false })
+        .limit(maxResults);
+
+      if (!authorError && authorResults && authorResults.length > 0) {
+        console.log(`✅ Found ${authorResults.length} articles by ${authorName}`);
+        return { results: authorResults, searchType: 'author', authorName };
+      }
+    }
+  }
+
+  // Strategy 2: Category search
+  if (cleanQuery.includes('category') || cleanQuery.includes('topic') || cleanQuery.includes('about')) {
+    const categoryMatch = cleanQuery.match(/(?:category|topic|about)\s+(.+)/i);
+    if (categoryMatch) {
+      const category = categoryMatch[1].trim();
+      console.log(`📂 Searching for category: "${category}"`);
+      
+      const { data: categoryResults, error: categoryError } = await supabase
+        .from('articles')
+        .select('id, title, slug, excerpt, content, category, published_date, author_name, reporter_id')
+        .eq('status', 'published')
+        .ilike('category', `%${category}%`)
+        .order('published_date', { ascending: false })
+        .limit(maxResults);
+
+      if (!categoryError && categoryResults && categoryResults.length > 0) {
+        console.log(`✅ Found ${categoryResults.length} articles in category ${category}`);
+        return { results: categoryResults, searchType: 'category', category };
+      }
+    }
+  }
+
+  // Strategy 3: Vector search with embeddings
+  try {
+    const googleApiKey = Deno.env.get('GOOGLE_API_KEY');
+    if (googleApiKey) {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent?key=${googleApiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'models/gemini-embedding-001',
+          content: { parts: [{ text: cleanQuery.substring(0, 300) }] },
+          outputDimensionality: 768
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const embedding = data.embedding?.values;
+
+        if (embedding && embedding.length === 768) {
+          const { data: vectorResults, error: vectorError } = await supabase
+            .from('articles')
+            .select('id, title, slug, excerpt, content, category, published_date, author_name, reporter_id')
+            .eq('status', 'published')
+            .not('embedding', 'is', null)
+            .order(`embedding <-> '[${embedding.join(',')}]'::vector`)
+            .limit(maxResults);
+
+          if (!vectorError && vectorResults && vectorResults.length > 0) {
+            console.log(`✅ Vector search found ${vectorResults.length} results`);
+            return { results: vectorResults, searchType: 'vector' };
+          }
+        }
+      }
+    }
+  } catch (error) {
+    console.log('⚠️ Vector search failed, falling back to keyword search');
+  }
+
+  // Strategy 4: Enhanced keyword search
   const keywords = cleanQuery.split(' ').filter(word => word.length > 2);
   
-  console.log(`🔍 Enhanced keyword search for: "${cleanQuery}" with keywords: [${keywords.join(', ')}]`);
-
-  // Build a more sophisticated search query
   let searchQuery = supabase
     .from('articles')
-    .select('id, title, slug, excerpt, content, category, published_date, status')
+    .select('id, title, slug, excerpt, content, category, published_date, author_name, reporter_id')
     .eq('status', 'published');
 
-  // Add multiple search conditions for better relevance
   if (keywords.length > 0) {
     const conditions = keywords.map(keyword => 
-      `or(title.ilike.%${keyword}%,excerpt.ilike.%${keyword}%,content.ilike.%${keyword}%)`
+      `or(title.ilike.%${keyword}%,excerpt.ilike.%${keyword}%,content.ilike.%${keyword}%,author_name.ilike.%${keyword}%,category.ilike.%${keyword}%)`
     ).join(',');
     
     searchQuery = searchQuery.or(conditions);
@@ -36,124 +118,61 @@ async function enhancedKeywordSearch(supabase: any, query: string, maxResults: n
 
   const { data, error } = await searchQuery
     .order('published_date', { ascending: false })
-    .limit(maxResults * 2); // Get more results to filter
+    .limit(maxResults * 2);
 
   if (error) {
     console.error('❌ Keyword search error:', error);
-    return [];
+    return { results: [], searchType: 'keyword' };
   }
 
   if (!data || data.length === 0) {
-    console.log('⚠️ No articles found in keyword search');
-    return [];
+    console.log('⚠️ No articles found');
+    return { results: [], searchType: 'keyword' };
   }
 
-  // Score and rank results by relevance
+  // Score and rank results
   const scoredResults = data.map(article => {
     let score = 0;
     const titleLower = article.title?.toLowerCase() || '';
     const excerptLower = article.excerpt?.toLowerCase() || '';
     const contentLower = article.content?.toLowerCase() || '';
+    const authorLower = article.author_name?.toLowerCase() || '';
+    const categoryLower = article.category?.toLowerCase() || '';
 
-    // Score based on keyword matches
     keywords.forEach(keyword => {
       if (titleLower.includes(keyword)) score += 10;
       if (excerptLower.includes(keyword)) score += 5;
       if (contentLower.includes(keyword)) score += 2;
+      if (authorLower.includes(keyword)) score += 8;
+      if (categoryLower.includes(keyword)) score += 6;
     });
 
-    // Bonus for exact phrase match
     if (titleLower.includes(cleanQuery)) score += 20;
     if (excerptLower.includes(cleanQuery)) score += 10;
 
-    // Recency bonus
     const daysOld = (Date.now() - new Date(article.published_date).getTime()) / (1000 * 60 * 60 * 24);
     score += Math.max(0, 10 - daysOld);
 
     return { ...article, relevance_score: score };
   });
 
-  // Sort by relevance and return top results
   const sortedResults = scoredResults
     .sort((a, b) => b.relevance_score - a.relevance_score)
     .slice(0, maxResults);
 
   console.log(`✅ Keyword search found ${sortedResults.length} relevant articles`);
-  return sortedResults;
+  return { results: sortedResults, searchType: 'keyword' };
 }
 
-// Improved vector search with better error handling
-async function improvedVectorSearch(supabase: any, query: string, maxResults: number = 5) {
-  try {
-    const googleApiKey = Deno.env.get('GOOGLE_API_KEY');
-    if (!googleApiKey) {
-      console.log('⚠️ Google API key not configured, skipping vector search');
-      return null;
-    }
-
-    const cleanText = query.trim().substring(0, 300);
-    console.log(`🧠 Attempting vector search for: "${cleanText}"`);
-
-    // Use the new Gemini embedding model
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent?key=${googleApiKey}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'models/gemini-embedding-001',
-        content: { parts: [{ text: cleanText }] },
-        outputDimensionality: 768
-      })
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`❌ Gemini embedding API error: ${response.status} - ${errorText}`);
-      return null;
-    }
-
-    const data = await response.json();
-    const embedding = data.embedding?.values;
-
-    if (!embedding || embedding.length !== 768) {
-      console.error('❌ Invalid embedding received:', embedding?.length);
-      return null;
-    }
-
-    console.log(`✅ Generated embedding with ${embedding.length} dimensions`);
-
-    // Use direct SQL query instead of RPC function
-    const { data: vectorResults, error: vectorError } = await supabase
-      .from('articles')
-      .select('id, title, slug, excerpt, content, category, published_date')
-      .eq('status', 'published')
-      .not('embedding', 'is', null)
-      .order(`embedding <-> '[${embedding.join(',')}]'::vector`)
-      .limit(maxResults);
-
-    if (vectorError) {
-      console.error('❌ Vector search error:', vectorError);
-      return null;
-    }
-
-    if (!vectorResults || vectorResults.length === 0) {
-      console.log('⚠️ Vector search returned no results');
-      return null;
-    }
-
-    console.log(`✅ Vector search successful: ${vectorResults.length} results`);
-    
-    return { results: vectorResults, searchType: 'vector' };
-
-  } catch (error) {
-    console.error('❌ Vector search failed:', error.message);
-    return null;
-  }
-}
-
-// Enhanced AI response generation
-async function generateIntelligentResponse(query: string, searchResults: any[]): Promise<string> {
+// Conversational AI response generation
+async function generateConversationalResponse(
+  query: string, 
+  searchResults: any[], 
+  searchType: string,
+  conversationHistory: Array<{role: 'user' | 'assistant', content: string}> = []
+): Promise<string> {
   if (searchResults.length === 0) {
-    return "I couldn't find any specific articles about that topic in our dental technology database. I specialize in dental AI tools, diagnostic technologies, practice management software, and dental imaging innovations. Try asking about specific tools like 'AI diagnostic software' or 'dental imaging AI'.";
+    return "I couldn't find any specific articles about that topic in our dental technology database. I specialize in dental AI tools, diagnostic technologies, practice management software, and dental imaging innovations. Try asking about specific tools like 'AI diagnostic software' or 'dental imaging AI'. You can also ask me about specific authors, categories, or topics!";
   }
 
   try {
@@ -162,83 +181,89 @@ async function generateIntelligentResponse(query: string, searchResults: any[]):
       throw new Error('Google API key not configured');
     }
 
-    // Prepare article content for AI
+    // Prepare conversation context
+    const conversationContext = conversationHistory.length > 0 
+      ? `\n\nPrevious conversation:\n${conversationHistory.map(msg => `${msg.role}: ${msg.content}`).join('\n')}`
+      : '';
+
+    // Prepare article content
     const articlesContent = searchResults.map(article => {
       const content = article.content ? article.content.substring(0, 800) : article.excerpt || 'No detailed content available';
       return `ARTICLE: "${article.title}"
+AUTHOR: ${article.author_name || 'Unknown'}
 CATEGORY: ${article.category || 'General'}
 PUBLISHED: ${article.published_date}
+URL: https://dentalai.live/article/${article.slug}
 CONTENT: ${content}
 =======================================`;
     }).join('\n\n');
 
-    const enhancedPrompt = `You are Dr. Sarah Chen, a leading expert in dental AI technology and innovation. A dental professional asked you: "${query}"
+    const enhancedPrompt = `You are Dr. Sarah Chen, a friendly and knowledgeable dental AI expert assistant. A user is chatting with you about dental technology and AI.
 
-You have access to these specific research articles and industry reports:
+Current user question: "${query}"
+Search type used: ${searchType}
+${conversationContext}
+
+You have access to these specific articles from our website:
 
 ${articlesContent}
 
-CRITICAL INSTRUCTIONS - YOU MUST FOLLOW THESE EXACTLY:
-1. Give a comprehensive, detailed answer (minimum 200 words)
-2. Mention specific AI technologies, tools, or benefits found in the articles
-3. Include practical examples and applications
-4. Use professional dental terminology appropriately
-5. Reference specific findings from the articles above
-6. Be educational and informative - this is for dental professionals
-7. If articles mention specific product names or technologies, include them
-8. Explain HOW these AI tools benefit dentists practically
-9. Only use information from the provided articles - don't make up facts
+CRITICAL INSTRUCTIONS:
+1. Be conversational and friendly, like a real chat assistant
+2. Answer the user's question naturally, not like a formal report
+3. Always provide the full website URL (https://dentalai.live/article/[slug]) when referencing articles
+4. Mention specific authors, categories, and details from the articles
+5. If asked about authors, mention their articles specifically
+6. If asked about categories, list articles in that category
+7. Keep responses engaging and helpful (150-300 words)
+8. Use "I" and "you" to make it conversational
+9. If the user asks follow-up questions, reference the conversation history
+10. Always provide actionable information and encourage further questions
 
-REQUIRED FORMAT:
-- Start with: "Based on the latest research and industry analysis..."
-- Include specific details from the articles
-- End with practical implications for dental practice
-
-Write your expert response now (minimum 200 words):`;
+Generate a conversational response now:`;
 
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${googleApiKey}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        model: 'models/gemini-2.0-flash-exp',
         contents: [{ parts: [{ text: enhancedPrompt }] }],
         generationConfig: {
+          temperature: 0.7,
+          topK: 40,
+          topP: 0.95,
           maxOutputTokens: 800,
-          temperature: 0.2,
-          topP: 0.9
         }
       })
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('❌ Gemini API error:', response.status, errorText);
       throw new Error(`Gemini API error: ${response.status}`);
     }
 
     const data = await response.json();
     const answer = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
-    if (answer && answer.trim() && answer.length > 150) {
-      console.log('✅ Intelligent response generated successfully:', answer.length, 'characters');
+    if (answer && answer.length > 50) {
+      console.log('✅ Conversational response generated successfully');
       return answer.trim();
     }
 
-    throw new Error('No valid detailed response from Gemini');
+    throw new Error('No valid response from Gemini');
 
   } catch (error) {
     console.error('❌ AI response generation failed:', error);
     
-    // Create intelligent fallback from article content
-    const detailedInfo = searchResults.map(article => {
-      const content = article.excerpt || article.content?.substring(0, 300) || '';
-      return `"${article.title}": ${content}`;
-    }).join('\n\n');
+    // Create intelligent fallback
+    const articleList = searchResults.map(article => 
+      `• "${article.title}" by ${article.author_name || 'Unknown'} (${article.category}) - https://dentalai.live/article/${article.slug}`
+    ).join('\n');
 
-    return `Based on the latest research and industry analysis from our dental technology database, here's what I found about your question:
+    return `I found some relevant articles for you! Here's what I discovered:
 
-${detailedInfo}
+${articleList}
 
-These articles provide comprehensive information about AI applications in dentistry. The research shows significant advancements in diagnostic accuracy, treatment planning efficiency, and patient care quality. For detailed technical specifications and implementation guidelines, I recommend reviewing the complete articles linked below.`;
+These articles should help answer your question about "${query}". Feel free to ask me more specific questions about any of these topics, authors, or categories!`;
   }
 }
 
@@ -249,47 +274,36 @@ serve(async (req) => {
 
   try {
     const request: ChatSearchRequest = await req.json();
-    const { query, language = 'en', maxResults = 5 } = request;
+    const { query, language = 'en', maxResults = 5, conversationHistory = [] } = request;
 
     if (!query?.trim()) {
       throw new Error('Query is required');
     }
 
-    console.log(`🚀 Processing FINAL chat search: "${query}"`);
+    console.log(`🚀 Processing smart chat search: "${query}"`);
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
-    let searchResults: any[] = [];
-    let searchType = 'keyword';
+    // Perform smart search
+    const searchResult = await smartSearch(supabase, query, maxResults);
+    const { results: searchResults, searchType, authorName, category } = searchResult;
 
-    // Try vector search first
-    const vectorResult = await improvedVectorSearch(supabase, query, maxResults);
-    if (vectorResult && vectorResult.results.length > 0) {
-      searchResults = vectorResult.results;
-      searchType = vectorResult.searchType;
-      console.log(`✅ Using vector search results: ${searchResults.length} articles`);
-    } else {
-      // Fallback to enhanced keyword search
-      console.log('🔄 Falling back to enhanced keyword search...');
-      searchResults = await enhancedKeywordSearch(supabase, query, maxResults);
-      console.log(`✅ Using keyword search results: ${searchResults.length} articles`);
-    }
+    // Generate conversational response
+    const answer = await generateConversationalResponse(query, searchResults, searchType, conversationHistory);
 
-    // Generate intelligent response
-    const answer = await generateIntelligentResponse(query, searchResults);
-
-    // Format references
+    // Format references with full URLs
     const references = searchResults.map(article => ({
       title: article.title,
-      url: `/article/${article.slug}`,
+      url: `https://dentalai.live/article/${article.slug}`,
       excerpt: article.excerpt || article.content?.substring(0, 150) + '...' || '',
-      category: article.category || 'Article'
+      category: article.category || 'Article',
+      author: article.author_name || 'Unknown'
     }));
 
-    console.log(`🎉 Search completed successfully: ${searchResults.length} results, ${searchType} search`);
+    console.log(`🎉 Smart search completed: ${searchResults.length} results, ${searchType} search`);
 
     return new Response(JSON.stringify({
       success: true,
@@ -297,8 +311,10 @@ serve(async (req) => {
       references,
       resultsCount: searchResults.length,
       searchType,
+      authorName,
+      category,
       provider: 'google-gemini',
-      model: 'gemini-2.0-flash-exp-final',
+      model: 'gemini-2.0-flash-exp',
       language,
       timestamp: new Date().toISOString()
     }), {
@@ -306,12 +322,12 @@ serve(async (req) => {
     });
 
   } catch (error) {
-    console.error('❌ Error in chat-search-final:', error);
+    console.error('❌ Error in smart chat search:', error);
     
     return new Response(JSON.stringify({
       success: false,
       error: error.message,
-      answer: "I'm experiencing technical difficulties. Please try again in a moment, or ask me about specific dental AI topics like 'diagnostic imaging AI' or 'practice management tools'.",
+      answer: "I'm experiencing some technical difficulties right now. Please try again in a moment, or ask me about specific dental AI topics, authors, or categories!",
       references: []
     }), {
       status: 500,

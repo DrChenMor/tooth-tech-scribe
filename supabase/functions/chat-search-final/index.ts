@@ -170,9 +170,12 @@ async function generateConversationalResponse(
   searchResults: any[], 
   searchType: string,
   conversationHistory: Array<{role: 'user' | 'assistant', content: string}> = []
-): Promise<string> {
+): Promise<{answer: string, shouldShowReferences: boolean}> {
   if (searchResults.length === 0) {
-    return "I couldn't find any specific articles about that topic in our dental technology database. I specialize in dental AI tools, diagnostic technologies, practice management software, and dental imaging innovations. Try asking about specific tools like 'AI diagnostic software' or 'dental imaging AI'. You can also ask me about specific authors, categories, or topics!";
+    return {
+      answer: "I couldn't find any specific articles about that topic in our dental technology database. I specialize in dental AI tools, diagnostic technologies, practice management software, and dental imaging innovations. Try asking about specific tools like 'AI diagnostic software' or 'dental imaging AI'. You can also ask me about specific authors, categories, or topics!",
+      shouldShowReferences: false
+    };
   }
 
   try {
@@ -180,6 +183,18 @@ async function generateConversationalResponse(
     if (!googleApiKey) {
       throw new Error('Google API key not configured');
     }
+
+    // Analyze conversation context to determine if this is a follow-up question
+    const isFollowUp = conversationHistory.length > 0;
+    const lastUserMessage = conversationHistory.filter(msg => msg.role === 'user').pop();
+    const lastAssistantMessage = conversationHistory.filter(msg => msg.role === 'assistant').pop();
+    
+    // Check if this is a simple follow-up like "yes", "no", "tell me more", etc.
+    const simpleFollowUps = ['yes', 'no', 'ok', 'sure', 'please', 'tell me more', 'continue', 'go on'];
+    const isSimpleFollowUp = simpleFollowUps.some(followUp => 
+      query.toLowerCase().trim() === followUp || 
+      query.toLowerCase().includes(followUp)
+    );
 
     // Prepare conversation context
     const conversationContext = conversationHistory.length > 0 
@@ -198,7 +213,7 @@ CONTENT: ${content}
 =======================================`;
     }).join('\n\n');
 
-    const enhancedPrompt = `You are Dr. Sarah Chen, a friendly and knowledgeable dental AI expert assistant. A user is chatting with you about dental technology and AI.
+    let enhancedPrompt = `You are Dr. Sarah Chen, a friendly and knowledgeable dental AI expert assistant. A user is chatting with you about dental technology and AI.
 
 Current user question: "${query}"
 Search type used: ${searchType}
@@ -211,15 +226,18 @@ ${articlesContent}
 CRITICAL INSTRUCTIONS:
 1. Be conversational but CONCISE - keep responses under 100 words
 2. Answer the user's question directly and briefly
-3. Only mention articles that are actually relevant to the query
+3. If this is a follow-up question (like "yes", "tell me more"), reference the previous conversation
 4. Use "I" and "you" to make it conversational
 5. If asked about authors, mention their articles specifically
 6. If asked about categories, list articles in that category
 7. Don't be overly friendly or verbose - be helpful and direct
-8. If the user asks follow-up questions, reference the conversation history
-9. Focus on providing actionable information quickly
+8. Focus on providing actionable information quickly
+9. If the user asks a simple follow-up, expand on the previous topic`;
 
-Generate a concise, helpful response now:`;
+    // Add specific context for follow-up questions
+    if (isFollowUp && lastAssistantMessage) {
+      enhancedPrompt += `\n\nCONTEXT: This appears to be a follow-up question. The user's previous question was about "${lastUserMessage?.content}" and you responded with information about the articles above. Please continue the conversation naturally.`;
+    }
 
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${googleApiKey}`, {
       method: 'POST',
@@ -245,7 +263,20 @@ Generate a concise, helpful response now:`;
 
     if (answer && answer.length > 50) {
       console.log('✅ Conversational response generated successfully');
-      return answer.trim();
+      
+      // Determine if references should be shown based on query type and context
+      const shouldShowReferences = !isSimpleFollowUp && searchResults.length > 0 && 
+        (query.toLowerCase().includes('article') || 
+         query.toLowerCase().includes('author') || 
+         query.toLowerCase().includes('category') ||
+         query.toLowerCase().includes('show') ||
+         query.toLowerCase().includes('find') ||
+         query.toLowerCase().includes('search'));
+      
+      return {
+        answer: answer.trim(),
+        shouldShowReferences
+      };
     }
 
     throw new Error('No valid response from Gemini');
@@ -258,11 +289,14 @@ Generate a concise, helpful response now:`;
       `• "${article.title}" by ${article.author_name || 'Unknown'} (${article.category}) - https://dentalai.live/article/${article.slug}`
     ).join('\n');
 
-    return `I found some relevant articles for you! Here's what I discovered:
+    return {
+      answer: `I found some relevant articles for you! Here's what I discovered:
 
 ${articleList}
 
-These articles should help answer your question about "${query}". Feel free to ask me more specific questions about any of these topics, authors, or categories!`;
+These articles should help answer your question about "${query}". Feel free to ask me more specific questions about any of these topics, authors, or categories!`,
+      shouldShowReferences: true
+    };
   }
 }
 
@@ -291,16 +325,16 @@ serve(async (req) => {
     const { results: searchResults, searchType, authorName, category } = searchResult;
 
     // Generate conversational response
-    const answer = await generateConversationalResponse(query, searchResults, searchType, conversationHistory);
+    const { answer, shouldShowReferences } = await generateConversationalResponse(query, searchResults, searchType, conversationHistory);
 
     // Format references with full URLs
-    const references = searchResults.map(article => ({
+    const references = shouldShowReferences ? searchResults.map(article => ({
       title: article.title,
       url: `https://dentalai.live/article/${article.slug}`,
       excerpt: article.excerpt || article.content?.substring(0, 150) + '...' || '',
       category: article.category || 'Article',
       author: article.author_name || 'Unknown'
-    }));
+    })) : [];
 
     console.log(`🎉 Smart search completed: ${searchResults.length} results, ${searchType} search`);
 

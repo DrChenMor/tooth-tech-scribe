@@ -73,12 +73,18 @@ const FloatingChatWidget = () => {
     }
   ];
 
-  // Phase 5: Smart Features - Smart Suggestions
+  // Phase 5: Smart Features - Smart Suggestions (only when relevant)
   const getSuggestions = useCallback(() => {
     const lastMessage = messages[messages.length - 1];
     if (!lastMessage || lastMessage.type !== 'bot') return [];
 
     const suggestions = [];
+    
+    // Only show suggestions if the message has references or is about specific topics
+    if (lastMessage.references && lastMessage.references.length > 0) {
+      suggestions.push('Show me more articles like this');
+      suggestions.push('What other topics does this author cover?');
+    }
     
     // Suggest follow-up questions based on content
     if (lastMessage.content.toLowerCase().includes('ai tools')) {
@@ -90,26 +96,17 @@ const FloatingChatWidget = () => {
       suggestions.push('How accurate is AI imaging?');
       suggestions.push('What are the latest imaging technologies?');
     }
-    
-    if (lastMessage.references && lastMessage.references.length > 0) {
-      suggestions.push('Show me more articles like this');
-      suggestions.push('What other topics does this author cover?');
-    }
 
-    // Default suggestions
-    if (suggestions.length === 0) {
-      suggestions.push('Tell me about the latest dental AI trends');
-      suggestions.push('What are the benefits of AI in dentistry?');
-      suggestions.push('Show me articles about dental technology');
-    }
-
-    return suggestions.slice(0, 3);
+    // Only show suggestions if we have relevant ones
+    return suggestions.slice(0, 2);
   }, [messages]);
 
-  // Smart scrolling - only auto-scroll if user is at bottom
+  // Fixed scrolling - only auto-scroll if user is at bottom
   const scrollToBottom = useCallback((force = false) => {
     if (force || isUserAtBottom) {
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      }, 100);
     }
   }, [isUserAtBottom]);
 
@@ -117,12 +114,12 @@ const FloatingChatWidget = () => {
   const handleScroll = useCallback(() => {
     if (messagesContainerRef.current) {
       const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
-      const isAtBottom = scrollTop + clientHeight >= scrollHeight - 10;
+      const isAtBottom = scrollTop + clientHeight >= scrollHeight - 20;
       setIsUserAtBottom(isAtBottom);
     }
   }, []);
 
-  // Typing animation effect - Phase 1 implementation
+  // Typing animation effect
   const typeMessage = useCallback((messageId: number, fullContent: string) => {
     const words = fullContent.split(' ');
     let currentIndex = 0;
@@ -144,17 +141,19 @@ const FloatingChatWidget = () => {
             ? { ...msg, isTyping: false }
             : msg
         ));
-        // Show suggestions after typing is complete
-        setTimeout(() => setShowSuggestions(true), 500);
+        // Only show suggestions if relevant
+        const suggestions = getSuggestions();
+        if (suggestions.length > 0) {
+          setTimeout(() => setShowSuggestions(true), 500);
+        }
       }
-    }, 50); // Speed of typing - 50ms per word
-  }, [scrollToBottom]);
+    }, 50);
+  }, [scrollToBottom, getSuggestions]);
 
   // Phase 5: Smart Features - Copy message
   const copyMessage = useCallback(async (content: string) => {
     try {
       await navigator.clipboard.writeText(content);
-      // You could add a toast notification here
     } catch (error) {
       console.error('Failed to copy message:', error);
     }
@@ -165,10 +164,7 @@ const FloatingChatWidget = () => {
     const lastUserMessage = messages.findLast(msg => msg.type === 'user');
     if (!lastUserMessage) return;
 
-    // Remove the last bot message
     setMessages(prev => prev.filter(msg => msg.id !== messages[messages.length - 1].id));
-    
-    // Send the last user message again
     await handleSendMessage(lastUserMessage.content);
   }, [messages]);
 
@@ -193,19 +189,16 @@ const FloatingChatWidget = () => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!isOpen || isMinimized) return;
 
-      // Cmd/Ctrl + Enter to send
       if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
         e.preventDefault();
         handleSendMessage();
       }
 
-      // Cmd/Ctrl + K for quick actions
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
         setShowQuickActions(prev => !prev);
       }
 
-      // Escape to clear input
       if (e.key === 'Escape') {
         setInputValue('');
         inputRef.current?.blur();
@@ -236,7 +229,7 @@ const FloatingChatWidget = () => {
     // Phase 3: Chat Memory - Prepare conversation history
     const conversationHistory = messages
       .filter(msg => msg.type === 'user' || msg.type === 'bot')
-      .slice(-10) // Last 10 messages for context
+      .slice(-10)
       .map(msg => ({
         role: msg.type === 'user' ? 'user' as const : 'assistant' as const,
         content: msg.content
@@ -255,7 +248,7 @@ const FloatingChatWidget = () => {
         body: JSON.stringify({ 
           query,
           language: 'en',
-          conversationHistory // Phase 3: Send conversation history
+          conversationHistory
         }),
         signal: controller.signal
       });
@@ -272,14 +265,13 @@ const FloatingChatWidget = () => {
         const botMessage: Message = {
           id: messages.length + 2,
           type: 'bot',
-          content: '', // Start empty for typing animation
+          content: '',
           references: data.references,
           timestamp: new Date(),
           isTyping: true
         };
         setMessages(prev => [...prev, botMessage]);
         
-        // Phase 1: Start typing animation
         setTimeout(() => {
           typeMessage(botMessage.id, data.answer);
         }, 100);
@@ -310,66 +302,53 @@ const FloatingChatWidget = () => {
 
   return (
     <>
-      {/* Floating Button - Phase 4: Enhanced Design */}
+      {/* Floating Button - Flat design */}
       {!isOpen && (
         <div className="fixed bottom-6 right-6 z-50">
           <button
             onClick={() => setIsOpen(true)}
-            className="group bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white p-4 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 hover:rotate-3"
+            className="group bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
             aria-label="Open chat"
           >
             <div className="relative">
-              <MessageCircle className="w-6 h-6 group-hover:animate-pulse" />
-              <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-400 rounded-full animate-ping"></div>
+              <MessageCircle className="w-6 h-6" />
+              {hasNewMessage && (
+                <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+              )}
             </div>
-            {hasNewMessage && (
-              <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
-            )}
           </button>
         </div>
       )}
 
-      {/* Chat Widget - Phase 4: Enhanced UI */}
+      {/* Chat Widget - Flat design */}
       {isOpen && (
-        <div className={`fixed bottom-6 right-6 z-50 bg-white rounded-3xl shadow-2xl border border-gray-200 transition-all duration-300 ${
+        <div className={`fixed bottom-6 right-6 z-50 bg-white rounded-lg shadow-xl border border-gray-200 transition-all duration-300 ${
           isMinimized ? 'w-80 h-16' : 'w-96 h-[600px]'
         }`}>
-          {/* Header - Phase 4: Enhanced Design */}
-          <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800 text-white p-4 rounded-t-3xl flex items-center justify-between relative overflow-hidden">
-            {/* Background Pattern */}
-            <div className="absolute inset-0 opacity-10">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-white rounded-full -translate-y-16 translate-x-16"></div>
-              <div className="absolute bottom-0 left-0 w-24 h-24 bg-white rounded-full translate-y-12 -translate-x-12"></div>
-            </div>
-            
-            <div className="flex items-center gap-3 relative z-10">
-              <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm border border-white/30">
-                <Bot className="w-5 h-5" />
+          {/* Header - Flat design */}
+          <div className="bg-blue-600 text-white p-4 rounded-t-lg flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+                <Bot className="w-4 h-4" />
               </div>
               <div>
-                <h3 className="font-semibold text-sm flex items-center gap-2">
-                  Dental AI Assistant
-                  <Sparkles className="w-3 h-3 text-yellow-300 animate-pulse" />
-                </h3>
+                <h3 className="font-semibold text-sm">Dental AI Assistant</h3>
                 {!isMinimized && (
-                  <p className="text-blue-100 text-xs flex items-center gap-1">
-                    <BookOpen className="w-3 h-3" />
-                    Ask me anything about dental tech
-                  </p>
+                  <p className="text-blue-100 text-xs">Ask me anything about dental tech</p>
                 )}
               </div>
             </div>
-            <div className="flex items-center gap-1 relative z-10">
+            <div className="flex items-center gap-1">
               <button
                 onClick={() => setIsMinimized(!isMinimized)}
-                className="text-blue-100 hover:text-white p-2 rounded-xl hover:bg-white/10 transition-all duration-200 hover:scale-105"
+                className="text-blue-100 hover:text-white p-2 rounded hover:bg-white/10 transition-colors"
                 aria-label={isMinimized ? "Expand chat" : "Minimize chat"}
               >
                 <Minimize className="w-4 h-4" />
               </button>
               <button
                 onClick={() => setIsOpen(false)}
-                className="text-blue-100 hover:text-white p-2 rounded-xl hover:bg-white/10 transition-all duration-200 hover:scale-105"
+                className="text-blue-100 hover:text-white p-2 rounded hover:bg-white/10 transition-colors"
                 aria-label="Close chat"
               >
                 <X className="w-4 h-4" />
@@ -377,53 +356,52 @@ const FloatingChatWidget = () => {
             </div>
           </div>
 
-          {/* Chat Content - Phase 4: Enhanced Design */}
+          {/* Chat Content - Flat design */}
           {!isMinimized && (
             <>
-              {/* Messages - Phase 4: Enhanced Message Bubbles */}
+              {/* Messages */}
               <div 
                 ref={messagesContainerRef}
                 onScroll={handleScroll}
-                className="h-[400px] overflow-y-auto p-4 space-y-4 bg-gradient-to-b from-gray-50 to-white scroll-smooth"
+                className="h-[400px] overflow-y-auto p-4 space-y-4 bg-gray-50"
               >
                 {messages.map((message) => (
                   <div key={message.id} className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}>
                     <div className={`flex gap-3 max-w-[85%] ${message.type === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-                      <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg ${
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
                         message.type === 'user' 
-                          ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white' 
+                          ? 'bg-blue-600 text-white' 
                           : message.error 
-                            ? 'bg-gradient-to-r from-red-500 to-red-600 text-white'
-                            : 'bg-gradient-to-r from-gray-700 to-gray-800 text-white'
+                            ? 'bg-red-500 text-white'
+                            : 'bg-gray-700 text-white'
                       }`}>
                         {message.type === 'user' ? <User className="w-4 h-4" /> : 
                          message.error ? <AlertCircle className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
                       </div>
                       
-                      <div className={`rounded-2xl px-4 py-3 shadow-lg backdrop-blur-sm ${
+                      <div className={`rounded-lg px-4 py-3 ${
                         message.type === 'user' 
-                          ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white' 
+                          ? 'bg-blue-600 text-white' 
                           : message.error 
-                            ? 'bg-gradient-to-r from-red-50 to-red-100 border border-red-200 text-red-800'
-                            : 'bg-white/80 border border-gray-200/50 shadow-xl'
+                            ? 'bg-red-50 border border-red-200 text-red-800'
+                            : 'bg-white border border-gray-200'
                       }`}>
                         <div className="text-sm leading-relaxed">
                           {message.content}
-                          {/* Phase 1: Typing Animation Cursor */}
                           {message.isTyping && (
                             <span className="inline-block w-2 h-4 bg-blue-600 ml-1 animate-pulse rounded-sm"></span>
                           )}
                         </div>
                         
-                        {/* References - Phase 4: Enhanced Source Display */}
+                        {/* References - Flat design */}
                         {message.references && message.references.length > 0 && !message.isTyping && (
-                          <div className="mt-3 pt-3 border-t border-gray-100/50">
+                          <div className="mt-3 pt-3 border-t border-gray-100">
                             <div className="space-y-2">
                               {message.references.slice(0, 2).map((ref, index) => (
                                 <a 
                                   key={index}
                                   href={ref.url} 
-                                  className="block p-3 bg-gradient-to-r from-blue-50 to-blue-100 hover:from-blue-100 hover:to-blue-200 rounded-xl border border-blue-200/50 transition-all duration-200 group hover:shadow-md hover:scale-[1.02]"
+                                  className="block p-3 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-200 transition-colors group"
                                   target="_blank"
                                   rel="noopener noreferrer"
                                 >
@@ -447,7 +425,7 @@ const FloatingChatWidget = () => {
                           </div>
                         )}
 
-                        {/* Phase 5: Smart Features - Message Actions */}
+                        {/* Message Actions */}
                         {!message.isTyping && !message.error && (
                           <div className="mt-2 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                             <button
@@ -483,10 +461,10 @@ const FloatingChatWidget = () => {
                 {isLoading && (
                   <div className="flex justify-start">
                     <div className="flex gap-3">
-                      <div className="w-9 h-9 rounded-full bg-gradient-to-r from-gray-700 to-gray-800 text-white flex items-center justify-center shadow-lg">
+                      <div className="w-8 h-8 rounded-full bg-gray-700 text-white flex items-center justify-center">
                         <Bot className="w-4 h-4" />
                       </div>
-                      <div className="bg-white/80 border border-gray-200/50 rounded-2xl px-4 py-3 shadow-xl backdrop-blur-sm">
+                      <div className="bg-white border border-gray-200 rounded-lg px-4 py-3">
                         <div className="flex items-center gap-2">
                           <Loader className="w-4 h-4 animate-spin text-blue-600" />
                           <span className="text-sm text-gray-600">Searching...</span>
@@ -496,14 +474,14 @@ const FloatingChatWidget = () => {
                   </div>
                 )}
 
-                {/* Phase 5: Smart Features - Smart Suggestions */}
+                {/* Smart Suggestions - Only when relevant */}
                 {showSuggestions && !isLoading && (
                   <div className="flex justify-start">
                     <div className="flex gap-3">
-                      <div className="w-9 h-9 rounded-full bg-gradient-to-r from-purple-600 to-purple-700 text-white flex items-center justify-center shadow-lg">
+                      <div className="w-8 h-8 rounded-full bg-purple-600 text-white flex items-center justify-center">
                         <Lightbulb className="w-4 h-4" />
                       </div>
-                      <div className="bg-white/80 border border-gray-200/50 rounded-2xl px-4 py-3 shadow-xl backdrop-blur-sm">
+                      <div className="bg-white border border-gray-200 rounded-lg px-4 py-3 max-w-[280px]">
                         <p className="text-sm text-gray-600 mb-2">💡 You might also want to ask:</p>
                         <div className="space-y-1">
                           {getSuggestions().map((suggestion, index) => (
@@ -524,11 +502,11 @@ const FloatingChatWidget = () => {
                 <div ref={messagesEndRef} />
               </div>
 
-              {/* Input - Phase 4: Enhanced Design */}
-              <div className="p-4 border-t border-gray-200/50 bg-white/80 backdrop-blur-sm rounded-b-3xl">
-                {/* Phase 5: Smart Features - Quick Actions */}
+              {/* Input - Flat design */}
+              <div className="p-4 border-t border-gray-200 bg-white rounded-b-lg">
+                {/* Quick Actions */}
                 {showQuickActions && (
-                  <div className="mb-3 p-3 bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl border border-blue-200/50">
+                  <div className="mb-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
                     <p className="text-xs text-blue-700 mb-2 flex items-center gap-1">
                       <Sparkles className="w-3 h-3" />
                       Quick Actions:
@@ -538,7 +516,7 @@ const FloatingChatWidget = () => {
                         <button
                           key={action.id}
                           onClick={() => handleSendMessage(action.query)}
-                          className="flex items-center gap-2 p-2 bg-white/80 hover:bg-white rounded-lg border border-blue-200/50 transition-all duration-200 hover:scale-105 text-xs"
+                          className="flex items-center gap-2 p-2 bg-white hover:bg-blue-50 rounded border border-blue-200 transition-colors text-xs"
                         >
                           {action.icon}
                           {action.label}
@@ -556,12 +534,12 @@ const FloatingChatWidget = () => {
                     onChange={(e) => setInputValue(e.target.value)}
                     onKeyPress={handleKeyPress}
                     placeholder="Ask about dental AI tools, authors, or categories..."
-                    className="flex-1 px-4 py-3 text-sm border border-gray-300/50 rounded-xl resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white/50 backdrop-blur-sm"
+                    className="flex-1 px-4 py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
                     disabled={isLoading}
                   />
                   <button
                     onClick={() => setShowQuickActions(prev => !prev)}
-                    className="px-3 py-3 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-xl hover:from-purple-700 hover:to-purple-800 transition-all duration-200 hover:scale-105 shadow-lg"
+                    className="px-3 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
                     title="Quick Actions (Ctrl+K)"
                   >
                     <Sparkles className="w-4 h-4" />
@@ -569,23 +547,10 @@ const FloatingChatWidget = () => {
                   <button
                     onClick={() => handleSendMessage()}
                     disabled={!inputValue.trim() || isLoading}
-                    className="px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed flex items-center gap-2 text-sm font-medium transition-all duration-200 hover:scale-105 shadow-lg"
+                    className="px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center gap-2 text-sm font-medium transition-colors"
                   >
                     <Send className="w-4 h-4" />
                   </button>
-                </div>
-                
-                <div className="mt-2 text-xs text-gray-500 text-center flex items-center justify-center gap-2">
-                  <Sparkles className="w-3 h-3" />
-                  Powered by Google Gemini
-                  <span>•</span>
-                  <BookOpen className="w-3 h-3" />
-                  Only from our articles
-                  <span>•</span>
-                  <Bot className="w-3 h-3" />
-                  Remembers conversations
-                  <span>•</span>
-                  <span className="bg-gray-200 px-1 rounded text-xs">Ctrl+K</span>
                 </div>
               </div>
             </>

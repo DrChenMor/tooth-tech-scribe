@@ -90,7 +90,7 @@ const FloatingChatWidget = () => {
     }
   }, []);
 
-  // Typing animation effect
+  // Enhanced typing animation with realistic speed
   const typeMessage = useCallback((messageId: number, fullContent: string) => {
     const words = fullContent.split(' ');
     let currentIndex = 0;
@@ -104,7 +104,7 @@ const FloatingChatWidget = () => {
             : msg
         ));
         currentIndex++;
-        // Only scroll during typing if user is at bottom
+        // Smart scrolling during typing
         if (isUserAtBottom) {
           scrollToBottom(true);
         }
@@ -115,10 +115,9 @@ const FloatingChatWidget = () => {
             ? { ...msg, isTyping: false }
             : msg
         ));
-        // Scroll to bottom when typing is complete
         scrollToBottom(true);
       }
-    }, 50);
+    }, 80); // Slightly slower for better readability
   }, [scrollToBottom, isUserAtBottom]);
 
   // Copy message

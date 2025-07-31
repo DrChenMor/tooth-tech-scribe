@@ -13,56 +13,61 @@ interface ChatSearchRequest {
   conversationHistory?: Array<{role: 'user' | 'assistant', content: string}>;
 }
 
-// Enhanced search with multiple strategies
-async function smartSearch(supabase: any, query: string, maxResults: number = 5) {
+// Enhanced search with context awareness
+async function contextAwareSearch(supabase: any, query: string, conversationHistory: Array<{role: 'user' | 'assistant', content: string}> = [], maxResults: number = 5) {
   const cleanQuery = query.toLowerCase().trim();
-  console.log(`🧠 Smart search for: "${cleanQuery}"`);
+  console.log(`🧠 Context-aware search for: "${cleanQuery}"`);
 
-  // Strategy 1: Author/Reporter search
-  if (cleanQuery.includes('author') || cleanQuery.includes('reporter') || cleanQuery.includes('writer') || cleanQuery.includes('by')) {
-    const authorMatch = cleanQuery.match(/(?:author|reporter|writer|by)\s+(.+)/i);
-    if (authorMatch) {
-      const authorName = authorMatch[1].trim();
-      console.log(`👤 Searching for author: "${authorName}"`);
-      
-      const { data: authorResults, error: authorError } = await supabase
-        .from('articles')
-        .select('id, title, slug, excerpt, content, category, published_date, author_name, reporter_id')
-        .eq('status', 'published')
-        .ilike('author_name', `%${authorName}%`)
-        .order('published_date', { ascending: false })
-        .limit(maxResults);
+  // Analyze conversation context
+  const conversationContext = conversationHistory.slice(-6); // Last 3 exchanges
+  const lastUserMessage = conversationContext.filter(msg => msg.role === 'user').pop();
+  const lastAssistantMessage = conversationContext.filter(msg => msg.role === 'assistant').pop();
 
-      if (!authorError && authorResults && authorResults.length > 0) {
-        console.log(`✅ Found ${authorResults.length} articles by ${authorName}`);
-        return { results: authorResults, searchType: 'author', authorName };
-      }
+  // Check if this is a follow-up question
+  const followUpPatterns = [
+    'yes', 'no', 'ok', 'sure', 'please', 'tell me more', 'continue', 'go on',
+    'what about', 'how about', 'yes please', 'can you tell me more',
+    'elaborate', 'explain more', 'give me details', 'expand on that'
+  ];
+  
+  const isFollowUp = followUpPatterns.some(pattern => 
+    cleanQuery.includes(pattern) || cleanQuery === pattern
+  );
+
+  // For follow-up questions, extract context from previous conversation
+  let contextualQuery = cleanQuery;
+  if (isFollowUp && lastUserMessage && lastAssistantMessage) {
+    // Combine current query with previous context
+    contextualQuery = `${lastUserMessage.content} ${cleanQuery}`;
+    console.log(`🔄 Follow-up detected. Contextual query: "${contextualQuery}"`);
+  }
+
+  // Strategy 1: Author/Reporter search with context
+  const authorMatch = contextualQuery.match(/(?:author|reporter|writer|by|from)\s+(.+)/i) || 
+                     contextualQuery.match(/(chen|dr\.|anya|sharma|ai content generator)/i);
+  if (authorMatch) {
+    const authorName = authorMatch[1].trim();
+    console.log(`👤 Searching for author: "${authorName}"`);
+    
+    const { data: authorResults, error: authorError } = await supabase
+      .from('articles')
+      .select('id, title, slug, excerpt, content, category, published_date, author_name, reporter_id')
+      .eq('status', 'published')
+      .ilike('author_name', `%${authorName}%`)
+      .order('published_date', { ascending: false })
+      .limit(maxResults);
+
+    if (!authorError && authorResults && authorResults.length > 0) {
+      console.log(`✅ Found ${authorResults.length} articles by ${authorName}`);
+      return { results: authorResults, searchType: 'author', authorName, context: 'author_search' };
     }
   }
 
-  // Strategy 2: Category search
-  if (cleanQuery.includes('category') || cleanQuery.includes('topic') || cleanQuery.includes('about')) {
-    const categoryMatch = cleanQuery.match(/(?:category|topic|about)\s+(.+)/i);
-    if (categoryMatch) {
-      const category = categoryMatch[1].trim();
-      console.log(`📂 Searching for category: "${category}"`);
-      
-      const { data: categoryResults, error: categoryError } = await supabase
-        .from('articles')
-        .select('id, title, slug, excerpt, content, category, published_date, author_name, reporter_id')
-        .eq('status', 'published')
-        .ilike('category', `%${category}%`)
-        .order('published_date', { ascending: false })
-        .limit(maxResults);
+  // Strategy 2: Topic-based search with conversation context
+  const searchTerms = extractTopicsFromConversation(contextualQuery, conversationContext);
+  console.log(`🔍 Extracted topics: ${searchTerms.join(', ')}`);
 
-      if (!categoryError && categoryResults && categoryResults.length > 0) {
-        console.log(`✅ Found ${categoryResults.length} articles in category ${category}`);
-        return { results: categoryResults, searchType: 'category', category };
-      }
-    }
-  }
-
-  // Strategy 3: Vector search with embeddings
+  // Strategy 3: Vector search with enhanced context
   try {
     const googleApiKey = Deno.env.get('GOOGLE_API_KEY');
     if (googleApiKey) {
@@ -71,7 +76,7 @@ async function smartSearch(supabase: any, query: string, maxResults: number = 5)
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           model: 'models/gemini-embedding-001',
-          content: { parts: [{ text: cleanQuery.substring(0, 300) }] },
+          content: { parts: [{ text: contextualQuery.substring(0, 300) }] },
           outputDimensionality: 768
         })
       });
@@ -91,7 +96,7 @@ async function smartSearch(supabase: any, query: string, maxResults: number = 5)
 
           if (!vectorError && vectorResults && vectorResults.length > 0) {
             console.log(`✅ Vector search found ${vectorResults.length} results`);
-            return { results: vectorResults, searchType: 'vector' };
+            return { results: vectorResults, searchType: 'vector', context: isFollowUp ? 'follow_up' : 'new_query' };
           }
         }
       }
@@ -100,156 +105,163 @@ async function smartSearch(supabase: any, query: string, maxResults: number = 5)
     console.log('⚠️ Vector search failed, falling back to keyword search');
   }
 
-  // Strategy 4: Enhanced keyword search
-  const keywords = cleanQuery.split(' ').filter(word => word.length > 2);
-  
-  let searchQuery = supabase
+  // Strategy 4: Enhanced keyword search with context
+  const keywords = [...searchTerms, ...cleanQuery.split(' ')].filter(word => word.length > 2);
+  const { data: keywordResults, error: keywordError } = await supabase
     .from('articles')
     .select('id, title, slug, excerpt, content, category, published_date, author_name, reporter_id')
-    .eq('status', 'published');
-
-  if (keywords.length > 0) {
-    const conditions = keywords.map(keyword => 
-      `or(title.ilike.%${keyword}%,excerpt.ilike.%${keyword}%,content.ilike.%${keyword}%,author_name.ilike.%${keyword}%,category.ilike.%${keyword}%)`
-    ).join(',');
-    
-    searchQuery = searchQuery.or(conditions);
-  }
-
-  const { data, error } = await searchQuery
+    .eq('status', 'published')
+    .or(keywords.map(keyword => `title.ilike.%${keyword}%,excerpt.ilike.%${keyword}%,content.ilike.%${keyword}%`).join(','))
     .order('published_date', { ascending: false })
     .limit(maxResults * 2);
 
-  if (error) {
-    console.error('❌ Keyword search error:', error);
-    return { results: [], searchType: 'keyword' };
-  }
+  if (!keywordError && keywordResults && keywordResults.length > 0) {
+    // Score results based on relevance and context
+    const scoredResults = keywordResults.map(article => {
+      let score = 0;
+      const title = article.title?.toLowerCase() || '';
+      const excerpt = article.excerpt?.toLowerCase() || '';
+      const content = article.content?.toLowerCase() || '';
+      
+      keywords.forEach(keyword => {
+        if (title.includes(keyword)) score += 10;
+        if (excerpt.includes(keyword)) score += 5;
+        if (content.includes(keyword)) score += 2;
+      });
 
-  if (!data || data.length === 0) {
-    console.log('⚠️ No articles found');
-    return { results: [], searchType: 'keyword' };
-  }
+      // Boost score for contextually relevant articles
+      if (isFollowUp && lastAssistantMessage) {
+        const lastContent = lastAssistantMessage.content.toLowerCase();
+        if (lastContent.includes(title) || title.includes(lastContent.split(' ')[0])) {
+          score += 20; // High boost for articles mentioned in previous response
+        }
+      }
 
-  // Score and rank results
-  const scoredResults = data.map(article => {
-    let score = 0;
-    const titleLower = article.title?.toLowerCase() || '';
-    const excerptLower = article.excerpt?.toLowerCase() || '';
-    const contentLower = article.content?.toLowerCase() || '';
-    const authorLower = article.author_name?.toLowerCase() || '';
-    const categoryLower = article.category?.toLowerCase() || '';
-
-    keywords.forEach(keyword => {
-      if (titleLower.includes(keyword)) score += 10;
-      if (excerptLower.includes(keyword)) score += 5;
-      if (contentLower.includes(keyword)) score += 2;
-      if (authorLower.includes(keyword)) score += 8;
-      if (categoryLower.includes(keyword)) score += 6;
+      return { ...article, relevance_score: score };
     });
 
-    if (titleLower.includes(cleanQuery)) score += 20;
-    if (excerptLower.includes(cleanQuery)) score += 10;
+    const sortedResults = scoredResults
+      .sort((a, b) => b.relevance_score - a.relevance_score)
+      .slice(0, maxResults);
 
-    const daysOld = (Date.now() - new Date(article.published_date).getTime()) / (1000 * 60 * 60 * 24);
-    score += Math.max(0, 10 - daysOld);
+    console.log(`✅ Keyword search found ${sortedResults.length} relevant articles`);
+    return { results: sortedResults, searchType: 'keyword', context: isFollowUp ? 'follow_up' : 'new_query' };
+  }
 
-    return { ...article, relevance_score: score };
-  });
-
-  const sortedResults = scoredResults
-    .sort((a, b) => b.relevance_score - a.relevance_score)
-    .slice(0, maxResults);
-
-  console.log(`✅ Keyword search found ${sortedResults.length} relevant articles`);
-  return { results: sortedResults, searchType: 'keyword' };
+  return { results: [], searchType: 'no_results', context: 'no_match' };
 }
 
-// Conversational AI response generation
-async function generateConversationalResponse(
+// Extract topics from conversation context
+function extractTopicsFromConversation(query: string, conversationHistory: Array<{role: 'user' | 'assistant', content: string}>): string[] {
+  const topics = new Set<string>();
+  
+  // Add words from current query
+  query.split(' ').forEach(word => {
+    if (word.length > 3) topics.add(word.toLowerCase());
+  });
+
+  // Add relevant topics from recent conversation
+  conversationHistory.slice(-4).forEach(msg => {
+    const words = msg.content.toLowerCase().split(' ');
+    words.forEach(word => {
+      if (word.length > 4 && !['this', 'that', 'with', 'have', 'they', 'will', 'from', 'been'].includes(word)) {
+        topics.add(word);
+      }
+    });
+  });
+
+  return Array.from(topics);
+}
+
+// Smart conversational AI response with proper memory
+async function generateSmartResponse(
   query: string, 
   searchResults: any[], 
   searchType: string,
-  conversationHistory: Array<{role: 'user' | 'assistant', content: string}> = []
+  conversationHistory: Array<{role: 'user' | 'assistant', content: string}> = [],
+  searchContext: string = 'new_query'
 ): Promise<{answer: string, shouldShowReferences: boolean}> {
-  if (searchResults.length === 0) {
-    return {
-      answer: "I couldn't find any specific articles about that topic in our dental technology database. I specialize in dental AI tools, diagnostic technologies, practice management software, and dental imaging innovations. Try asking about specific tools like 'AI diagnostic software' or 'dental imaging AI'. You can also ask me about specific authors, categories, or topics!",
-      shouldShowReferences: false
-    };
-  }
-
+  
   try {
     const googleApiKey = Deno.env.get('GOOGLE_API_KEY');
     if (!googleApiKey) {
       throw new Error('Google API key not configured');
     }
 
-    // Analyze conversation context to determine if this is a follow-up question
-    const isFollowUp = conversationHistory.length > 0;
+    // Analyze conversation for context
     const lastUserMessage = conversationHistory.filter(msg => msg.role === 'user').pop();
     const lastAssistantMessage = conversationHistory.filter(msg => msg.role === 'assistant').pop();
     
-    // Check if this is a simple follow-up like "yes", "no", "tell me more", etc.
-    const simpleFollowUps = ['yes', 'no', 'ok', 'sure', 'please', 'tell me more', 'continue', 'go on'];
-    const isSimpleFollowUp = simpleFollowUps.some(followUp => 
-      query.toLowerCase().trim() === followUp || 
-      query.toLowerCase().includes(followUp)
-    );
+    const isFollowUp = searchContext === 'follow_up';
+    const hasRelevantResults = searchResults.length > 0;
+
+    // Handle follow-up questions with no new results
+    if (isFollowUp && !hasRelevantResults && lastAssistantMessage) {
+      const followUpResponse = generateFollowUpFromContext(query, lastUserMessage?.content || '', lastAssistantMessage.content);
+      return {
+        answer: followUpResponse,
+        shouldShowReferences: false
+      };
+    }
+
+    // No results found
+    if (!hasRelevantResults) {
+      return {
+        answer: "I couldn't find specific articles about that in our dental technology database. Try asking about dental AI tools, imaging technology, or specific authors like Dr. Anya Sharma or Chen Mor.",
+        shouldShowReferences: false
+      };
+    }
 
     // Prepare conversation context
-    const conversationContext = conversationHistory.length > 0 
-      ? `\n\nPrevious conversation:\n${conversationHistory.map(msg => `${msg.role}: ${msg.content}`).join('\n')}`
-      : '';
+    const recentContext = conversationHistory.slice(-6).map(msg => 
+      `${msg.role}: ${msg.content}`
+    ).join('\n');
 
     // Prepare article content
-    const articlesContent = searchResults.map(article => {
-      const content = article.content ? article.content.substring(0, 800) : article.excerpt || 'No detailed content available';
+    const articlesContent = searchResults.slice(0, 3).map(article => {
+      const content = article.content ? article.content.substring(0, 600) : article.excerpt || '';
       return `ARTICLE: "${article.title}"
 AUTHOR: ${article.author_name || 'Unknown'}
 CATEGORY: ${article.category || 'General'}
-PUBLISHED: ${article.published_date}
 URL: https://dentalai.live/article/${article.slug}
-CONTENT: ${content}
-=======================================`;
+EXCERPT: ${content}
+---`;
     }).join('\n\n');
 
-    let enhancedPrompt = `You are Dr. Sarah Chen, a friendly and knowledgeable dental AI expert assistant. A user is chatting with you about dental technology and AI.
+    let systemPrompt = `You are Dr. Sarah Chen, a knowledgeable dental AI assistant. You have perfect memory of our conversation and provide helpful, contextual responses.
 
-Current user question: "${query}"
-Search type used: ${searchType}
-${conversationContext}
+CONVERSATION CONTEXT:
+${recentContext}
 
-You have access to these specific articles from our website:
+CURRENT QUERY: "${query}"
+SEARCH TYPE: ${searchType}
+CONTEXT: ${searchContext}
 
+AVAILABLE ARTICLES:
 ${articlesContent}
 
-CRITICAL INSTRUCTIONS:
-1. Be conversational but CONCISE - keep responses under 100 words
-2. Answer the user's question directly and briefly
-3. If this is a follow-up question (like "yes", "tell me more"), reference the previous conversation
-4. Use "I" and "you" to make it conversational
-5. If asked about authors, mention their articles specifically
-6. If asked about categories, list articles in that category
-7. Don't be overly friendly or verbose - be helpful and direct
-8. Focus on providing actionable information quickly
-9. If the user asks a simple follow-up, expand on the previous topic`;
+RESPONSE GUIDELINES:
+1. REMEMBER THE CONVERSATION - if this is a follow-up question, reference what we discussed
+2. Be conversational and natural, like talking to a colleague
+3. Keep responses under 80 words unless elaborating on a specific request
+4. If user says "yes please" or "tell me more", expand on the previous topic
+5. Only mention articles that are actually relevant to the current question
+6. Be specific and helpful - provide actionable insights
+7. Use "I" and "you" naturally in conversation
 
-    // Add specific context for follow-up questions
-    if (isFollowUp && lastAssistantMessage) {
-      enhancedPrompt += `\n\nCONTEXT: This appears to be a follow-up question. The user's previous question was about "${lastUserMessage?.content}" and you responded with information about the articles above. Please continue the conversation naturally.`;
-    }
+CRITICAL: If this is a follow-up question about a previous topic, continue that discussion naturally!`;
 
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${googleApiKey}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: 'models/gemini-2.0-flash-exp',
-        contents: [{ parts: [{ text: enhancedPrompt }] }],
+        contents: [{ parts: [{ text: systemPrompt }] }],
         generationConfig: {
-          temperature: 0.7,
+          temperature: 0.8,
           topK: 40,
           topP: 0.95,
-          maxOutputTokens: 300,
+          maxOutputTokens: 250,
         }
       })
     });
@@ -261,17 +273,16 @@ CRITICAL INSTRUCTIONS:
     const data = await response.json();
     const answer = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
-    if (answer && answer.length > 50) {
-      console.log('✅ Conversational response generated successfully');
+    if (answer && answer.length > 20) {
+      console.log('✅ Smart response generated successfully');
       
-      // Determine if references should be shown based on query type and context
-      const shouldShowReferences = !isSimpleFollowUp && searchResults.length > 0 && 
-        (query.toLowerCase().includes('article') || 
-         query.toLowerCase().includes('author') || 
-         query.toLowerCase().includes('category') ||
-         query.toLowerCase().includes('show') ||
-         query.toLowerCase().includes('find') ||
-         query.toLowerCase().includes('search'));
+      // Show references only when mentioning specific articles or for new topics
+      const shouldShowReferences = !isFollowUp && searchResults.length > 0 && (
+        query.toLowerCase().includes('article') || 
+        query.toLowerCase().includes('find') ||
+        query.toLowerCase().includes('show') ||
+        searchType === 'author'
+      );
       
       return {
         answer: answer.trim(),
@@ -284,20 +295,30 @@ CRITICAL INSTRUCTIONS:
   } catch (error) {
     console.error('❌ AI response generation failed:', error);
     
-    // Create intelligent fallback
-    const articleList = searchResults.map(article => 
-      `• "${article.title}" by ${article.author_name || 'Unknown'} (${article.category}) - https://dentalai.live/article/${article.slug}`
-    ).join('\n');
-
     return {
-      answer: `I found some relevant articles for you! Here's what I discovered:
-
-${articleList}
-
-These articles should help answer your question about "${query}". Feel free to ask me more specific questions about any of these topics, authors, or categories!`,
-      shouldShowReferences: true
+      answer: "I found some relevant articles for you! Feel free to ask me specific questions about dental AI, imaging, or any authors you're interested in.",
+      shouldShowReferences: searchResults.length > 0
     };
   }
+}
+
+// Generate contextual follow-up responses
+function generateFollowUpFromContext(currentQuery: string, lastQuery: string, lastResponse: string): string {
+  const query = currentQuery.toLowerCase();
+  
+  if (query.includes('yes') || query.includes('please') || query.includes('tell me more')) {
+    // Extract the main topic from the last response
+    const sentences = lastResponse.split('.').filter(s => s.length > 10);
+    if (sentences.length > 1) {
+      return `${sentences[1].trim()}. ${sentences.length > 2 ? sentences[2].trim() + '.' : ''} Would you like me to go deeper into any specific aspect?`;
+    }
+  }
+  
+  if (query.includes('what about') || query.includes('how about')) {
+    return `Building on what we discussed about ${lastQuery}, I'd be happy to explore that angle. Could you be more specific about what aspect interests you?`;
+  }
+  
+  return `I'd love to help elaborate on that! Could you be more specific about what aspect of our discussion you'd like me to expand on?`;
 }
 
 serve(async (req) => {
@@ -313,22 +334,29 @@ serve(async (req) => {
       throw new Error('Query is required');
     }
 
-    console.log(`🚀 Processing smart chat search: "${query}"`);
+    console.log(`🚀 Processing smart chat: "${query}"`);
+    console.log(`📚 Conversation history: ${conversationHistory.length} messages`);
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
-    // Perform smart search
-    const searchResult = await smartSearch(supabase, query, maxResults);
-    const { results: searchResults, searchType, authorName, category } = searchResult;
+    // Perform context-aware search
+    const searchResult = await contextAwareSearch(supabase, query, conversationHistory, maxResults);
+    const { results: searchResults, searchType, authorName, category, context } = searchResult;
 
-    // Generate conversational response
-    const { answer, shouldShowReferences } = await generateConversationalResponse(query, searchResults, searchType, conversationHistory);
+    // Generate smart conversational response
+    const { answer, shouldShowReferences } = await generateSmartResponse(
+      query, 
+      searchResults, 
+      searchType, 
+      conversationHistory,
+      context
+    );
 
-    // Format references with full URLs
-    const references = shouldShowReferences ? searchResults.map(article => ({
+    // Format references only when relevant
+    const references = shouldShowReferences ? searchResults.slice(0, 2).map(article => ({
       title: article.title,
       url: `https://dentalai.live/article/${article.slug}`,
       excerpt: article.excerpt || article.content?.substring(0, 150) + '...' || '',
@@ -336,7 +364,7 @@ serve(async (req) => {
       author: article.author_name || 'Unknown'
     })) : [];
 
-    console.log(`🎉 Smart search completed: ${searchResults.length} results, ${searchType} search`);
+    console.log(`🎉 Smart search completed: ${searchResults.length} results, ${searchType} search, context: ${context}`);
 
     return new Response(JSON.stringify({
       success: true,
@@ -344,6 +372,7 @@ serve(async (req) => {
       references,
       resultsCount: searchResults.length,
       searchType,
+      context,
       authorName,
       category,
       provider: 'google-gemini',
@@ -360,7 +389,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({
       success: false,
       error: error.message,
-      answer: "I'm experiencing some technical difficulties right now. Please try again in a moment, or ask me about specific dental AI topics, authors, or categories!",
+      answer: "I'm experiencing some technical difficulties. Please try asking about specific dental AI topics, authors, or technologies!",
       references: []
     }), {
       status: 500,

@@ -502,6 +502,17 @@ const FloatingChatWidget = () => {
                     disabled={isLoading}
                   />
                   <button
+                    onClick={() => {
+                      console.log('🧪 Test button clicked');
+                      console.log('🧪 Current messages:', messages);
+                      console.log('🧪 Is loading:', isLoading);
+                    }}
+                    className="px-3 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                    title="Debug Test"
+                  >
+                    🧪
+                  </button>
+                  <button
                     onClick={() => setShowQuickActions(prev => !prev)}
                     className="px-3 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
                     title="Quick Actions (Ctrl+K)"

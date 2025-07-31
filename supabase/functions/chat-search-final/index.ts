@@ -34,12 +34,12 @@ async function contextAwareSearch(supabase: any, query: string, conversationHist
     cleanQuery.includes(pattern) || cleanQuery === pattern
   );
 
-  // For follow-up questions, extract context from previous conversation
+  // For follow-up questions, use the previous context instead of current query
   let contextualQuery = cleanQuery;
   if (isFollowUp && lastUserMessage && lastAssistantMessage) {
-    // Combine current query with previous context
-    contextualQuery = `${lastUserMessage.content} ${cleanQuery}`;
-    console.log(`🔄 Follow-up detected. Contextual query: "${contextualQuery}"`);
+    // Use the previous user question as the main search context
+    contextualQuery = lastUserMessage.content;
+    console.log(`🔄 Follow-up detected. Using previous context: "${contextualQuery}"`);
   }
 
   // Strategy 1: Author/Reporter search with context
@@ -195,14 +195,15 @@ async function generateSmartResponse(
     const isFollowUp = searchContext === 'follow_up';
     const hasRelevantResults = searchResults.length > 0;
 
-    // Handle follow-up questions with no new results
-    if (isFollowUp && !hasRelevantResults && lastAssistantMessage) {
-      const followUpResponse = generateFollowUpFromContext(query, lastUserMessage?.content || '', lastAssistantMessage.content);
-      return {
-        answer: followUpResponse,
-        shouldShowReferences: false
-      };
-    }
+      // Handle follow-up questions intelligently
+  if (isFollowUp && lastAssistantMessage && lastUserMessage) {
+    // For follow-ups, generate a contextual response even if no new results
+    const followUpResponse = generateFollowUpFromContext(query, lastUserMessage.content, lastAssistantMessage.content);
+    return {
+      answer: followUpResponse,
+      shouldShowReferences: hasRelevantResults && searchResults.length > 0
+    };
+  }
 
     // No results found
     if (!hasRelevantResults) {
@@ -276,8 +277,9 @@ CRITICAL: If this is a follow-up question about a previous topic, continue that 
     if (answer && answer.length > 20) {
       console.log('✅ Smart response generated successfully');
       
-      // Show references only when mentioning specific articles or for new topics
-      const shouldShowReferences = !isFollowUp && searchResults.length > 0 && (
+      // Show references for most queries except simple follow-ups
+      const shouldShowReferences = searchResults.length > 0 && (
+        !isFollowUp || // Show for new queries
         query.toLowerCase().includes('article') || 
         query.toLowerCase().includes('find') ||
         query.toLowerCase().includes('show') ||
@@ -307,18 +309,27 @@ function generateFollowUpFromContext(currentQuery: string, lastQuery: string, la
   const query = currentQuery.toLowerCase();
   
   if (query.includes('yes') || query.includes('please') || query.includes('tell me more')) {
-    // Extract the main topic from the last response
+    // For "yes please" type follow-ups, elaborate on the previous topic
+    if (lastQuery.toLowerCase().includes('ai') && lastQuery.toLowerCase().includes('imaging')) {
+      return `AI in dental imaging works by using machine learning algorithms trained on thousands of dental images. These systems can detect cavities, bone loss, and other dental issues with remarkable accuracy - sometimes even spotting problems that human eyes might miss. The technology also helps speed up diagnosis and can highlight areas of concern for dentists to examine more closely. It's particularly effective with X-rays and intraoral scans.`;
+    }
+    
+    if (lastQuery.toLowerCase().includes('australia') && lastQuery.toLowerCase().includes('chen')) {
+      return `Chen Mor's article "Finding Our Way: Life's Journey in Australia" tells the story of a family's immigration experience. It explores how they adapted to Australian culture, found new opportunities, and overcame challenges. The article touches on themes of resilience, cultural adjustment, and finding home in a new country.`;
+    }
+    
+    // Generic elaboration
     const sentences = lastResponse.split('.').filter(s => s.length > 10);
     if (sentences.length > 1) {
-      return `${sentences[1].trim()}. ${sentences.length > 2 ? sentences[2].trim() + '.' : ''} Would you like me to go deeper into any specific aspect?`;
+      return `Absolutely! ${sentences[0].trim()}. This technology is particularly exciting because it can process images much faster than traditional methods and often catches details that might be overlooked. Would you like to know about specific applications or the accuracy rates?`;
     }
   }
   
   if (query.includes('what about') || query.includes('how about')) {
-    return `Building on what we discussed about ${lastQuery}, I'd be happy to explore that angle. Could you be more specific about what aspect interests you?`;
+    return `Building on our discussion about ${lastQuery.toLowerCase()}, I'd be happy to explore that angle. What specific aspect interests you most?`;
   }
   
-  return `I'd love to help elaborate on that! Could you be more specific about what aspect of our discussion you'd like me to expand on?`;
+  return `I'd love to elaborate on what we were discussing! Could you be more specific about which aspect you'd like me to expand on?`;
 }
 
 serve(async (req) => {

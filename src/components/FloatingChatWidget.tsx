@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Send, Bot, User, ExternalLink, Loader, AlertCircle, MessageCircle, X, Minimize, Sparkles, BookOpen, Clock, Copy, RefreshCw, Search, Filter } from 'lucide-react';
+import { Send, Bot, User, ExternalLink, Loader, AlertCircle, MessageCircle, X, Minimize, BookOpen, Clock, Copy, RefreshCw, RotateCcw } from 'lucide-react';
 
 interface Message {
   id: number;
@@ -39,38 +39,9 @@ const FloatingChatWidget = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [hasNewMessage, setHasNewMessage] = useState(false);
   const [isUserAtBottom, setIsUserAtBottom] = useState(true);
-  const [showQuickActions, setShowQuickActions] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-
-  // Quick Actions
-  const quickActions: QuickAction[] = [
-    {
-      id: 'ai-tools',
-      label: 'AI Tools',
-      query: 'What are the best AI tools for dentists?',
-      icon: <Sparkles className="w-4 h-4" />
-    },
-    {
-      id: 'imaging',
-      label: 'Dental Imaging',
-      query: 'Tell me about AI in dental imaging',
-      icon: <Search className="w-4 h-4" />
-    },
-    {
-      id: 'authors',
-      label: 'Authors',
-      query: 'Show me articles by Dr. Anya Sharma',
-      icon: <User className="w-4 h-4" />
-    },
-    {
-      id: 'categories',
-      label: 'Categories',
-      query: 'What categories of articles do you have?',
-      icon: <Filter className="w-4 h-4" />
-    }
-  ];
 
   // Simple scrolling - only auto-scroll for new messages, not during typing
   const scrollToBottom = useCallback((force = false) => {
@@ -206,11 +177,6 @@ const FloatingChatWidget = () => {
         handleSendMessage();
       }
 
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault();
-        setShowQuickActions(prev => !prev);
-      }
-
       if (e.key === 'Escape') {
         setInputValue('');
         inputRef.current?.blur();
@@ -235,7 +201,6 @@ const FloatingChatWidget = () => {
     setMessages(prev => [...prev, userMessage]);
     setInputValue('');
     setIsLoading(true);
-    setShowQuickActions(false);
 
     // Chat Memory - Prepare conversation history
     const conversationHistory = messages
@@ -366,6 +331,21 @@ const FloatingChatWidget = () => {
               </div>
             </div>
             <div className="flex items-center gap-1">
+              <button
+                onClick={() => {
+                  setMessages([{
+                    id: 1,
+                    type: 'bot',
+                    content: "Hi! I'm your dental AI assistant. Ask me about dental technology, AI tools, or find articles by specific authors.",
+                    timestamp: new Date()
+                  }]);
+                }}
+                className="text-blue-100 hover:text-white p-2 rounded hover:bg-white/10 transition-colors"
+                aria-label="Start new chat"
+                title="Start new chat"
+              >
+                <RotateCcw className="w-4 h-4" />
+              </button>
               <button
                 onClick={() => setIsMinimized(!isMinimized)}
                 className="text-blue-100 hover:text-white p-2 rounded hover:bg-white/10 transition-colors"
@@ -514,29 +494,6 @@ const FloatingChatWidget = () => {
 
               {/* Input */}
               <div className="p-4 border-t border-gray-200 bg-white rounded-b-lg">
-                {/* Quick Actions - Fixed layout */}
-                {showQuickActions && (
-                  <div className="mb-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                    <p className="text-xs text-blue-700 mb-2 flex items-center gap-1">
-                      <Sparkles className="w-3 h-3" />
-                      Quick Actions:
-                    </p>
-                    <div className="grid grid-cols-2 gap-2">
-                      {quickActions.map((action) => (
-                        <button
-                          key={action.id}
-                          onClick={() => handleSendMessage(action.query)}
-                          className="flex items-center gap-2 p-2 bg-white hover:bg-blue-50 rounded border border-blue-200 transition-colors text-xs truncate"
-                          title={action.label}
-                        >
-                          {action.icon}
-                          <span className="truncate">{action.label}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
                 <div className="flex gap-3">
                   <input
                     ref={inputRef}
@@ -548,24 +505,6 @@ const FloatingChatWidget = () => {
                     className="flex-1 px-4 py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
                     disabled={isLoading}
                   />
-                  <button
-                    onClick={() => {
-                      console.log('🧪 Test button clicked');
-                      console.log('🧪 Current messages:', messages);
-                      console.log('🧪 Is loading:', isLoading);
-                    }}
-                    className="px-3 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                    title="Debug Test"
-                  >
-                    🧪
-                  </button>
-                  <button
-                    onClick={() => setShowQuickActions(prev => !prev)}
-                    className="px-3 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-                    title="Quick Actions (Ctrl+K)"
-                  >
-                    <Sparkles className="w-4 h-4" />
-                  </button>
                   <button
                     onClick={() => handleSendMessage()}
                     disabled={!inputValue.trim() || isLoading}

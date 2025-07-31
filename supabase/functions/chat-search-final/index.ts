@@ -242,7 +242,7 @@ async function generateSmartResponse(
       );
       
       // For thank you responses, provide a friendly acknowledgment
-      const thankYouPatterns = ['thanks', 'thank you', 'thank', 'appreciate', 'great', 'good', 'okay', 'ok'];
+      const thankYouPatterns = ['thanks', 'thank you', 'thank', 'appreciate'];
       const isThankYou = thankYouPatterns.some(pattern => 
         query.toLowerCase().includes(pattern)
       );
@@ -281,9 +281,9 @@ async function generateSmartResponse(
         }
       }
       
-      // For other queries, provide helpful guidance
+      // For other queries, provide simple guidance
       return {
-        answer: "I couldn't find specific articles about that in our dental technology database. Try asking about dental AI tools, imaging technology, or specific authors like Dr. Anya Sharma or Chen Mor.",
+        answer: "I'm not sure I understand that request. Could you try asking about dental AI tools, imaging technology, or specific topics?",
         shouldShowReferences: false
       };
     }

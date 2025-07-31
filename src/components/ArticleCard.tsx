@@ -79,13 +79,13 @@ const ArticleCard = ({ article, index, showSEO = false }: ArticleCardProps) => {
           </div>
         </div>
         
-        <div className="py-3 sm:py-4">
+        <div className="py-4">
           {/* Removed the category badge from here since it's now on the image */}
-          <h3 className="text-lg sm:text-xl font-serif font-bold text-foreground group-hover:text-primary transition-colors">{article.title}</h3>
-          <p className="mt-1.5 sm:mt-2 text-muted-foreground text-sm sm:text-base">{article.excerpt}</p>
+          <h3 className="text-xl font-serif font-bold text-foreground group-hover:text-primary transition-colors">{article.title}</h3>
+          <p className="mt-2 text-muted-foreground">{article.excerpt}</p>
           
           {/* Author/Date section with fixed spacing */}
-          <div className="flex items-center mt-4 sm:mt-6 article-author-info">
+          <div className="flex items-center mt-6 article-author-info">
             <img 
               src={
                 article.reporter?.avatar_url || 

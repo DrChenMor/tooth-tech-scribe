@@ -13,25 +13,10 @@ export default {
 	theme: {
 		container: {
 			center: true,
-			padding: {
-				DEFAULT: '1rem',
-				sm: '1.5rem',
-				md: '2rem',
-				lg: '3rem',
-				xl: '3rem',
-				'2xl': '3rem'
-			},
+			padding: '2rem',
 			screens: {
 				'2xl': '1400px'
 			}
-		},
-		screens: {
-			'xs': '475px',
-			'sm': '640px',
-			'md': '768px',
-			'lg': '1024px',
-			'xl': '1280px',
-			'2xl': '1536px',
 		},
 		extend: {
       fontFamily: {
@@ -77,10 +62,6 @@ export default {
 				lg: 'var(--radius)',
 				md: 'calc(var(--radius) - 2px)',
 				sm: 'calc(var(--radius) - 4px)'
-			},
-			spacing: {
-				'18': '4.5rem',
-				'88': '22rem',
 			},
 			keyframes: {
 				'accordion-down': {

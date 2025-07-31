@@ -287,13 +287,13 @@ const Index = () => {
             </div>
           )}
           
-          <div className="flex justify-center flex-wrap gap-1 sm:gap-2 md:gap-3 mb-6 sm:mb-8 md:mb-12 px-1 sm:px-2">
+          <div className="flex justify-center flex-wrap gap-2 md:gap-3 mb-8 md:mb-12 px-2">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setSelectedCategory(null)}
               className={cn(
-                "rounded-full px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 h-7 sm:h-8 md:h-9 text-xs sm:text-sm font-medium transition-all duration-200",
+                "rounded-full px-3 md:px-4 py-2 h-8 md:h-9 text-sm font-medium transition-all duration-200",
                 !selectedCategory
                   ? 'bg-primary text-primary-foreground hover:bg-primary/90'
                   : 'bg-muted text-foreground hover:brightness-90'
@@ -302,7 +302,7 @@ const Index = () => {
               All
             </Button>
             {isLoadingCategories ? (
-              [...Array(3)].map((_, i) => <Skeleton key={i} className="h-7 sm:h-8 md:h-9 w-12 sm:w-16 md:w-24 rounded-full" />)
+              [...Array(3)].map((_, i) => <Skeleton key={i} className="h-8 md:h-9 w-16 md:w-24 rounded-full" />)
             ) : (
               categories?.map((category) => (
                 <Button
@@ -311,7 +311,7 @@ const Index = () => {
                   size="sm"
                   onClick={() => setSelectedCategory(category)}
                   className={cn(
-                    "rounded-full px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 h-7 sm:h-8 md:h-9 text-xs sm:text-sm font-medium transition-all duration-200",
+                    "rounded-full px-3 md:px-4 py-2 h-8 md:h-9 text-sm font-medium transition-all duration-200",
                     selectedCategory === category 
                       ? 'bg-primary text-primary-foreground hover:bg-primary/90'
                       : 'bg-muted text-foreground hover:brightness-90'
@@ -332,7 +332,7 @@ const Index = () => {
             </div>
           )}
           
-          <div className="grid gap-4 sm:gap-6 md:gap-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" key={selectedCategory || 'all'}>
+          <div className="grid gap-6 md:gap-8 md:grid-cols-2 lg:grid-cols-3" key={selectedCategory || 'all'}>
             {otherArticles.map((article, index) => (
               <ArticleCard key={article.id} article={article} index={index} />
             ))}

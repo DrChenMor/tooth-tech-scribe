@@ -158,16 +158,19 @@ async function contextAwareSearch(supabase: any, query: string, conversationHist
 function extractTopicsFromConversation(query: string, conversationHistory: Array<{role: 'user' | 'assistant', content: string}>): string[] {
   const topics = new Set<string>();
   
-  // Add words from current query
+  // Add words from current query (primary focus)
   query.split(' ').forEach(word => {
     if (word.length > 3) topics.add(word.toLowerCase());
   });
 
-  // Add relevant topics from recent conversation
-  conversationHistory.slice(-4).forEach(msg => {
+  // Only add relevant topics from recent conversation if they're actually relevant
+  // Don't add generic words that might interfere with search
+  const relevantWords = ['ai', 'dental', 'imaging', 'technology', 'artificial', 'intelligence', 'dentistry', 'healthcare'];
+  
+  conversationHistory.slice(-2).forEach(msg => {
     const words = msg.content.toLowerCase().split(' ');
     words.forEach(word => {
-      if (word.length > 4 && !['this', 'that', 'with', 'have', 'they', 'will', 'from', 'been'].includes(word)) {
+      if (word.length > 4 && relevantWords.includes(word) && !['this', 'that', 'with', 'have', 'they', 'will', 'from', 'been', 'there', 'your', 'assistant', 'help', 'find', 'information', 'about', 'tools', 'insights', 'articles'].includes(word)) {
         topics.add(word);
       }
     });

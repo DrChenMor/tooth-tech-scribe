@@ -70,9 +70,13 @@ const CategoryPage = () => {
   return (
     <>
       <div className="flex-grow container mx-auto px-4 py-8">
-        <h1 className="text-4xl font-bold mb-8 md:mb-12">Category: {decodedCategory}</h1>
+        {/* Header section - matching CategoriesPage structure */}
+        <div className="pt-12 pb-8 text-center animate-fade-in">
+          <h1 className="text-4xl md:text-5xl font-serif font-bold leading-tight">Category: {decodedCategory}</h1>
+        </div>
+        
         {articles && articles.length > 0 ? (
-          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 pb-12">
             {articles.map((article, index) => (
               <ArticleCard key={article.id} article={article} index={index} />
             ))}

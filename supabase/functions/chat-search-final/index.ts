@@ -241,9 +241,22 @@ async function generateSmartResponse(
         query.toLowerCase().trim() === greeting
       );
       
+      // For thank you responses, provide a friendly acknowledgment
+      const thankYouPatterns = ['thanks', 'thank you', 'thank', 'appreciate', 'great', 'good', 'okay', 'ok'];
+      const isThankYou = thankYouPatterns.some(pattern => 
+        query.toLowerCase().includes(pattern)
+      );
+      
       if (isConversational) {
         return {
           answer: "Hi there! I'm your dental AI assistant. I can help you find information about dental technology, AI tools, and industry insights from our articles. What would you like to know about?",
+          shouldShowReferences: false
+        };
+      }
+      
+      if (isThankYou) {
+        return {
+          answer: "You're welcome! I'm here to help with any questions about dental AI technology. Feel free to ask about specific tools, imaging techniques, or any other dental topics you're interested in.",
           shouldShowReferences: false
         };
       }
@@ -291,6 +304,8 @@ RESPONSE GUIDELINES:
 5. Only mention articles that are actually relevant to the current question
 6. Be specific and helpful - provide actionable insights
 7. Use "I" and "you" naturally in conversation
+8. DO NOT use markdown formatting like **bold** or *italic* - write plain text only
+9. DO NOT include article URLs in your response - the frontend will handle references
 
 CRITICAL: If this is a follow-up question about a previous topic, continue that discussion naturally!`;
 
@@ -319,12 +334,13 @@ CRITICAL: If this is a follow-up question about a previous topic, continue that 
     if (answer && answer.length > 20) {
       console.log('✅ Smart response generated successfully');
       
-      // Show references for most queries except simple follow-ups
+      // Show references only for specific search queries, not conversational responses
       const shouldShowReferences = searchResults.length > 0 && (
-        !isFollowUp || // Show for new queries
         query.toLowerCase().includes('article') || 
         query.toLowerCase().includes('find') ||
         query.toLowerCase().includes('show') ||
+        query.toLowerCase().includes('search') ||
+        query.toLowerCase().includes('summarize') ||
         searchType === 'author'
       );
       

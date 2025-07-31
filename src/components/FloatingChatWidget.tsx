@@ -211,6 +211,14 @@ const FloatingChatWidget = () => {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000);
 
+      const requestBody = { 
+        query,
+        language: 'en',
+        conversationHistory
+      };
+      
+      console.log('🚀 Sending request:', requestBody);
+
       const response = await fetch('https://nuhjsrmkkqtecfkjrcox.supabase.co/functions/v1/chat-search-final', {
         method: 'POST',
         headers: {
@@ -232,6 +240,7 @@ const FloatingChatWidget = () => {
       }
 
       const data = await response.json();
+      console.log('📥 Received response:', data);
 
       if (data.success) {
         const botMessage: Message = {
@@ -252,10 +261,17 @@ const FloatingChatWidget = () => {
       }
     } catch (error) {
       console.error('Chat error:', error);
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack,
+        response: error.response
+      });
+      
+      // Show the actual error to help debug
       const errorMessage: Message = {
         id: messages.length + 2,
         type: 'bot',
-        content: "I'm having trouble connecting right now. Please try again in a moment.",
+        content: `Error: ${error.message}. Please check console for details.`,
         timestamp: new Date(),
         error: true
       };

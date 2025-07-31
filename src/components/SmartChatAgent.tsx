@@ -61,6 +61,14 @@ const SmartChatAgent = () => {
           content: msg.content
         }));
 
+      const requestBody = { 
+        query,
+        language: 'en',
+        conversationHistory
+      };
+      
+      console.log('🚀 SmartChatAgent sending request:', requestBody);
+
       // Call your Supabase function
       const response = await fetch('https://nuhjsrmkkqtecfkjrcox.supabase.co/functions/v1/chat-search-final', {
         method: 'POST',
@@ -76,6 +84,7 @@ const SmartChatAgent = () => {
       });
 
       const data = await response.json();
+      console.log('📥 SmartChatAgent received response:', data);
 
       if (data.success) {
         const botMessage: Message = {

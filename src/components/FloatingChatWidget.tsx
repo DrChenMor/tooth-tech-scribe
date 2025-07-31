@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, ExternalLink, Loader, AlertCircle, MessageCircle, X, Minimize, Sparkles, BookOpen, Clock } from 'lucide-react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { Send, Bot, User, ExternalLink, Loader, AlertCircle, MessageCircle, X, Minimize, Sparkles, BookOpen, Clock, Copy, RefreshCw, Lightbulb, Search, Filter } from 'lucide-react';
 
 interface Message {
   id: number;
@@ -17,6 +17,13 @@ interface Message {
   isTyping?: boolean;
 }
 
+interface QuickAction {
+  id: string;
+  label: string;
+  query: string;
+  icon: React.ReactNode;
+}
+
 const FloatingChatWidget = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
@@ -32,27 +39,91 @@ const FloatingChatWidget = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [hasNewMessage, setHasNewMessage] = useState(false);
   const [isUserAtBottom, setIsUserAtBottom] = useState(true);
+  const [showQuickActions, setShowQuickActions] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Phase 5: Smart Features - Quick Actions
+  const quickActions: QuickAction[] = [
+    {
+      id: 'ai-tools',
+      label: 'AI Tools',
+      query: 'What are the best AI tools for dentists?',
+      icon: <Sparkles className="w-4 h-4" />
+    },
+    {
+      id: 'imaging',
+      label: 'Dental Imaging',
+      query: 'Tell me about AI in dental imaging',
+      icon: <Search className="w-4 h-4" />
+    },
+    {
+      id: 'authors',
+      label: 'Authors',
+      query: 'Show me articles by Dr. Anya Sharma',
+      icon: <User className="w-4 h-4" />
+    },
+    {
+      id: 'categories',
+      label: 'Categories',
+      query: 'What categories of articles do you have?',
+      icon: <Filter className="w-4 h-4" />
+    }
+  ];
+
+  // Phase 5: Smart Features - Smart Suggestions
+  const getSuggestions = useCallback(() => {
+    const lastMessage = messages[messages.length - 1];
+    if (!lastMessage || lastMessage.type !== 'bot') return [];
+
+    const suggestions = [];
+    
+    // Suggest follow-up questions based on content
+    if (lastMessage.content.toLowerCase().includes('ai tools')) {
+      suggestions.push('What about the cost of AI tools?');
+      suggestions.push('Which AI tools are best for diagnostics?');
+    }
+    
+    if (lastMessage.content.toLowerCase().includes('imaging')) {
+      suggestions.push('How accurate is AI imaging?');
+      suggestions.push('What are the latest imaging technologies?');
+    }
+    
+    if (lastMessage.references && lastMessage.references.length > 0) {
+      suggestions.push('Show me more articles like this');
+      suggestions.push('What other topics does this author cover?');
+    }
+
+    // Default suggestions
+    if (suggestions.length === 0) {
+      suggestions.push('Tell me about the latest dental AI trends');
+      suggestions.push('What are the benefits of AI in dentistry?');
+      suggestions.push('Show me articles about dental technology');
+    }
+
+    return suggestions.slice(0, 3);
+  }, [messages]);
 
   // Smart scrolling - only auto-scroll if user is at bottom
-  const scrollToBottom = (force = false) => {
+  const scrollToBottom = useCallback((force = false) => {
     if (force || isUserAtBottom) {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }
-  };
+  }, [isUserAtBottom]);
 
   // Check if user is at bottom of chat
-  const handleScroll = () => {
+  const handleScroll = useCallback(() => {
     if (messagesContainerRef.current) {
       const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
       const isAtBottom = scrollTop + clientHeight >= scrollHeight - 10;
       setIsUserAtBottom(isAtBottom);
     }
-  };
+  }, []);
 
   // Typing animation effect - Phase 1 implementation
-  const typeMessage = (messageId: number, fullContent: string) => {
+  const typeMessage = useCallback((messageId: number, fullContent: string) => {
     const words = fullContent.split(' ');
     let currentIndex = 0;
     
@@ -73,13 +144,37 @@ const FloatingChatWidget = () => {
             ? { ...msg, isTyping: false }
             : msg
         ));
+        // Show suggestions after typing is complete
+        setTimeout(() => setShowSuggestions(true), 500);
       }
     }, 50); // Speed of typing - 50ms per word
-  };
+  }, [scrollToBottom]);
+
+  // Phase 5: Smart Features - Copy message
+  const copyMessage = useCallback(async (content: string) => {
+    try {
+      await navigator.clipboard.writeText(content);
+      // You could add a toast notification here
+    } catch (error) {
+      console.error('Failed to copy message:', error);
+    }
+  }, []);
+
+  // Phase 5: Smart Features - Regenerate response
+  const regenerateResponse = useCallback(async () => {
+    const lastUserMessage = messages.findLast(msg => msg.type === 'user');
+    if (!lastUserMessage) return;
+
+    // Remove the last bot message
+    setMessages(prev => prev.filter(msg => msg.id !== messages[messages.length - 1].id));
+    
+    // Send the last user message again
+    await handleSendMessage(lastUserMessage.content);
+  }, [messages]);
 
   useEffect(() => {
     scrollToBottom(true);
-  }, [messages]);
+  }, [messages, scrollToBottom]);
 
   useEffect(() => {
     if (!isOpen && messages.length > 1) {
@@ -93,20 +188,50 @@ const FloatingChatWidget = () => {
     }
   }, [isOpen]);
 
-  const handleSendMessage = async () => {
-    if (!inputValue.trim() || isLoading) return;
+  // Phase 5: Smart Features - Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!isOpen || isMinimized) return;
+
+      // Cmd/Ctrl + Enter to send
+      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+        e.preventDefault();
+        handleSendMessage();
+      }
+
+      // Cmd/Ctrl + K for quick actions
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setShowQuickActions(prev => !prev);
+      }
+
+      // Escape to clear input
+      if (e.key === 'Escape') {
+        setInputValue('');
+        inputRef.current?.blur();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, isMinimized]);
+
+  const handleSendMessage = async (customQuery?: string) => {
+    const query = customQuery || inputValue.trim();
+    if (!query || isLoading) return;
 
     const userMessage: Message = {
       id: messages.length + 1,
       type: 'user',
-      content: inputValue,
+      content: query,
       timestamp: new Date()
     };
 
     setMessages(prev => [...prev, userMessage]);
-    const query = inputValue;
     setInputValue('');
     setIsLoading(true);
+    setShowQuickActions(false);
+    setShowSuggestions(false);
 
     // Phase 3: Chat Memory - Prepare conversation history
     const conversationHistory = messages
@@ -321,6 +446,30 @@ const FloatingChatWidget = () => {
                             </div>
                           </div>
                         )}
+
+                        {/* Phase 5: Smart Features - Message Actions */}
+                        {!message.isTyping && !message.error && (
+                          <div className="mt-2 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button
+                              onClick={() => copyMessage(message.content)}
+                              className="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1 p-1 rounded hover:bg-gray-100 transition-colors"
+                              title="Copy message"
+                            >
+                              <Copy className="w-3 h-3" />
+                              Copy
+                            </button>
+                            {message.type === 'bot' && (
+                              <button
+                                onClick={regenerateResponse}
+                                className="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1 p-1 rounded hover:bg-gray-100 transition-colors"
+                                title="Regenerate response"
+                              >
+                                <RefreshCw className="w-3 h-3" />
+                                Regenerate
+                              </button>
+                            )}
+                          </div>
+                        )}
                         
                         <div className={`text-xs mt-2 flex items-center gap-1 ${message.type === 'user' ? 'text-blue-200' : 'text-gray-400'}`}>
                           <Clock className="w-3 h-3" />
@@ -346,14 +495,62 @@ const FloatingChatWidget = () => {
                     </div>
                   </div>
                 )}
+
+                {/* Phase 5: Smart Features - Smart Suggestions */}
+                {showSuggestions && !isLoading && (
+                  <div className="flex justify-start">
+                    <div className="flex gap-3">
+                      <div className="w-9 h-9 rounded-full bg-gradient-to-r from-purple-600 to-purple-700 text-white flex items-center justify-center shadow-lg">
+                        <Lightbulb className="w-4 h-4" />
+                      </div>
+                      <div className="bg-white/80 border border-gray-200/50 rounded-2xl px-4 py-3 shadow-xl backdrop-blur-sm">
+                        <p className="text-sm text-gray-600 mb-2">💡 You might also want to ask:</p>
+                        <div className="space-y-1">
+                          {getSuggestions().map((suggestion, index) => (
+                            <button
+                              key={index}
+                              onClick={() => handleSendMessage(suggestion)}
+                              className="block text-xs text-blue-600 hover:text-blue-800 hover:bg-blue-50 px-2 py-1 rounded transition-colors text-left w-full"
+                            >
+                              {suggestion}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
                 
                 <div ref={messagesEndRef} />
               </div>
 
               {/* Input - Phase 4: Enhanced Design */}
               <div className="p-4 border-t border-gray-200/50 bg-white/80 backdrop-blur-sm rounded-b-3xl">
+                {/* Phase 5: Smart Features - Quick Actions */}
+                {showQuickActions && (
+                  <div className="mb-3 p-3 bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl border border-blue-200/50">
+                    <p className="text-xs text-blue-700 mb-2 flex items-center gap-1">
+                      <Sparkles className="w-3 h-3" />
+                      Quick Actions:
+                    </p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {quickActions.map((action) => (
+                        <button
+                          key={action.id}
+                          onClick={() => handleSendMessage(action.query)}
+                          className="flex items-center gap-2 p-2 bg-white/80 hover:bg-white rounded-lg border border-blue-200/50 transition-all duration-200 hover:scale-105 text-xs"
+                        >
+                          {action.icon}
+                          {action.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex gap-3">
                   <input
+                    ref={inputRef}
                     type="text"
                     value={inputValue}
                     onChange={(e) => setInputValue(e.target.value)}
@@ -363,7 +560,14 @@ const FloatingChatWidget = () => {
                     disabled={isLoading}
                   />
                   <button
-                    onClick={handleSendMessage}
+                    onClick={() => setShowQuickActions(prev => !prev)}
+                    className="px-3 py-3 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-xl hover:from-purple-700 hover:to-purple-800 transition-all duration-200 hover:scale-105 shadow-lg"
+                    title="Quick Actions (Ctrl+K)"
+                  >
+                    <Sparkles className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => handleSendMessage()}
                     disabled={!inputValue.trim() || isLoading}
                     className="px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed flex items-center gap-2 text-sm font-medium transition-all duration-200 hover:scale-105 shadow-lg"
                   >
@@ -380,6 +584,8 @@ const FloatingChatWidget = () => {
                   <span>•</span>
                   <Bot className="w-3 h-3" />
                   Remembers conversations
+                  <span>•</span>
+                  <span className="bg-gray-200 px-1 rounded text-xs">Ctrl+K</span>
                 </div>
               </div>
             </>

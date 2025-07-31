@@ -296,14 +296,14 @@ const FloatingChatWidget = () => {
     <>
       {/* Floating Button */}
       {!isOpen && (
-        <div className="fixed bottom-6 right-6 z-50">
+        <div className="fixed bottom-4 right-4 md:bottom-6 md:right-6 z-50">
           <button
             onClick={() => setIsOpen(true)}
-            className="group bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+            className="group bg-blue-600 hover:bg-blue-700 text-white p-3 md:p-4 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
             aria-label="Open chat"
           >
             <div className="relative">
-              <MessageCircle className="w-6 h-6" />
+              <MessageCircle className="w-5 h-5 md:w-6 md:h-6" />
               {hasNewMessage && (
                 <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
               )}
@@ -314,17 +314,19 @@ const FloatingChatWidget = () => {
 
       {/* Chat Widget */}
       {isOpen && (
-        <div className={`fixed bottom-6 right-6 z-50 bg-white rounded-lg shadow-xl border border-gray-200 transition-all duration-300 ${
-          isMinimized ? 'w-80 h-16' : 'w-96 h-[600px]'
+        <div className={`fixed z-50 bg-white rounded-lg shadow-xl border border-gray-200 transition-all duration-300 ${
+          isMinimized 
+            ? 'bottom-6 right-6 w-80 h-16' 
+            : 'bottom-4 right-4 left-4 md:left-auto md:w-96 h-[600px] max-h-[80vh]'
         }`}>
           {/* Header */}
-          <div className="bg-blue-600 text-white p-4 rounded-t-lg flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
-                <Bot className="w-4 h-4" />
+          <div className="bg-blue-600 text-white p-3 md:p-4 rounded-t-lg flex items-center justify-between">
+            <div className="flex items-center gap-2 md:gap-3">
+              <div className="w-7 h-7 md:w-8 md:h-8 bg-white/20 rounded-full flex items-center justify-center">
+                <Bot className="w-3 h-3 md:w-4 md:h-4" />
               </div>
               <div>
-                <h3 className="font-semibold text-sm">Dental AI Assistant</h3>
+                <h3 className="font-semibold text-xs md:text-sm">Dental AI Assistant</h3>
                 {!isMinimized && (
                   <p className="text-blue-100 text-xs">Ask me anything about dental tech</p>
                 )}
@@ -340,25 +342,25 @@ const FloatingChatWidget = () => {
                     timestamp: new Date()
                   }]);
                 }}
-                className="text-blue-100 hover:text-white p-2 rounded hover:bg-white/10 transition-colors"
+                className="text-blue-100 hover:text-white p-1.5 md:p-2 rounded hover:bg-white/10 transition-colors"
                 aria-label="Start new chat"
                 title="Start new chat"
               >
-                <RotateCcw className="w-4 h-4" />
+                <RotateCcw className="w-3 h-3 md:w-4 md:h-4" />
               </button>
               <button
                 onClick={() => setIsMinimized(!isMinimized)}
-                className="text-blue-100 hover:text-white p-2 rounded hover:bg-white/10 transition-colors"
+                className="text-blue-100 hover:text-white p-1.5 md:p-2 rounded hover:bg-white/10 transition-colors"
                 aria-label={isMinimized ? "Expand chat" : "Minimize chat"}
               >
-                <Minimize className="w-4 h-4" />
+                <Minimize className="w-3 h-3 md:w-4 md:h-4" />
               </button>
               <button
                 onClick={() => setIsOpen(false)}
-                className="text-blue-100 hover:text-white p-2 rounded hover:bg-white/10 transition-colors"
+                className="text-blue-100 hover:text-white p-1.5 md:p-2 rounded hover:bg-white/10 transition-colors"
                 aria-label="Close chat"
               >
-                <X className="w-4 h-4" />
+                <X className="w-3 h-3 md:w-4 md:h-4" />
               </button>
             </div>
           </div>
@@ -494,7 +496,7 @@ const FloatingChatWidget = () => {
 
               {/* Input */}
               <div className="p-4 border-t border-gray-200 bg-white rounded-b-lg">
-                <div className="flex gap-3">
+                <div className="flex gap-2 md:gap-3">
                   <input
                     ref={inputRef}
                     type="text"
@@ -502,13 +504,13 @@ const FloatingChatWidget = () => {
                     onChange={(e) => setInputValue(e.target.value)}
                     onKeyPress={handleKeyPress}
                     placeholder="Ask about dental AI tools, authors, or categories..."
-                    className="flex-1 px-4 py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                    className="flex-1 px-3 md:px-4 py-2 md:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
                     disabled={isLoading}
                   />
                   <button
                     onClick={() => handleSendMessage()}
                     disabled={!inputValue.trim() || isLoading}
-                    className="px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center gap-2 text-sm font-medium transition-colors"
+                    className="px-3 md:px-4 py-2 md:py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center gap-1 md:gap-2 text-sm font-medium transition-colors"
                   >
                     <Send className="w-4 h-4" />
                   </button>

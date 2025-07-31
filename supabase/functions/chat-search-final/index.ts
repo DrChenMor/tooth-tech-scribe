@@ -305,7 +305,8 @@ RESPONSE GUIDELINES:
 6. Be specific and helpful - provide actionable insights
 7. Use "I" and "you" naturally in conversation
 8. DO NOT use markdown formatting like **bold** or *italic* - write plain text only
-9. DO NOT include article URLs in your response - the frontend will handle references
+9. When mentioning article titles, use this format: [Article Title](article-slug) - this makes them clickable
+10. Only include article references when specifically relevant to the user's question
 
 CRITICAL: If this is a follow-up question about a previous topic, continue that discussion naturally!`;
 
@@ -340,7 +341,8 @@ CRITICAL: If this is a follow-up question about a previous topic, continue that 
         query.toLowerCase().includes('find') ||
         query.toLowerCase().includes('show') ||
         query.toLowerCase().includes('search') ||
-        query.toLowerCase().includes('summarize') ||
+        query.toLowerCase().includes('last article') ||
+        query.toLowerCase().includes('latest article') ||
         searchType === 'author'
       );
       

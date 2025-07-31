@@ -129,6 +129,45 @@ const FloatingChatWidget = () => {
     }
   }, []);
 
+  // Parse message content for clickable links
+  const parseMessageContent = useCallback((content: string) => {
+    // Parse [Article Title](article-slug) format into clickable links
+    const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
+    const parts = [];
+    let lastIndex = 0;
+    let match;
+
+    while ((match = linkRegex.exec(content)) !== null) {
+      // Add text before the link
+      if (match.index > lastIndex) {
+        parts.push({
+          type: 'text',
+          content: content.slice(lastIndex, match.index)
+        });
+      }
+
+      // Add the link
+      parts.push({
+        type: 'link',
+        title: match[1],
+        slug: match[2],
+        content: match[0]
+      });
+
+      lastIndex = match.index + match[0].length;
+    }
+
+    // Add remaining text
+    if (lastIndex < content.length) {
+      parts.push({
+        type: 'text',
+        content: content.slice(lastIndex)
+      });
+    }
+
+    return parts.length > 0 ? parts : [{ type: 'text', content }];
+  }, []);
+
   // Regenerate response
   const regenerateResponse = useCallback(async () => {
     const lastUserMessage = messages.findLast(msg => msg.type === 'user');
@@ -375,7 +414,21 @@ const FloatingChatWidget = () => {
                             : 'bg-white border border-gray-200'
                       }`}>
                         <div className="text-sm leading-relaxed">
-                          {message.content}
+                          {parseMessageContent(message.content).map((part, index) => (
+                            part.type === 'link' ? (
+                              <a
+                                key={index}
+                                href={`https://dentalai.live/article/${part.slug}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:text-blue-800 underline font-medium"
+                              >
+                                {part.title}
+                              </a>
+                            ) : (
+                              <span key={index}>{part.content}</span>
+                            )
+                          ))}
                           {message.isTyping && (
                             <span className="inline-block w-2 h-4 bg-blue-600 ml-1 animate-pulse rounded-sm"></span>
                           )}

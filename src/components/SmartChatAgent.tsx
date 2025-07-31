@@ -52,8 +52,17 @@ const SmartChatAgent = () => {
     setIsLoading(true);
 
     try {
+      // Chat Memory - Prepare conversation history
+      const conversationHistory = messages
+        .filter(msg => msg.type === 'user' || msg.type === 'bot')
+        .slice(-10)
+        .map(msg => ({
+          role: msg.type === 'user' ? 'user' as const : 'assistant' as const,
+          content: msg.content
+        }));
+
       // Call your Supabase function
-      const response = await fetch('https://nuhjsrmkkqtecfkjrcox.supabase.co/functions/v1/chat-search', {
+      const response = await fetch('https://nuhjsrmkkqtecfkjrcox.supabase.co/functions/v1/chat-search-final', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -61,7 +70,8 @@ const SmartChatAgent = () => {
         },
         body: JSON.stringify({ 
           query,
-          language: 'en' // or 'he' for Hebrew
+          language: 'en',
+          conversationHistory
         })
       });
 

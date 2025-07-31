@@ -261,6 +261,26 @@ async function generateSmartResponse(
         };
       }
       
+      // For follow-up questions like "yes please", "tell me more", etc., use conversation context
+      const followUpPatterns = ['yes please', 'tell me more', 'elaborate', 'expand', 'continue', 'go on'];
+      const isFollowUp = followUpPatterns.some(pattern => 
+        query.toLowerCase().includes(pattern)
+      );
+      
+      if (isFollowUp && conversationHistory.length > 2) {
+        // For follow-up questions, provide a contextual response based on conversation history
+        const lastUserMessage = conversationHistory.slice().reverse().find(msg => msg.role === 'user');
+        const lastAssistantMessage = conversationHistory.slice().reverse().find(msg => msg.role === 'assistant');
+        
+        if (lastUserMessage && lastAssistantMessage) {
+          const followUpResponse = generateFollowUpFromContext(query, lastUserMessage.content, lastAssistantMessage.content);
+          return {
+            answer: followUpResponse,
+            shouldShowReferences: false
+          };
+        }
+      }
+      
       // For other queries, provide helpful guidance
       return {
         answer: "I couldn't find specific articles about that in our dental technology database. Try asking about dental AI tools, imaging technology, or specific authors like Dr. Anya Sharma or Chen Mor.",
@@ -312,6 +332,8 @@ RESPONSE GUIDELINES:
     - For emphasis: <em>text</em>
     - For line breaks: <br>
     - For paragraphs: <p>text</p>
+    - IMPORTANT: Use <p> tags to separate different ideas or topics into paragraphs
+    - Use <br> for line breaks within the same topic
 
 CRITICAL: If this is a follow-up question about a previous topic, continue that discussion naturally!`;
 

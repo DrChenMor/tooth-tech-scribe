@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Send, Bot, User, ExternalLink, Loader, AlertCircle, MessageCircle, X, Minimize, Sparkles, BookOpen, Clock, Copy, RefreshCw, Lightbulb, Search, Filter } from 'lucide-react';
+import { Send, Bot, User, ExternalLink, Loader, AlertCircle, MessageCircle, X, Minimize, Sparkles, BookOpen, Clock, Copy, RefreshCw, Search, Filter } from 'lucide-react';
 
 interface Message {
   id: number;
@@ -40,12 +40,11 @@ const FloatingChatWidget = () => {
   const [hasNewMessage, setHasNewMessage] = useState(false);
   const [isUserAtBottom, setIsUserAtBottom] = useState(true);
   const [showQuickActions, setShowQuickActions] = useState(false);
-  const [showSuggestions, setShowSuggestions] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Phase 5: Smart Features - Quick Actions
+  // Quick Actions
   const quickActions: QuickAction[] = [
     {
       id: 'ai-tools',
@@ -73,48 +72,20 @@ const FloatingChatWidget = () => {
     }
   ];
 
-  // Phase 5: Smart Features - Smart Suggestions (only when relevant)
-  const getSuggestions = useCallback(() => {
-    const lastMessage = messages[messages.length - 1];
-    if (!lastMessage || lastMessage.type !== 'bot') return [];
-
-    const suggestions = [];
-    
-    // Only show suggestions if the message has references or is about specific topics
-    if (lastMessage.references && lastMessage.references.length > 0) {
-      suggestions.push('Show me more articles like this');
-      suggestions.push('What other topics does this author cover?');
-    }
-    
-    // Suggest follow-up questions based on content
-    if (lastMessage.content.toLowerCase().includes('ai tools')) {
-      suggestions.push('What about the cost of AI tools?');
-      suggestions.push('Which AI tools are best for diagnostics?');
-    }
-    
-    if (lastMessage.content.toLowerCase().includes('imaging')) {
-      suggestions.push('How accurate is AI imaging?');
-      suggestions.push('What are the latest imaging technologies?');
-    }
-
-    // Only show suggestions if we have relevant ones
-    return suggestions.slice(0, 2);
-  }, [messages]);
-
-  // Fixed scrolling - only auto-scroll if user is at bottom
+  // Simple scrolling - only auto-scroll for new messages, not during typing
   const scrollToBottom = useCallback((force = false) => {
-    if (force || isUserAtBottom) {
+    if (force) {
       setTimeout(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
       }, 100);
     }
-  }, [isUserAtBottom]);
+  }, []);
 
   // Check if user is at bottom of chat
   const handleScroll = useCallback(() => {
     if (messagesContainerRef.current) {
       const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
-      const isAtBottom = scrollTop + clientHeight >= scrollHeight - 20;
+      const isAtBottom = scrollTop + clientHeight >= scrollHeight - 50;
       setIsUserAtBottom(isAtBottom);
     }
   }, []);
@@ -133,7 +104,10 @@ const FloatingChatWidget = () => {
             : msg
         ));
         currentIndex++;
-        scrollToBottom();
+        // Only scroll during typing if user is at bottom
+        if (isUserAtBottom) {
+          scrollToBottom(true);
+        }
       } else {
         clearInterval(typeInterval);
         setMessages(prev => prev.map(msg => 
@@ -141,16 +115,13 @@ const FloatingChatWidget = () => {
             ? { ...msg, isTyping: false }
             : msg
         ));
-        // Only show suggestions if relevant
-        const suggestions = getSuggestions();
-        if (suggestions.length > 0) {
-          setTimeout(() => setShowSuggestions(true), 500);
-        }
+        // Scroll to bottom when typing is complete
+        scrollToBottom(true);
       }
     }, 50);
-  }, [scrollToBottom, getSuggestions]);
+  }, [scrollToBottom, isUserAtBottom]);
 
-  // Phase 5: Smart Features - Copy message
+  // Copy message
   const copyMessage = useCallback(async (content: string) => {
     try {
       await navigator.clipboard.writeText(content);
@@ -159,7 +130,7 @@ const FloatingChatWidget = () => {
     }
   }, []);
 
-  // Phase 5: Smart Features - Regenerate response
+  // Regenerate response
   const regenerateResponse = useCallback(async () => {
     const lastUserMessage = messages.findLast(msg => msg.type === 'user');
     if (!lastUserMessage) return;
@@ -169,8 +140,11 @@ const FloatingChatWidget = () => {
   }, [messages]);
 
   useEffect(() => {
-    scrollToBottom(true);
-  }, [messages, scrollToBottom]);
+    // Only scroll to bottom for new messages, not during user scrolling
+    if (messages.length > 0 && !isLoading) {
+      scrollToBottom(true);
+    }
+  }, [messages.length, isLoading, scrollToBottom]);
 
   useEffect(() => {
     if (!isOpen && messages.length > 1) {
@@ -184,7 +158,7 @@ const FloatingChatWidget = () => {
     }
   }, [isOpen]);
 
-  // Phase 5: Smart Features - Keyboard shortcuts
+  // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!isOpen || isMinimized) return;
@@ -224,9 +198,8 @@ const FloatingChatWidget = () => {
     setInputValue('');
     setIsLoading(true);
     setShowQuickActions(false);
-    setShowSuggestions(false);
 
-    // Phase 3: Chat Memory - Prepare conversation history
+    // Chat Memory - Prepare conversation history
     const conversationHistory = messages
       .filter(msg => msg.type === 'user' || msg.type === 'bot')
       .slice(-10)
@@ -302,7 +275,7 @@ const FloatingChatWidget = () => {
 
   return (
     <>
-      {/* Floating Button - Flat design */}
+      {/* Floating Button */}
       {!isOpen && (
         <div className="fixed bottom-6 right-6 z-50">
           <button
@@ -320,12 +293,12 @@ const FloatingChatWidget = () => {
         </div>
       )}
 
-      {/* Chat Widget - Flat design */}
+      {/* Chat Widget */}
       {isOpen && (
         <div className={`fixed bottom-6 right-6 z-50 bg-white rounded-lg shadow-xl border border-gray-200 transition-all duration-300 ${
           isMinimized ? 'w-80 h-16' : 'w-96 h-[600px]'
         }`}>
-          {/* Header - Flat design */}
+          {/* Header */}
           <div className="bg-blue-600 text-white p-4 rounded-t-lg flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
@@ -356,7 +329,7 @@ const FloatingChatWidget = () => {
             </div>
           </div>
 
-          {/* Chat Content - Flat design */}
+          {/* Chat Content */}
           {!isMinimized && (
             <>
               {/* Messages */}
@@ -393,7 +366,7 @@ const FloatingChatWidget = () => {
                           )}
                         </div>
                         
-                        {/* References - Flat design */}
+                        {/* References */}
                         {message.references && message.references.length > 0 && !message.isTyping && (
                           <div className="mt-3 pt-3 border-t border-gray-100">
                             <div className="space-y-2">
@@ -473,38 +446,13 @@ const FloatingChatWidget = () => {
                     </div>
                   </div>
                 )}
-
-                {/* Smart Suggestions - Only when relevant */}
-                {showSuggestions && !isLoading && (
-                  <div className="flex justify-start">
-                    <div className="flex gap-3">
-                      <div className="w-8 h-8 rounded-full bg-purple-600 text-white flex items-center justify-center">
-                        <Lightbulb className="w-4 h-4" />
-                      </div>
-                      <div className="bg-white border border-gray-200 rounded-lg px-4 py-3 max-w-[280px]">
-                        <p className="text-sm text-gray-600 mb-2">💡 You might also want to ask:</p>
-                        <div className="space-y-1">
-                          {getSuggestions().map((suggestion, index) => (
-                            <button
-                              key={index}
-                              onClick={() => handleSendMessage(suggestion)}
-                              className="block text-xs text-blue-600 hover:text-blue-800 hover:bg-blue-50 px-2 py-1 rounded transition-colors text-left w-full"
-                            >
-                              {suggestion}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
                 
                 <div ref={messagesEndRef} />
               </div>
 
-              {/* Input - Flat design */}
+              {/* Input */}
               <div className="p-4 border-t border-gray-200 bg-white rounded-b-lg">
-                {/* Quick Actions */}
+                {/* Quick Actions - Fixed layout */}
                 {showQuickActions && (
                   <div className="mb-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
                     <p className="text-xs text-blue-700 mb-2 flex items-center gap-1">
@@ -516,10 +464,11 @@ const FloatingChatWidget = () => {
                         <button
                           key={action.id}
                           onClick={() => handleSendMessage(action.query)}
-                          className="flex items-center gap-2 p-2 bg-white hover:bg-blue-50 rounded border border-blue-200 transition-colors text-xs"
+                          className="flex items-center gap-2 p-2 bg-white hover:bg-blue-50 rounded border border-blue-200 transition-colors text-xs truncate"
+                          title={action.label}
                         >
                           {action.icon}
-                          {action.label}
+                          <span className="truncate">{action.label}</span>
                         </button>
                       ))}
                     </div>

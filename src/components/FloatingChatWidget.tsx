@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, ExternalLink, Loader, AlertCircle, MessageCircle, X, Minimize } from 'lucide-react';
+import { Send, Bot, User, ExternalLink, Loader, AlertCircle, MessageCircle, X, Minimize, Sparkles, BookOpen, Clock } from 'lucide-react';
 
 interface Message {
   id: number;
@@ -185,15 +185,18 @@ const FloatingChatWidget = () => {
 
   return (
     <>
-      {/* Floating Button */}
+      {/* Floating Button - Phase 4: Enhanced Design */}
       {!isOpen && (
         <div className="fixed bottom-6 right-6 z-50">
           <button
             onClick={() => setIsOpen(true)}
-            className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white p-4 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+            className="group bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white p-4 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 hover:rotate-3"
             aria-label="Open chat"
           >
-            <MessageCircle className="w-6 h-6" />
+            <div className="relative">
+              <MessageCircle className="w-6 h-6 group-hover:animate-pulse" />
+              <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-400 rounded-full animate-ping"></div>
+            </div>
             {hasNewMessage && (
               <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
             )}
@@ -201,35 +204,47 @@ const FloatingChatWidget = () => {
         </div>
       )}
 
-      {/* Chat Widget */}
+      {/* Chat Widget - Phase 4: Enhanced UI */}
       {isOpen && (
-        <div className={`fixed bottom-6 right-6 z-50 bg-white rounded-2xl shadow-2xl border border-gray-200 transition-all duration-300 ${
+        <div className={`fixed bottom-6 right-6 z-50 bg-white rounded-3xl shadow-2xl border border-gray-200 transition-all duration-300 ${
           isMinimized ? 'w-80 h-16' : 'w-96 h-[600px]'
         }`}>
-          {/* Header */}
-          <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-4 rounded-t-2xl flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
-                <Bot className="w-4 h-4" />
+          {/* Header - Phase 4: Enhanced Design */}
+          <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800 text-white p-4 rounded-t-3xl flex items-center justify-between relative overflow-hidden">
+            {/* Background Pattern */}
+            <div className="absolute inset-0 opacity-10">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white rounded-full -translate-y-16 translate-x-16"></div>
+              <div className="absolute bottom-0 left-0 w-24 h-24 bg-white rounded-full translate-y-12 -translate-x-12"></div>
+            </div>
+            
+            <div className="flex items-center gap-3 relative z-10">
+              <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm border border-white/30">
+                <Bot className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="font-semibold text-sm">Dental AI Assistant</h3>
+                <h3 className="font-semibold text-sm flex items-center gap-2">
+                  Dental AI Assistant
+                  <Sparkles className="w-3 h-3 text-yellow-300 animate-pulse" />
+                </h3>
                 {!isMinimized && (
-                  <p className="text-blue-100 text-xs">Ask me anything about dental tech</p>
+                  <p className="text-blue-100 text-xs flex items-center gap-1">
+                    <BookOpen className="w-3 h-3" />
+                    Ask me anything about dental tech
+                  </p>
                 )}
               </div>
             </div>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 relative z-10">
               <button
                 onClick={() => setIsMinimized(!isMinimized)}
-                className="text-blue-100 hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition-colors"
+                className="text-blue-100 hover:text-white p-2 rounded-xl hover:bg-white/10 transition-all duration-200 hover:scale-105"
                 aria-label={isMinimized ? "Expand chat" : "Minimize chat"}
               >
                 <Minimize className="w-4 h-4" />
               </button>
               <button
                 onClick={() => setIsOpen(false)}
-                className="text-blue-100 hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition-colors"
+                className="text-blue-100 hover:text-white p-2 rounded-xl hover:bg-white/10 transition-all duration-200 hover:scale-105"
                 aria-label="Close chat"
               >
                 <X className="w-4 h-4" />
@@ -237,66 +252,69 @@ const FloatingChatWidget = () => {
             </div>
           </div>
 
-          {/* Chat Content */}
+          {/* Chat Content - Phase 4: Enhanced Design */}
           {!isMinimized && (
             <>
-              {/* Messages - Phase 2: Smart Scrolling */}
+              {/* Messages - Phase 4: Enhanced Message Bubbles */}
               <div 
                 ref={messagesContainerRef}
                 onScroll={handleScroll}
-                className="h-[400px] overflow-y-auto p-4 space-y-4 bg-gray-50 scroll-smooth"
+                className="h-[400px] overflow-y-auto p-4 space-y-4 bg-gradient-to-b from-gray-50 to-white scroll-smooth"
               >
                 {messages.map((message) => (
                   <div key={message.id} className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}>
                     <div className={`flex gap-3 max-w-[85%] ${message.type === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                      <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg ${
                         message.type === 'user' 
-                          ? 'bg-blue-600 text-white' 
+                          ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white' 
                           : message.error 
-                            ? 'bg-red-500 text-white'
-                            : 'bg-gray-700 text-white'
+                            ? 'bg-gradient-to-r from-red-500 to-red-600 text-white'
+                            : 'bg-gradient-to-r from-gray-700 to-gray-800 text-white'
                       }`}>
                         {message.type === 'user' ? <User className="w-4 h-4" /> : 
                          message.error ? <AlertCircle className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
                       </div>
                       
-                      <div className={`rounded-2xl px-4 py-3 ${
+                      <div className={`rounded-2xl px-4 py-3 shadow-lg backdrop-blur-sm ${
                         message.type === 'user' 
-                          ? 'bg-blue-600 text-white' 
+                          ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white' 
                           : message.error 
-                            ? 'bg-red-50 border border-red-200 text-red-800'
-                            : 'bg-white border border-gray-200 shadow-sm'
+                            ? 'bg-gradient-to-r from-red-50 to-red-100 border border-red-200 text-red-800'
+                            : 'bg-white/80 border border-gray-200/50 shadow-xl'
                       }`}>
                         <div className="text-sm leading-relaxed">
                           {message.content}
                           {/* Phase 1: Typing Animation Cursor */}
                           {message.isTyping && (
-                            <span className="inline-block w-2 h-4 bg-blue-600 ml-1 animate-pulse"></span>
+                            <span className="inline-block w-2 h-4 bg-blue-600 ml-1 animate-pulse rounded-sm"></span>
                           )}
                         </div>
                         
-                        {/* References - Only show if relevant and not typing */}
+                        {/* References - Phase 4: Enhanced Source Display */}
                         {message.references && message.references.length > 0 && !message.isTyping && (
-                          <div className="mt-3 pt-3 border-t border-gray-100">
+                          <div className="mt-3 pt-3 border-t border-gray-100/50">
                             <div className="space-y-2">
                               {message.references.slice(0, 2).map((ref, index) => (
                                 <a 
                                   key={index}
                                   href={ref.url} 
-                                  className="block p-3 bg-blue-50 hover:bg-blue-100 rounded-xl border border-blue-200 transition-colors group"
+                                  className="block p-3 bg-gradient-to-r from-blue-50 to-blue-100 hover:from-blue-100 hover:to-blue-200 rounded-xl border border-blue-200/50 transition-all duration-200 group hover:shadow-md hover:scale-[1.02]"
                                   target="_blank"
                                   rel="noopener noreferrer"
                                 >
                                   <div className="flex items-start justify-between">
                                     <div className="flex-1">
-                                      <h4 className="text-blue-900 font-medium text-sm group-hover:text-blue-700 transition-colors">
+                                      <h4 className="text-blue-900 font-medium text-sm group-hover:text-blue-700 transition-colors flex items-center gap-2">
                                         {ref.title}
+                                        <BookOpen className="w-3 h-3 opacity-60" />
                                       </h4>
-                                      <p className="text-xs text-blue-700 mt-1">
-                                        by {ref.author} • {ref.category}
+                                      <p className="text-xs text-blue-700 mt-1 flex items-center gap-2">
+                                        <span>by {ref.author}</span>
+                                        <span>•</span>
+                                        <span className="bg-blue-200 px-2 py-0.5 rounded-full text-xs">{ref.category}</span>
                                       </p>
                                     </div>
-                                    <ExternalLink className="w-3 h-3 text-blue-600 flex-shrink-0 mt-0.5" />
+                                    <ExternalLink className="w-3 h-3 text-blue-600 flex-shrink-0 mt-0.5 group-hover:scale-110 transition-transform" />
                                   </div>
                                 </a>
                               ))}
@@ -304,7 +322,8 @@ const FloatingChatWidget = () => {
                           </div>
                         )}
                         
-                        <div className={`text-xs mt-2 ${message.type === 'user' ? 'text-blue-200' : 'text-gray-400'}`}>
+                        <div className={`text-xs mt-2 flex items-center gap-1 ${message.type === 'user' ? 'text-blue-200' : 'text-gray-400'}`}>
+                          <Clock className="w-3 h-3" />
                           {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </div>
                       </div>
@@ -315,10 +334,10 @@ const FloatingChatWidget = () => {
                 {isLoading && (
                   <div className="flex justify-start">
                     <div className="flex gap-3">
-                      <div className="w-8 h-8 rounded-full bg-gray-700 text-white flex items-center justify-center">
+                      <div className="w-9 h-9 rounded-full bg-gradient-to-r from-gray-700 to-gray-800 text-white flex items-center justify-center shadow-lg">
                         <Bot className="w-4 h-4" />
                       </div>
-                      <div className="bg-white border border-gray-200 rounded-2xl px-4 py-3 shadow-sm">
+                      <div className="bg-white/80 border border-gray-200/50 rounded-2xl px-4 py-3 shadow-xl backdrop-blur-sm">
                         <div className="flex items-center gap-2">
                           <Loader className="w-4 h-4 animate-spin text-blue-600" />
                           <span className="text-sm text-gray-600">Searching...</span>
@@ -331,8 +350,8 @@ const FloatingChatWidget = () => {
                 <div ref={messagesEndRef} />
               </div>
 
-              {/* Input */}
-              <div className="p-4 border-t border-gray-200 bg-white rounded-b-2xl">
+              {/* Input - Phase 4: Enhanced Design */}
+              <div className="p-4 border-t border-gray-200/50 bg-white/80 backdrop-blur-sm rounded-b-3xl">
                 <div className="flex gap-3">
                   <input
                     type="text"
@@ -340,20 +359,27 @@ const FloatingChatWidget = () => {
                     onChange={(e) => setInputValue(e.target.value)}
                     onKeyPress={handleKeyPress}
                     placeholder="Ask about dental AI tools, authors, or categories..."
-                    className="flex-1 px-4 py-3 text-sm border border-gray-300 rounded-xl resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    className="flex-1 px-4 py-3 text-sm border border-gray-300/50 rounded-xl resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white/50 backdrop-blur-sm"
                     disabled={isLoading}
                   />
                   <button
                     onClick={handleSendMessage}
                     disabled={!inputValue.trim() || isLoading}
-                    className="px-4 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center gap-2 text-sm font-medium transition-colors"
+                    className="px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed flex items-center gap-2 text-sm font-medium transition-all duration-200 hover:scale-105 shadow-lg"
                   >
                     <Send className="w-4 h-4" />
                   </button>
                 </div>
                 
-                <div className="mt-2 text-xs text-gray-500 text-center">
-                  🤖 Powered by Google Gemini • 📚 Only from our articles • 🧠 Remembers conversations
+                <div className="mt-2 text-xs text-gray-500 text-center flex items-center justify-center gap-2">
+                  <Sparkles className="w-3 h-3" />
+                  Powered by Google Gemini
+                  <span>•</span>
+                  <BookOpen className="w-3 h-3" />
+                  Only from our articles
+                  <span>•</span>
+                  <Bot className="w-3 h-3" />
+                  Remembers conversations
                 </div>
               </div>
             </>

@@ -4,9 +4,12 @@ import { AppSidebar } from '@/components/AppSidebar';
 import Header from '@/components/Header'; // Assuming Header is your TopNavigation
 import FloatingChatWidget from '@/components/FloatingChatWidget';
 import { SidebarProvider } from '@/components/ui/sidebar';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 
 const MainLayout = () => {
+  const location = useLocation();
+  const isChatPage = location.pathname === '/chat';
+
   return (
     // ✅  FIX: Set the breakpoint to 768px.
     // Tablets (768px+) will now be treated as "desktop".
@@ -20,8 +23,8 @@ const MainLayout = () => {
             <Outlet />
           </main>
         </div>
-        {/* Floating Chat Widget */}
-        <FloatingChatWidget />
+        {/* Floating Chat Widget - Hide on chat page to avoid confusion */}
+        {!isChatPage && <FloatingChatWidget />}
       </div>
     </SidebarProvider>
   );

@@ -304,9 +304,14 @@ RESPONSE GUIDELINES:
 5. Only mention articles that are actually relevant to the current question
 6. Be specific and helpful - provide actionable insights
 7. Use "I" and "you" naturally in conversation
-8. DO NOT use markdown formatting like **bold** or *italic* - write plain text only
-9. When mentioning article titles, use this format: [Article Title](article-slug) - this makes them clickable
-10. Only include article references when specifically relevant to the user's question
+8. When mentioning article titles, use this format: [Article Title](article-slug) - this makes them clickable
+9. Only include article references when specifically relevant to the user's question
+10. FORMATTING: Use proper HTML tags for formatting:
+    - For bullet points: <ul><li>Item 1</li><li>Item 2</li></ul>
+    - For bold: <strong>text</strong>
+    - For emphasis: <em>text</em>
+    - For line breaks: <br>
+    - For paragraphs: <p>text</p>
 
 CRITICAL: If this is a follow-up question about a previous topic, continue that discussion naturally!`;
 

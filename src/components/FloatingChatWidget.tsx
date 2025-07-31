@@ -413,26 +413,20 @@ const FloatingChatWidget = () => {
                             ? 'bg-red-50 border border-red-200 text-red-800'
                             : 'bg-white border border-gray-200'
                       }`}>
-                        <div className="text-sm leading-relaxed">
-                          {parseMessageContent(message.content).map((part, index) => (
-                            part.type === 'link' ? (
-                              <a
-                                key={index}
-                                href={`https://dentalai.live/article/${part.slug}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-blue-600 hover:text-blue-800 underline font-medium"
-                              >
-                                {part.title}
-                              </a>
-                            ) : (
-                              <span key={index}>{part.content}</span>
-                            )
-                          ))}
-                          {message.isTyping && (
-                            <span className="inline-block w-2 h-4 bg-blue-600 ml-1 animate-pulse rounded-sm"></span>
-                          )}
-                        </div>
+                        <div 
+                          className="text-sm leading-relaxed"
+                          dangerouslySetInnerHTML={{
+                            __html: parseMessageContent(message.content).map((part, index) => {
+                              if (part.type === 'link') {
+                                return `<a href="https://dentalai.live/article/${part.slug}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800 underline font-medium">${part.title}</a>`;
+                              }
+                              return part.content;
+                            }).join('')
+                          }}
+                        />
+                        {message.isTyping && (
+                          <span className="inline-block w-2 h-4 bg-blue-600 ml-1 animate-pulse rounded-sm"></span>
+                        )}
                         
                         {/* References */}
                         {message.references && message.references.length > 0 && !message.isTyping && (

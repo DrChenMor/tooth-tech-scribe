@@ -327,13 +327,14 @@ RESPONSE GUIDELINES:
 8. When mentioning article titles, use this format: [Article Title](article-slug) - this makes them clickable
 9. Only include article references when specifically relevant to the user's question
 10. FORMATTING: Use proper HTML tags for formatting:
-    - For bullet points: <ul><li>Item 1</li><li>Item 2</li></ul>
+    - For bullet points: <ul><li>Item 1</li><li>Item 2</li></ul> (NEVER use * or - for bullets)
     - For bold: <strong>text</strong>
     - For emphasis: <em>text</em>
     - For line breaks: <br>
     - For paragraphs: <p>text</p>
     - IMPORTANT: Use <p> tags to separate different ideas or topics into paragraphs
     - Use <br> for line breaks within the same topic
+    - CRITICAL: When user asks for "bullet points", use <ul><li> format, not * symbols
 
 CRITICAL: If this is a follow-up question about a previous topic, continue that discussion naturally!`;
 

@@ -14,6 +14,7 @@ interface Message {
   }>;
   timestamp: Date;
   error?: boolean;
+  isTyping?: boolean;
 }
 
 const FloatingChatWidget = () => {
@@ -30,14 +31,54 @@ const FloatingChatWidget = () => {
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [hasNewMessage, setHasNewMessage] = useState(false);
+  const [isUserAtBottom, setIsUserAtBottom] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  // Smart scrolling - only auto-scroll if user is at bottom
+  const scrollToBottom = (force = false) => {
+    if (force || isUserAtBottom) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
+  // Check if user is at bottom of chat
+  const handleScroll = () => {
+    if (messagesContainerRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
+      const isAtBottom = scrollTop + clientHeight >= scrollHeight - 10;
+      setIsUserAtBottom(isAtBottom);
+    }
+  };
+
+  // Typing animation effect - Phase 1 implementation
+  const typeMessage = (messageId: number, fullContent: string) => {
+    const words = fullContent.split(' ');
+    let currentIndex = 0;
+    
+    const typeInterval = setInterval(() => {
+      if (currentIndex <= words.length) {
+        const partialContent = words.slice(0, currentIndex).join(' ');
+        setMessages(prev => prev.map(msg => 
+          msg.id === messageId 
+            ? { ...msg, content: partialContent, isTyping: currentIndex < words.length }
+            : msg
+        ));
+        currentIndex++;
+        scrollToBottom();
+      } else {
+        clearInterval(typeInterval);
+        setMessages(prev => prev.map(msg => 
+          msg.id === messageId 
+            ? { ...msg, isTyping: false }
+            : msg
+        ));
+      }
+    }, 50); // Speed of typing - 50ms per word
   };
 
   useEffect(() => {
-    scrollToBottom();
+    scrollToBottom(true);
   }, [messages]);
 
   useEffect(() => {
@@ -67,6 +108,15 @@ const FloatingChatWidget = () => {
     setInputValue('');
     setIsLoading(true);
 
+    // Phase 3: Chat Memory - Prepare conversation history
+    const conversationHistory = messages
+      .filter(msg => msg.type === 'user' || msg.type === 'bot')
+      .slice(-10) // Last 10 messages for context
+      .map(msg => ({
+        role: msg.type === 'user' ? 'user' as const : 'assistant' as const,
+        content: msg.content
+      }));
+
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000);
@@ -79,7 +129,8 @@ const FloatingChatWidget = () => {
         },
         body: JSON.stringify({ 
           query,
-          language: 'en'
+          language: 'en',
+          conversationHistory // Phase 3: Send conversation history
         }),
         signal: controller.signal
       });
@@ -96,11 +147,17 @@ const FloatingChatWidget = () => {
         const botMessage: Message = {
           id: messages.length + 2,
           type: 'bot',
-          content: data.answer,
+          content: '', // Start empty for typing animation
           references: data.references,
-          timestamp: new Date()
+          timestamp: new Date(),
+          isTyping: true
         };
         setMessages(prev => [...prev, botMessage]);
+        
+        // Phase 1: Start typing animation
+        setTimeout(() => {
+          typeMessage(botMessage.id, data.answer);
+        }, 100);
       } else {
         throw new Error(data.error || 'Failed to get response');
       }
@@ -183,8 +240,12 @@ const FloatingChatWidget = () => {
           {/* Chat Content */}
           {!isMinimized && (
             <>
-              {/* Messages */}
-              <div className="h-[400px] overflow-y-auto p-4 space-y-4 bg-gray-50">
+              {/* Messages - Phase 2: Smart Scrolling */}
+              <div 
+                ref={messagesContainerRef}
+                onScroll={handleScroll}
+                className="h-[400px] overflow-y-auto p-4 space-y-4 bg-gray-50 scroll-smooth"
+              >
                 {messages.map((message) => (
                   <div key={message.id} className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}>
                     <div className={`flex gap-3 max-w-[85%] ${message.type === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
@@ -208,10 +269,14 @@ const FloatingChatWidget = () => {
                       }`}>
                         <div className="text-sm leading-relaxed">
                           {message.content}
+                          {/* Phase 1: Typing Animation Cursor */}
+                          {message.isTyping && (
+                            <span className="inline-block w-2 h-4 bg-blue-600 ml-1 animate-pulse"></span>
+                          )}
                         </div>
                         
-                        {/* References - Only show if relevant */}
-                        {message.references && message.references.length > 0 && (
+                        {/* References - Only show if relevant and not typing */}
+                        {message.references && message.references.length > 0 && !message.isTyping && (
                           <div className="mt-3 pt-3 border-t border-gray-100">
                             <div className="space-y-2">
                               {message.references.slice(0, 2).map((ref, index) => (
@@ -288,7 +353,7 @@ const FloatingChatWidget = () => {
                 </div>
                 
                 <div className="mt-2 text-xs text-gray-500 text-center">
-                  🤖 Powered by Google Gemini • 📚 Only from our articles
+                  🤖 Powered by Google Gemini • 📚 Only from our articles • 🧠 Remembers conversations
                 </div>
               </div>
             </>

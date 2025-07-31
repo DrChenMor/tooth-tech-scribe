@@ -230,8 +230,22 @@ async function generateSmartResponse(
     }
   }
 
-    // No results found
+    // No results found - provide conversational response
     if (!hasRelevantResults) {
+      // For conversational queries like "hi", "hello", etc., provide a friendly response
+      const conversationalQueries = ['hi', 'hello', 'hey', 'good morning', 'good afternoon', 'good evening'];
+      const isConversational = conversationalQueries.some(greeting => 
+        query.toLowerCase().trim() === greeting
+      );
+      
+      if (isConversational) {
+        return {
+          answer: "Hi there! I'm your dental AI assistant. I can help you find information about dental technology, AI tools, and industry insights from our articles. What would you like to know about?",
+          shouldShowReferences: false
+        };
+      }
+      
+      // For other queries, provide helpful guidance
       return {
         answer: "I couldn't find specific articles about that in our dental technology database. Try asking about dental AI tools, imaging technology, or specific authors like Dr. Anya Sharma or Chen Mor.",
         shouldShowReferences: false

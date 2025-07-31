@@ -36,9 +36,12 @@ async function contextAwareSearch(supabase: any, query: string, conversationHist
 
   // For follow-up questions, use the previous context instead of current query
   let contextualQuery = cleanQuery;
+  let searchContext = 'new_query';
+  
   if (isFollowUp && lastUserMessage && lastAssistantMessage) {
     // Use the previous user question as the main search context
     contextualQuery = lastUserMessage.content;
+    searchContext = 'follow_up';
     console.log(`🔄 Follow-up detected. Using previous context: "${contextualQuery}"`);
   }
 
@@ -59,7 +62,7 @@ async function contextAwareSearch(supabase: any, query: string, conversationHist
 
     if (!authorError && authorResults && authorResults.length > 0) {
       console.log(`✅ Found ${authorResults.length} articles by ${authorName}`);
-      return { results: authorResults, searchType: 'author', authorName, context: 'author_search' };
+      return { results: authorResults, searchType: 'author', authorName, context: searchContext };
     }
   }
 
@@ -96,7 +99,7 @@ async function contextAwareSearch(supabase: any, query: string, conversationHist
 
           if (!vectorError && vectorResults && vectorResults.length > 0) {
             console.log(`✅ Vector search found ${vectorResults.length} results`);
-            return { results: vectorResults, searchType: 'vector', context: isFollowUp ? 'follow_up' : 'new_query' };
+            return { results: vectorResults, searchType: 'vector', context: searchContext };
           }
         }
       }
@@ -145,7 +148,7 @@ async function contextAwareSearch(supabase: any, query: string, conversationHist
       .slice(0, maxResults);
 
     console.log(`✅ Keyword search found ${sortedResults.length} relevant articles`);
-    return { results: sortedResults, searchType: 'keyword', context: isFollowUp ? 'follow_up' : 'new_query' };
+    return { results: sortedResults, searchType: 'keyword', context: searchContext };
   }
 
   return { results: [], searchType: 'no_results', context: 'no_match' };
@@ -195,14 +198,36 @@ async function generateSmartResponse(
     const isFollowUp = searchContext === 'follow_up';
     const hasRelevantResults = searchResults.length > 0;
 
-      // Handle follow-up questions intelligently
+      // Handle follow-up questions intelligently 
   if (isFollowUp && lastAssistantMessage && lastUserMessage) {
-    // For follow-ups, generate a contextual response even if no new results
-    const followUpResponse = generateFollowUpFromContext(query, lastUserMessage.content, lastAssistantMessage.content);
-    return {
-      answer: followUpResponse,
-      shouldShowReferences: hasRelevantResults && searchResults.length > 0
-    };
+    console.log('🔄 Follow-up detected. Re-searching with previous context...');
+    
+    // For follow-ups, ALWAYS search with the previous user question to get relevant articles
+    const previousSearch = await smartSearch(lastUserMessage.content, [], 5);
+    
+    if (previousSearch.results.length > 0) {
+      console.log(`✅ Found ${previousSearch.results.length} articles for follow-up context`);
+      
+      // Generate response using the articles from previous context
+      const contextualResponse = await generateConversationalResponse(
+        query, 
+        previousSearch.results, 
+        previousSearch.searchType, 
+        conversationHistory
+      );
+      return {
+        answer: contextualResponse.answer,
+        shouldShowReferences: false // Don't show references for follow-ups
+      };
+    } else {
+      console.log('❌ No results found even for previous context');
+      // Fallback to manual response
+      const followUpResponse = generateFollowUpFromContext(query, lastUserMessage.content, lastAssistantMessage.content);
+      return {
+        answer: followUpResponse,
+        shouldShowReferences: false
+      };
+    }
   }
 
     // No results found

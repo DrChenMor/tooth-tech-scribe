@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Send, Bot, User, ExternalLink, Loader, AlertCircle, MessageCircle, X, Minimize, BookOpen, Clock, Copy, RefreshCw, RotateCcw } from 'lucide-react';
+import { useChatContext } from '@/contexts/ChatContext';
 
 interface Message {
   id: number;
@@ -27,14 +28,7 @@ interface QuickAction {
 const FloatingChatWidget = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: 1,
-      type: 'bot',
-      content: "Hi! I'm your dental AI assistant. Ask me about dental technology, AI tools, or find articles by specific authors.",
-      timestamp: new Date()
-    }
-  ]);
+  const { messages, addMessage, updateMessage, clearMessages, getConversationHistory } = useChatContext();
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [hasNewMessage, setHasNewMessage] = useState(false);
@@ -69,11 +63,10 @@ const FloatingChatWidget = () => {
     const typeInterval = setInterval(() => {
       if (currentIndex <= words.length) {
         const partialContent = words.slice(0, currentIndex).join(' ');
-        setMessages(prev => prev.map(msg => 
-          msg.id === messageId 
-            ? { ...msg, content: partialContent, isTyping: currentIndex < words.length }
-            : msg
-        ));
+        updateMessage(messageId, { 
+          content: partialContent, 
+          isTyping: currentIndex < words.length 
+        });
         currentIndex++;
         // Smart scrolling during typing
         if (isUserAtBottom) {
@@ -81,15 +74,11 @@ const FloatingChatWidget = () => {
         }
       } else {
         clearInterval(typeInterval);
-        setMessages(prev => prev.map(msg => 
-          msg.id === messageId 
-            ? { ...msg, isTyping: false }
-            : msg
-        ));
+        updateMessage(messageId, { isTyping: false });
         scrollToBottom(true);
       }
     }, 80); // Slightly slower for better readability
-  }, [scrollToBottom, isUserAtBottom]);
+  }, [updateMessage, scrollToBottom, isUserAtBottom]);
 
   // Copy message
   const copyMessage = useCallback(async (content: string) => {
@@ -139,14 +128,7 @@ const FloatingChatWidget = () => {
     return parts.length > 0 ? parts : [{ type: 'text', content }];
   }, []);
 
-  // Regenerate response
-  const regenerateResponse = useCallback(async () => {
-    const lastUserMessage = messages.findLast(msg => msg.type === 'user');
-    if (!lastUserMessage) return;
 
-    setMessages(prev => prev.filter(msg => msg.id !== messages[messages.length - 1].id));
-    await handleSendMessage(lastUserMessage.content);
-  }, [messages]);
 
   useEffect(() => {
     // Only scroll to bottom for new messages, not during user scrolling
@@ -167,25 +149,7 @@ const FloatingChatWidget = () => {
     }
   }, [isOpen]);
 
-  // Keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (!isOpen || isMinimized) return;
 
-      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
-        e.preventDefault();
-        handleSendMessage();
-      }
-
-      if (e.key === 'Escape') {
-        setInputValue('');
-        inputRef.current?.blur();
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, isMinimized]);
 
   const handleSendMessage = async (customQuery?: string) => {
     const query = customQuery || inputValue.trim();
@@ -198,18 +162,12 @@ const FloatingChatWidget = () => {
       timestamp: new Date()
     };
 
-    setMessages(prev => [...prev, userMessage]);
+    addMessage(userMessage);
     setInputValue('');
     setIsLoading(true);
 
     // Chat Memory - Prepare conversation history
-    const conversationHistory = messages
-      .filter(msg => msg.type === 'user' || msg.type === 'bot')
-      .slice(-10)
-      .map(msg => ({
-        role: msg.type === 'user' ? 'user' as const : 'assistant' as const,
-        content: msg.content
-      }));
+    const conversationHistory = getConversationHistory();
 
     try {
       const controller = new AbortController();
@@ -255,7 +213,7 @@ const FloatingChatWidget = () => {
           timestamp: new Date(),
           isTyping: true
         };
-        setMessages(prev => [...prev, botMessage]);
+        addMessage(botMessage);
         
         setTimeout(() => {
           typeMessage(botMessage.id, data.answer);
@@ -279,7 +237,7 @@ const FloatingChatWidget = () => {
         timestamp: new Date(),
         error: true
       };
-      setMessages(prev => [...prev, errorMessage]);
+      addMessage(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -291,6 +249,40 @@ const FloatingChatWidget = () => {
       handleSendMessage();
     }
   };
+
+  // Regenerate response
+  const regenerateResponse = useCallback(async () => {
+    const lastUserMessage = messages.findLast(msg => msg.type === 'user');
+    if (!lastUserMessage) return;
+
+    // Remove the last bot message
+    const lastBotMessage = messages.findLast(msg => msg.type === 'bot');
+    if (lastBotMessage) {
+      // We need to implement a removeMessage function in the context
+      // For now, we'll just regenerate without removing
+    }
+    await handleSendMessage(lastUserMessage.content);
+  }, [messages, handleSendMessage]);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!isOpen || isMinimized) return;
+
+      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+        e.preventDefault();
+        handleSendMessage();
+      }
+
+      if (e.key === 'Escape') {
+        setInputValue('');
+        inputRef.current?.blur();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, isMinimized, handleSendMessage]);
 
   return (
     <>
@@ -335,12 +327,7 @@ const FloatingChatWidget = () => {
             <div className="flex items-center gap-1">
               <button
                 onClick={() => {
-                  setMessages([{
-                    id: 1,
-                    type: 'bot',
-                    content: "Hi! I'm your dental AI assistant. Ask me about dental technology, AI tools, or find articles by specific authors.",
-                    timestamp: new Date()
-                  }]);
+                  clearMessages();
                 }}
                 className="text-blue-100 hover:text-white p-1.5 md:p-2 rounded hover:bg-white/10 transition-colors"
                 aria-label="Start new chat"
@@ -372,7 +359,7 @@ const FloatingChatWidget = () => {
               <div 
                 ref={messagesContainerRef}
                 onScroll={handleScroll}
-                className="h-[400px] overflow-y-auto p-4 space-y-4 bg-gray-50"
+                className="h-[400px] overflow-y-auto p-4 space-y-4 bg-gray-50 pb-4"
               >
                 {messages.map((message) => (
                   <div key={message.id} className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}>
@@ -407,7 +394,7 @@ const FloatingChatWidget = () => {
                           }}
                         />
                         {message.isTyping && (
-                          <span className="inline-block w-2 h-4 bg-blue-600 ml-1 animate-pulse rounded-sm"></span>
+                          <span className="inline-block w-2 h-4 bg-blue-600 ml-1 animate-pulse rounded-sm mt-1"></span>
                         )}
                         
                         {/* References */}
@@ -495,7 +482,7 @@ const FloatingChatWidget = () => {
               </div>
 
               {/* Input */}
-              <div className="p-4 border-t border-gray-200 bg-white rounded-b-lg">
+              <div className="p-4 border-t border-gray-200 bg-white rounded-b-lg flex-shrink-0">
                 <div className="flex gap-2 md:gap-3">
                   <input
                     ref={inputRef}

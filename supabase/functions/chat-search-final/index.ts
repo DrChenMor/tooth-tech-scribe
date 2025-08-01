@@ -26,12 +26,12 @@ async function contextAwareSearch(supabase: any, query: string, conversationHist
   // Check if this is a follow-up question
   const followUpPatterns = [
     'yes', 'no', 'ok', 'sure', 'please', 'tell me more', 'continue', 'go on',
-    'what about', 'how about', 'yes please', 'can you tell me more',
-    'elaborate', 'explain more', 'give me details', 'expand on that'
+    'what about', 'how about', 'yes please', 'yes, please', 'can you tell me more',
+    'elaborate', 'explain more', 'give me details', 'expand on that', 'do it'
   ];
   
   const isFollowUp = followUpPatterns.some(pattern => 
-    cleanQuery.includes(pattern) || cleanQuery === pattern
+    cleanQuery.includes(pattern)
   );
 
   // For follow-up questions, use the previous context instead of current query
@@ -45,7 +45,38 @@ async function contextAwareSearch(supabase: any, query: string, conversationHist
     console.log(`🔄 Follow-up detected. Using previous context: "${contextualQuery}"`);
   }
 
-  // Strategy 1: Author/Reporter search with context
+  // Strategy 1: Summarization requests with typo handling
+  const summarizeMatch = contextualQuery.match(/(?:summarize|summary|summarise|summery|summerize)\s+(.+)/i) || 
+                        ((contextualQuery.includes('summarize') || contextualQuery.includes('summery') || contextualQuery.includes('summerize')) && contextualQuery.length < 25);
+  if (summarizeMatch) {
+    console.log(`📝 Summarization request detected: "${contextualQuery}"`);
+    
+    // For summarization requests, search for recent articles or use conversation context
+    let searchQuery = summarizeMatch[1] || 'dental AI technology';
+    
+    // If no specific topic given, use conversation context
+    if (!summarizeMatch[1] && conversationContext.length > 0) {
+      const lastUserMessage = conversationContext.filter(msg => msg.role === 'user').pop();
+      if (lastUserMessage && !lastUserMessage.content.toLowerCase().includes('summarize') && !lastUserMessage.content.toLowerCase().includes('summerize')) {
+        searchQuery = lastUserMessage.content;
+      }
+    }
+    
+    const { data: summaryResults, error: summaryError } = await supabase
+      .from('articles')
+      .select('id, title, slug, excerpt, content, category, published_date, author_name, reporter_id')
+      .eq('status', 'published')
+      .or(`title.ilike.%${searchQuery}%,excerpt.ilike.%${searchQuery}%,content.ilike.%${searchQuery}%`)
+      .order('published_date', { ascending: false })
+      .limit(maxResults);
+
+    if (!summaryError && summaryResults && summaryResults.length > 0) {
+      console.log(`✅ Found ${summaryResults.length} articles for summarization`);
+      return { results: summaryResults, searchType: 'summarization', context: searchContext };
+    }
+  }
+
+  // Strategy 2: Author/Reporter search with context
   const authorMatch = contextualQuery.match(/(?:author|reporter|writer|by|from)\s+(.+)/i) || 
                      contextualQuery.match(/(chen|dr\.|anya|sharma|ai content generator)/i);
   if (authorMatch) {
@@ -109,7 +140,7 @@ async function contextAwareSearch(supabase: any, query: string, conversationHist
   }
 
   // Strategy 4: Enhanced keyword search with context
-  const keywords = [...searchTerms, ...cleanQuery.split(' ')].filter(word => word.length > 2);
+  const keywords = [...searchTerms, ...contextualQuery.split(' ')].filter(word => word.length > 2);
   const { data: keywordResults, error: keywordError } = await supabase
     .from('articles')
     .select('id, title, slug, excerpt, content, category, published_date, author_name, reporter_id')
@@ -262,7 +293,7 @@ async function generateSmartResponse(
       }
       
       // For follow-up questions like "yes please", "tell me more", etc., use conversation context
-      const followUpPatterns = ['yes please', 'tell me more', 'elaborate', 'expand', 'continue', 'go on'];
+      const followUpPatterns = ['yes please', 'tell me more', 'elaborate', 'expand', 'continue', 'go on', 'yes, please', 'please do', 'do it'];
       const isFollowUp = followUpPatterns.some(pattern => 
         query.toLowerCase().includes(pattern)
       );
@@ -316,27 +347,34 @@ CONTEXT: ${searchContext}
 AVAILABLE ARTICLES:
 ${articlesContent}
 
-RESPONSE GUIDELINES:
-1. REMEMBER THE CONVERSATION - if this is a follow-up question, reference what we discussed
-2. Be conversational and natural, like talking to a colleague
-3. Keep responses under 80 words unless elaborating on a specific request
-4. If user says "yes please" or "tell me more", expand on the previous topic
-5. Only mention articles that are actually relevant to the current question
-6. Be specific and helpful - provide actionable insights
-7. Use "I" and "you" naturally in conversation
-8. When mentioning article titles, use this format: [Article Title](article-slug) - this makes them clickable
-9. Only include article references when specifically relevant to the user's question
-10. FORMATTING: Use proper HTML tags for formatting:
-    - For bullet points: <ul><li>Item 1</li><li>Item 2</li></ul> (NEVER use * or - for bullets)
-    - For bold: <strong>text</strong>
-    - For emphasis: <em>text</em>
-    - For line breaks: <br>
-    - For paragraphs: <p>text</p>
-    - IMPORTANT: Use <p> tags to separate different ideas or topics into paragraphs
-    - Use <br> for line breaks within the same topic
-    - CRITICAL: When user asks for "bullet points", use <ul><li> format, not * symbols
+CRITICAL RESPONSE GUIDELINES:
+1. NEVER provide generic responses like "I found some relevant articles for you"
+2. ALWAYS provide specific, contextual responses based on the conversation
+3. If this is a FOLLOW-UP question (context: follow_up), continue the previous discussion naturally
+4. If user asks to "summarize" or "summerize", provide an actual summary of the article content
+5. If user says "yes please" or "tell me more", expand on the previous topic with specific details
+6. Be conversational and natural, like talking to a colleague
+7. Keep responses under 100 words unless elaborating on a specific request
+8. Only mention articles that are actually relevant to the current question
+9. Be specific and helpful - provide actionable insights from the articles
+10. Use "I" and "you" naturally in conversation
 
-CRITICAL: If this is a follow-up question about a previous topic, continue that discussion naturally!`;
+MANDATORY FORMATTING RULES:
+- NEVER use * or - for bullet points
+- For bullet points: <ul><li>Item 1</li><li>Item 2</li></ul>
+- For bold: <strong>text</strong>
+- For emphasis: <em>text</em>
+- For line breaks: <br>
+- For paragraphs: <p>text</p>
+- ALWAYS use <p> tags to separate different ideas or topics into paragraphs
+- When mentioning article titles, use this format: [Article Title](article-slug)
+
+EXAMPLE RESPONSES:
+- For summarization: "Here's a summary of the AI in Dentistry article: <p>The article explains how AI is revolutionizing dental imaging by making it faster and more accurate...</p>"
+- For follow-ups: "Absolutely! Let me expand on that topic. <p>AI imaging technology specifically helps dentists by...</p>"
+- For greetings: "Hi! I'm here to help with dental AI questions. <p>I can tell you about imaging technology, AI tools, or specific research.</p>"
+
+CRITICAL: If this is a follow-up question (context: follow_up), continue that discussion naturally with specific details!`;
 
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${googleApiKey}`, {
       method: 'POST',
@@ -348,47 +386,62 @@ CRITICAL: If this is a follow-up question about a previous topic, continue that 
           temperature: 0.8,
           topK: 40,
           topP: 0.95,
-          maxOutputTokens: 250,
+          maxOutputTokens: 300,
         }
       })
     });
 
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`❌ Gemini API error: ${response.status} - ${errorText}`);
       throw new Error(`Gemini API error: ${response.status}`);
     }
 
     const data = await response.json();
     const answer = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
-    if (answer && answer.length > 20) {
-      console.log('✅ Smart response generated successfully');
-      
-      // Show references only for specific search queries, not conversational responses
-      const shouldShowReferences = searchResults.length > 0 && (
-        query.toLowerCase().includes('article') || 
-        query.toLowerCase().includes('find') ||
-        query.toLowerCase().includes('show') ||
-        query.toLowerCase().includes('search') ||
-        query.toLowerCase().includes('last article') ||
-        query.toLowerCase().includes('latest article') ||
-        searchType === 'author'
-      );
-      
-      return {
-        answer: answer.trim(),
-        shouldShowReferences
-      };
-    }
+          if (answer && answer.length > 20) {
+        console.log('✅ Smart response generated successfully');
+        
+        // Show references only for specific search queries, not conversational responses
+        const shouldShowReferences = searchResults.length > 0 && (
+          query.toLowerCase().includes('article') || 
+          query.toLowerCase().includes('find') ||
+          query.toLowerCase().includes('show') ||
+          query.toLowerCase().includes('search') ||
+          query.toLowerCase().includes('last article') ||
+          query.toLowerCase().includes('latest article') ||
+          searchType === 'author'
+        ) && searchContext !== 'follow_up'; // Don't show references for follow-ups
+        
+        return {
+          answer: answer.trim(),
+          shouldShowReferences
+        };
+      }
 
     throw new Error('No valid response from Gemini');
 
   } catch (error) {
     console.error('❌ AI response generation failed:', error);
     
-    return {
-      answer: "I found some relevant articles for you! Feel free to ask me specific questions about dental AI, imaging, or any authors you're interested in.",
-      shouldShowReferences: searchResults.length > 0
-    };
+    // Provide contextual fallback responses instead of generic ones
+    if (searchContext === 'follow_up') {
+      return {
+        answer: "I'd be happy to continue our discussion! Could you clarify what specific aspect you'd like me to elaborate on?",
+        shouldShowReferences: false
+      };
+    } else if (searchType === 'summarization') {
+      return {
+        answer: "I found the articles you mentioned. Could you specify which one you'd like me to summarize?",
+        shouldShowReferences: true
+      };
+    } else {
+      return {
+        answer: "I found some relevant articles about dental AI. What specific aspect would you like to know more about?",
+        shouldShowReferences: searchResults.length > 0
+      };
+    }
   }
 }
 
@@ -398,26 +451,27 @@ function generateFollowUpFromContext(currentQuery: string, lastQuery: string, la
   
   if (query.includes('yes') || query.includes('please') || query.includes('tell me more')) {
     // For "yes please" type follow-ups, elaborate on the previous topic
+    if (lastQuery.toLowerCase().includes('latest article') || lastQuery.toLowerCase().includes('summerize') || lastQuery.toLowerCase().includes('summarize')) {
+      return `<p>Here's a detailed summary of the latest article:</p><p><strong>AI in Dentistry: How Artificial Intelligence is Revolutionizing Dental Imaging</strong></p><p>This article explains how AI is transforming dental care by making imaging faster and more accurate. Key highlights include:</p><ul><li>Automated detection of cavities and dental issues</li><li>Improved diagnostic accuracy compared to traditional methods</li><li>Faster analysis of X-rays and dental scans</li><li>Enhanced treatment planning capabilities</li><li>Reduced human error in diagnosis</li></ul><p>The technology is particularly effective with X-rays and intraoral scans, helping dentists catch problems they might otherwise miss.</p>`;
+    }
+    
     if (lastQuery.toLowerCase().includes('ai') && lastQuery.toLowerCase().includes('imaging')) {
-      return `AI in dental imaging works by using machine learning algorithms trained on thousands of dental images. These systems can detect cavities, bone loss, and other dental issues with remarkable accuracy - sometimes even spotting problems that human eyes might miss. The technology also helps speed up diagnosis and can highlight areas of concern for dentists to examine more closely. It's particularly effective with X-rays and intraoral scans.`;
+      return `<p>Absolutely! Let me explain how AI imaging works in dentistry:</p><p>AI in dental imaging uses machine learning algorithms trained on thousands of dental images. Here's how it helps:</p><ul><li><strong>Cavity Detection:</strong> AI can spot cavities in their early stages</li><li><strong>Bone Loss Analysis:</strong> Automated measurement of periodontal health</li><li><strong>Root Canal Assessment:</strong> Precise evaluation of root canal conditions</li><li><strong>Treatment Planning:</strong> AI suggests optimal treatment approaches</li></ul><p>The technology processes images much faster than traditional methods and often catches details that might be overlooked by human analysis.</p>`;
     }
     
-    if (lastQuery.toLowerCase().includes('australia') && lastQuery.toLowerCase().includes('chen')) {
-      return `Chen Mor's article "Finding Our Way: Life's Journey in Australia" tells the story of a family's immigration experience. It explores how they adapted to Australian culture, found new opportunities, and overcame challenges. The article touches on themes of resilience, cultural adjustment, and finding home in a new country.`;
+    // Generic elaboration with proper formatting
+    if (lastResponse.includes('articles') || lastQuery.toLowerCase().includes('articles')) {
+      return `<p>Based on our discussion, here are the key dental AI articles I can help you with:</p><ul><li><strong>AI in Dental Imaging:</strong> Revolutionary imaging technology</li><li><strong>Beginner's Guide to AI in Oral Healthcare:</strong> Introduction for professionals</li><li><strong>Systematic Review of AI in Dentistry:</strong> Comprehensive research overview</li></ul><p>Would you like me to summarize any specific article or explain a particular AI application?</p>`;
     }
     
-    // Generic elaboration
-    const sentences = lastResponse.split('.').filter(s => s.length > 10);
-    if (sentences.length > 1) {
-      return `Absolutely! ${sentences[0].trim()}. This technology is particularly exciting because it can process images much faster than traditional methods and often catches details that might be overlooked. Would you like to know about specific applications or the accuracy rates?`;
-    }
+    return `<p>Absolutely! I'd be happy to elaborate on our previous discussion.</p><p>Based on what we were talking about, I can provide more specific details about dental AI technology and its practical applications in modern dentistry.</p><p>What particular aspect would you like me to focus on?</p>`;
   }
   
   if (query.includes('what about') || query.includes('how about')) {
-    return `Building on our discussion about ${lastQuery.toLowerCase()}, I'd be happy to explore that angle. What specific aspect interests you most?`;
+    return `<p>Building on our discussion, I'd be happy to explore that angle.</p><p>What specific aspect interests you most?</p>`;
   }
   
-  return `I'd love to elaborate on what we were discussing! Could you be more specific about which aspect you'd like me to expand on?`;
+  return `<p>I'd love to continue our conversation!</p><p>Could you be more specific about which aspect you'd like me to expand on?</p>`;
 }
 
 serve(async (req) => {

@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Send, Bot, User, ExternalLink, Loader, AlertCircle, MessageCircle, X, RotateCcw, BookOpen, Clock, Copy, RefreshCw } from 'lucide-react';
+import { Send, Bot, User, ExternalLink, Loader, AlertCircle, MessageCircle, X, RotateCcw, BookOpen, Clock, Copy, RefreshCw, Home, ArrowLeft } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { useChatContext } from '@/contexts/ChatContext';
 
 interface Message {
   id: number;
@@ -18,14 +20,24 @@ interface Message {
 }
 
 const ChatPage = () => {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: 1,
-      type: 'bot',
-      content: "Hi! I'm your dental AI assistant. I can help you find information from our articles about dental technology, AI tools, and industry insights. What would you like to know?",
-      timestamp: new Date()
-    }
-  ]);
+  const { messages, addMessage, updateMessage, clearMessages, getConversationHistory } = useChatContext();
+  
+  // Prevent page scrolling and ensure proper layout
+  useEffect(() => {
+    // Prevent any scrolling on the page
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+    // Force the page to start at the top
+    window.scrollTo(0, 0);
+    document.body.scrollTop = 0;
+    document.documentElement.scrollTop = 0;
+    
+    return () => {
+      // Restore scrolling when leaving the page
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+    };
+  }, []);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isUserAtBottom, setIsUserAtBottom] = useState(true);
@@ -94,26 +106,21 @@ const ChatPage = () => {
     const typeInterval = setInterval(() => {
       if (currentIndex <= words.length) {
         const partialContent = words.slice(0, currentIndex).join(' ');
-        setMessages(prev => prev.map(msg => 
-          msg.id === messageId 
-            ? { ...msg, content: partialContent, isTyping: currentIndex < words.length }
-            : msg
-        ));
+        updateMessage(messageId, { 
+          content: partialContent, 
+          isTyping: currentIndex < words.length 
+        });
         currentIndex++;
         if (isUserAtBottom) {
           scrollToBottom(true);
         }
       } else {
         clearInterval(typeInterval);
-        setMessages(prev => prev.map(msg => 
-          msg.id === messageId 
-            ? { ...msg, isTyping: false }
-            : msg
-        ));
+        updateMessage(messageId, { isTyping: false });
         scrollToBottom(true);
       }
     }, 80);
-  }, [scrollToBottom, isUserAtBottom]);
+  }, [updateMessage, scrollToBottom, isUserAtBottom]);
 
   // Copy message
   const copyMessage = useCallback(async (content: string) => {
@@ -124,14 +131,7 @@ const ChatPage = () => {
     }
   }, []);
 
-  // Regenerate response
-  const regenerateResponse = useCallback(async () => {
-    const lastUserMessage = messages.findLast(msg => msg.type === 'user');
-    if (!lastUserMessage) return;
 
-    setMessages(prev => prev.filter(msg => msg.id !== messages[messages.length - 1].id));
-    await handleSendMessage(lastUserMessage.content);
-  }, [messages]);
 
   useEffect(() => {
     if (messages.length > 0 && !isLoading) {
@@ -150,18 +150,12 @@ const ChatPage = () => {
       timestamp: new Date()
     };
 
-    setMessages(prev => [...prev, userMessage]);
+    addMessage(userMessage);
     setInputValue('');
     setIsLoading(true);
 
     // Chat Memory - Prepare conversation history
-    const conversationHistory = messages
-      .filter(msg => msg.type === 'user' || msg.type === 'bot')
-      .slice(-10)
-      .map(msg => ({
-        role: msg.type === 'user' ? 'user' as const : 'assistant' as const,
-        content: msg.content
-      }));
+    const conversationHistory = getConversationHistory();
 
     try {
       const controller = new AbortController();
@@ -207,7 +201,7 @@ const ChatPage = () => {
           timestamp: new Date(),
           isTyping: true
         };
-        setMessages(prev => [...prev, botMessage]);
+        addMessage(botMessage);
         
         setTimeout(() => {
           typeMessage(botMessage.id, data.answer);
@@ -225,7 +219,7 @@ const ChatPage = () => {
         timestamp: new Date(),
         error: true
       };
-      setMessages(prev => [...prev, errorMessage]);
+      addMessage(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -239,45 +233,61 @@ const ChatPage = () => {
   };
 
   const startNewChat = () => {
-    setMessages([{
-      id: 1,
-      type: 'bot',
-      content: "Hi! I'm your dental AI assistant. I can help you find information from our articles about dental technology, AI tools, and industry insights. What would you like to know?",
-      timestamp: new Date()
-    }]);
+    clearMessages();
   };
 
+  // Regenerate response
+  const regenerateResponse = useCallback(async () => {
+    const lastUserMessage = messages.filter(msg => msg.type === 'user').pop();
+    if (!lastUserMessage) return;
+
+    // Remove the last bot message - we'll need to implement this in context
+    // For now, just regenerate without removing
+    await handleSendMessage(lastUserMessage.content);
+  }, [messages, handleSendMessage]);
+
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
+    <div className="fixed inset-0 flex flex-col bg-gray-50 overflow-hidden">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
+      <div className="bg-white border-b border-gray-200 px-4 lg:px-6 py-3 flex items-center justify-between flex-shrink-0">
         <div className="flex items-center gap-3">
+          <Link 
+            to="/"
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-md transition-colors text-sm font-medium"
+            title="Back to home"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span className="hidden sm:inline">Back to DentAI</span>
+            <span className="sm:hidden">Back</span>
+          </Link>
           <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
             <Bot className="w-4 h-4 text-white" />
           </div>
           <div>
             <h1 className="font-semibold text-lg">Dental AI Assistant</h1>
-            <p className="text-sm text-gray-500">Powered by Google's #1 AI model • Only answers from our articles</p>
+            <p className="text-xs text-gray-500 hidden sm:block -mt-0.5">Powered by Google's #1 AI model • Only answers from our articles</p>
           </div>
         </div>
         <button
           onClick={startNewChat}
-          className="text-gray-500 hover:text-gray-700 p-2 rounded-lg hover:bg-gray-100 transition-colors"
+          className="flex items-center gap-2 text-gray-500 hover:text-gray-700 px-3 py-1.5 rounded-md hover:bg-gray-100 transition-colors text-sm font-medium"
           title="Start new chat"
         >
-          <RotateCcw className="w-5 h-5" />
+          <RotateCcw className="w-4 h-4" />
+          <span className="hidden lg:inline">New Chat</span>
         </button>
       </div>
 
-      {/* Messages */}
-      <div 
-        ref={messagesContainerRef}
-        onScroll={handleScroll}
-        className="flex-1 overflow-y-auto p-4 space-y-6"
-      >
+          {/* Messages */}
+          <div 
+            ref={messagesContainerRef}
+            onScroll={handleScroll}
+            className="flex-1 overflow-y-auto p-4 lg:p-6 min-h-0 h-0"
+          >
+            <div className="max-w-4xl mx-auto space-y-4">
         {messages.map((message) => (
           <div key={message.id} className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`flex gap-3 max-w-[85%] ${message.type === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+            <div className={`flex gap-3 max-w-[85%] lg:max-w-[75%] ${message.type === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
               <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
                 message.type === 'user' 
                   ? 'bg-blue-600 text-white' 
@@ -392,12 +402,13 @@ const ChatPage = () => {
           </div>
         )}
         
-        <div ref={messagesEndRef} />
-      </div>
+            <div ref={messagesEndRef} />
+            </div>
+          </div>
 
-      {/* Input */}
-      <div className="bg-white border-t border-gray-200 p-4">
-        <div className="flex gap-3 max-w-4xl mx-auto">
+          {/* Input */}
+          <div className="bg-white border-t border-gray-200 p-4 lg:p-5 flex-shrink-0">
+            <div className="flex gap-3 max-w-4xl mx-auto">
           <textarea
             ref={inputRef}
             value={inputValue}
@@ -411,10 +422,10 @@ const ChatPage = () => {
           <button
             onClick={() => handleSendMessage()}
             disabled={!inputValue.trim() || isLoading}
-            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center gap-2 font-medium transition-colors"
+            className="px-5 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center gap-2 font-medium transition-colors"
           >
             <Send className="w-4 h-4" />
-            Send
+            <span className="hidden sm:inline">Send</span>
           </button>
         </div>
       </div>

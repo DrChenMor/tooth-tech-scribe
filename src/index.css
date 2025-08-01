@@ -47,6 +47,9 @@
 
     --radius: 0.5rem;
     
+    /* 🔥 FIX: Header height for chat page absolute positioning */
+    --header-height: 4rem;
+    
     /* 🔥 GRANULAR FONT CONTROL: Individual Font Families */
     --h1-font-family: "Lato", sans-serif;
     --h2-font-family: "Lato", sans-serif;
@@ -92,6 +95,14 @@
     /* Smooth transitions for font changes */
     transition: font-family 0.2s ease, font-size 0.2s ease, font-weight 0.2s ease;
   }
+
+  /* 🔥 FIX: Ensure full viewport height for chat page */
+  html, body {
+    height: 100%;
+    min-height: 100vh;
+  }
+
+
 
   /* 🔥 BODY DEFAULT */
   body {

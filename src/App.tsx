@@ -16,6 +16,7 @@ import AdminSettingsPage from "./pages/AdminSettingsPage";
 import WorkflowBuilderPage from "./pages/WorkflowBuilderPage";
 import NotFound from "./pages/NotFound";
 import { AuthProvider } from "./contexts/AuthContext";
+import { ChatProvider } from "./contexts/ChatContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AboutPage from "./pages/AboutPage";
 import ContactPage from "./pages/ContactPage";
@@ -49,8 +50,9 @@ function AppContent() {
       <Toaster />
       <Sonner />
       <AuthProvider>
-        <SidebarProvider>
-          <BrowserRouter>
+        <ChatProvider>
+          <SidebarProvider>
+            <BrowserRouter>
             <ScrollToTop /> {/* Add this component inside BrowserRouter */}
             <Routes>
               <Route element={<MainLayout />}>
@@ -61,9 +63,10 @@ function AppContent() {
                 <Route path="/about" element={<AboutPage />} />
                 <Route path="/contact" element={<ContactPage />} />
                 <Route path="/category/:category" element={<CategoryPage />} />
-                <Route path="/chat" element={<ChatPage />} />
               </Route>
 
+              {/* Full-screen routes outside MainLayout */}
+              <Route path="/chat" element={<ChatPage />} />
               <Route path="/auth" element={<AuthPage />} />
               <Route path="/unsubscribe" element={<UnsubscribePage />} />
 
@@ -99,6 +102,7 @@ function AppContent() {
             </Routes>
           </BrowserRouter>
         </SidebarProvider>
+        </ChatProvider>
       </AuthProvider>
     </TooltipProvider>
   );

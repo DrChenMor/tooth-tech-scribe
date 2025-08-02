@@ -306,18 +306,18 @@ const Index = () => {
             ) : (
               categories?.map((category) => (
                 <Button
-                  key={category}
+                  key={category.name}
                   variant="ghost"
                   size="sm"
-                  onClick={() => setSelectedCategory(category)}
+                  onClick={() => setSelectedCategory(category.name)}
                   className={cn(
                     "rounded-full px-3 md:px-4 py-2 h-8 md:h-9 text-sm font-medium transition-all duration-200",
-                    selectedCategory === category 
+                    selectedCategory === category.name 
                       ? 'bg-primary text-primary-foreground hover:bg-primary/90'
                       : 'bg-muted text-foreground hover:brightness-90'
                   )}
                 >
-                  {category}
+                  {category.name}
                 </Button>
               ))
             )}

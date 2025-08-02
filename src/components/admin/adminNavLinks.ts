@@ -10,7 +10,8 @@ import {
   Workflow,
   Clock,
   User,
-  Tag
+  Tag,
+  Brain
 } from 'lucide-react';
 
 export const adminNavLinks = [
@@ -34,6 +35,11 @@ export const adminNavLinks = [
     title: 'Categories',
     url: '/admin/categories',
     icon: Tag,
+  },
+  {
+    title: 'Embedding Queue',
+    url: '/admin/embedding-queue',
+    icon: Brain,
   },
   {
     title: 'Content Queue',

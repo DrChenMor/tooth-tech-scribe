@@ -50,19 +50,28 @@ INSERT INTO public.categories (name, description) VALUES
     ('Tools & Software', 'Dental tools, software, and technology solutions')
 ON CONFLICT (name) DO NOTHING;
 
+-- First, let's check if we need to add an icon column
+ALTER TABLE public.categories ADD COLUMN IF NOT EXISTS icon TEXT;
+
 -- Create a view for categories with article counts
+DROP VIEW IF EXISTS public.categories_with_article_counts;
 CREATE OR REPLACE VIEW public.categories_with_article_counts AS
 SELECT 
     c.id,
     c.name,
     c.description,
     c.image_url,
+    c.icon,
     c.created_at,
     c.updated_at,
-    COUNT(a.id) as article_count
+    COALESCE(article_counts.count, 0) as article_count
 FROM public.categories c
-LEFT JOIN public.articles a ON c.name = a.category
-GROUP BY c.id, c.name, c.description, c.image_url, c.created_at, c.updated_at
+LEFT JOIN (
+    SELECT category, COUNT(*) as count
+    FROM public.articles
+    WHERE category IS NOT NULL
+    GROUP BY category
+) article_counts ON c.name = article_counts.category
 ORDER BY c.name;
 
 -- Grant access to the view

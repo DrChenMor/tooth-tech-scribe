@@ -65,9 +65,9 @@ const Footer = () => {
     queryKey: ['footer-categories'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('categories_with_article_counts')
-        .select('category')
-        .order('category')
+        .from('categories')
+        .select('name')
+        .order('name')
         .limit(4);
 
       if (error) {
@@ -82,8 +82,8 @@ const Footer = () => {
 
   // Convert to footer format or use fallback
   const categories = categoriesData?.map(cat => ({
-    title: cat.category,
-    href: `/category/${encodeURIComponent(cat.category)}`
+    title: cat.name,
+    href: `/category/${encodeURIComponent(cat.name)}`
   })) || [
     { title: "AI Technology", href: "/category/AI Technology" },
     { title: "Research", href: "/category/Research" },

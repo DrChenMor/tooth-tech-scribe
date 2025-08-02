@@ -151,22 +151,43 @@ const CategoryCard = ({ category, index }: { category: { name: string; count: nu
 };
 
 const fetchCategoriesWithCounts = async () => {
-  const { data, error } = await supabase
-    .from('categories_with_article_counts')
+  // First get categories
+  const { data: categories, error: categoriesError } = await supabase
+    .from('categories')
     .select('*')
     .order('name');
 
-  if (error) {
-    console.error('Error fetching categories:', error);
-    throw new Error(error.message);
+  if (categoriesError) {
+    console.error('Error fetching categories:', categoriesError);
+    throw new Error(categoriesError.message);
   }
 
-  if (!data) return [];
+  if (!categories) return [];
 
-  return data.map((category) => ({
-    name: category.category,
-    count: category.article_count || 0,
-    image_url: category.category_image_url,
+  // Then get article counts
+  const { data: articleCounts, error: countsError } = await supabase
+    .from('articles')
+    .select('category')
+    .not('category', 'is', null);
+
+  if (countsError) {
+    console.error('Error fetching article counts:', countsError);
+    // Continue without counts if there's an error
+  }
+
+  // Count articles per category
+  const countMap = (articleCounts || []).reduce((acc: Record<string, number>, item) => {
+    if (item.category) {
+      acc[item.category] = (acc[item.category] || 0) + 1;
+    }
+    return acc;
+  }, {});
+
+  // Combine categories with counts
+  return categories.map(category => ({
+    name: category.name,
+    count: countMap[category.name] || 0,
+    image_url: category.image_url,
   }));
 };
 

@@ -9,14 +9,30 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Edit, Trash2, Upload, Image as ImageIcon } from 'lucide-react';
+import { Plus, Edit, Trash2, Upload, Image as ImageIcon, Tag, Brain, Microscope, Newspaper, Wrench, Stethoscope, Award, Lightbulb, Users, Settings } from 'lucide-react';
 import ImageUpload from '@/components/admin/ImageUpload';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+// Available icons for categories
+const ICON_OPTIONS = [
+  { value: 'tag', label: 'Tag', icon: Tag },
+  { value: 'brain', label: 'AI Technology', icon: Brain },
+  { value: 'microscope', label: 'Research', icon: Microscope },
+  { value: 'newspaper', label: 'News', icon: Newspaper },
+  { value: 'wrench', label: 'Tools', icon: Wrench },
+  { value: 'stethoscope', label: 'Medical', icon: Stethoscope },
+  { value: 'award', label: 'Excellence', icon: Award },
+  { value: 'lightbulb', label: 'Innovation', icon: Lightbulb },
+  { value: 'users', label: 'Community', icon: Users },
+  { value: 'settings', label: 'Configuration', icon: Settings },
+];
 
 interface Category {
   id: string;
   name: string;
   description?: string;
   image_url?: string;
+  icon?: string;
   article_count: number;
   created_at: string;
   updated_at: string;
@@ -26,23 +42,47 @@ interface CategoryFormData {
   name: string;
   description: string;
   image: File | string | null;
+  icon: string;
 }
 
 const fetchCategories = async (): Promise<Category[]> => {
-  const { data, error } = await supabase
+  // First get categories
+  const { data: categories, error: categoriesError } = await supabase
     .from('categories')
-    .select(`
-      *,
-      article_count:articles(count)
-    `)
+    .select('*')
     .order('name');
 
-  if (error) {
-    console.error('Error fetching categories:', error);
-    throw new Error(error.message);
+  if (categoriesError) {
+    console.error('Error fetching categories:', categoriesError);
+    throw new Error(categoriesError.message);
   }
 
-  return data || [];
+  if (!categories) return [];
+
+  // Then get article counts
+  const { data: articleCounts, error: countsError } = await supabase
+    .from('articles')
+    .select('category')
+    .not('category', 'is', null);
+
+  if (countsError) {
+    console.error('Error fetching article counts:', countsError);
+    // Continue without counts if there's an error
+  }
+
+  // Count articles per category
+  const countMap = (articleCounts || []).reduce((acc: Record<string, number>, item) => {
+    if (item.category) {
+      acc[item.category] = (acc[item.category] || 0) + 1;
+    }
+    return acc;
+  }, {});
+
+  // Combine categories with counts
+  return categories.map(category => ({
+    ...category,
+    article_count: countMap[category.name] || 0
+  }));
 };
 
 const uploadCategoryImage = async (file: File, categoryName: string): Promise<string> => {
@@ -83,7 +123,8 @@ const createCategory = async (categoryData: CategoryFormData): Promise<Category>
     .insert({
       name: categoryData.name,
       description: categoryData.description,
-      image_url: imageUrl
+      image_url: imageUrl,
+      icon: categoryData.icon
     })
     .select()
     .single();
@@ -108,6 +149,7 @@ const updateCategory = async (id: string, categoryData: CategoryFormData): Promi
   const updateData: any = {
     name: categoryData.name,
     description: categoryData.description,
+    icon: categoryData.icon,
     updated_at: new Date().toISOString()
   };
 
@@ -148,7 +190,8 @@ const CategoriesManagementPage = () => {
   const [formData, setFormData] = useState<CategoryFormData>({
     name: '',
     description: '',
-    image: null
+    image: null,
+    icon: 'tag'
   });
 
   const { toast } = useToast();
@@ -221,14 +264,16 @@ const CategoriesManagementPage = () => {
       setFormData({
         name: category.name,
         description: category.description || '',
-        image: category.image_url || null
+        image: category.image_url || null,
+        icon: category.icon || 'tag'
       });
     } else {
       setEditingCategory(null);
       setFormData({
         name: '',
         description: '',
-        image: null
+        image: null,
+        icon: 'tag'
       });
     }
     setIsDialogOpen(true);
@@ -240,7 +285,8 @@ const CategoriesManagementPage = () => {
     setFormData({
       name: '',
       description: '',
-      image: null
+      image: null,
+      icon: 'tag'
     });
   };
 
@@ -339,6 +385,31 @@ const CategoriesManagementPage = () => {
                   placeholder="Enter category description"
                   rows={3}
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="icon">Sidebar Icon</Label>
+                <Select value={formData.icon} onValueChange={(value) => setFormData({ ...formData, icon: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select an icon" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ICON_OPTIONS.map((option) => {
+                      const IconComponent = option.icon;
+                      return (
+                        <SelectItem key={option.value} value={option.value}>
+                          <div className="flex items-center space-x-2">
+                            <IconComponent className="h-4 w-4" />
+                            <span>{option.label}</span>
+                          </div>
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+                <p className="text-sm text-gray-500">
+                  Choose an icon that will appear in the sidebar navigation.
+                </p>
               </div>
 
               <div className="space-y-2">

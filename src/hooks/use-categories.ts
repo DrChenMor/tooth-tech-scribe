@@ -3,7 +3,10 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
 const fetchCategories = async () => {
-  const { data, error } = await supabase.from('articles').select('category');
+  const { data, error } = await supabase
+    .from('categories')
+    .select('name, icon')
+    .order('name');
 
   if (error) {
     console.error('Error fetching categories:', error);
@@ -12,8 +15,10 @@ const fetchCategories = async () => {
 
   if (!data) return [];
 
-  const categories = data.map(item => item.category).filter(Boolean);
-  return [...new Set(categories)] as string[];
+  return data.map(cat => ({
+    name: cat.name,
+    icon: cat.icon || 'tag'
+  }));
 };
 
 export const useCategories = () => {

@@ -14,7 +14,7 @@ import { useAuth } from "@/contexts/AuthContext"
 import { useCategories } from "@/hooks/use-categories"
 import { cn } from "@/lib/utils"
 import { 
-  Home, Info, LayoutGrid, LogIn, LogOut, Mail, User, Briefcase, Laptop, Syringe, Sparkles, Newspaper, Microscope, Brain} from "lucide-react"
+  Home, Info, LayoutGrid, LogIn, LogOut, Mail, User, Briefcase, Laptop, Syringe, Sparkles, Newspaper, Microscope, Brain, Tag, Wrench, Stethoscope, Award, Lightbulb, Users, Settings} from "lucide-react"
 import { Link, useLocation, useNavigate } from "react-router-dom"
 import { Skeleton } from "./ui/skeleton"
 
@@ -25,25 +25,30 @@ export function AppSidebar() {
   const location = useLocation();
   const { isMobile, setOpenMobile, open } = useSidebar();
 
-  const getCategoryIcon = (category) => {
-    switch (category.toLowerCase()) {
-      case 'general':
-        return <Brain className="w-8 h-8" />;
-      case 'industry':
-        return <Briefcase className="w-8 h-8" />;
-      case 'tools':
-        return <Syringe className="w-8 h-8" />;
-      case 'tech':
-        return <Laptop className="w-8 h-8" />;
-      case 'ai generated':
-        return <Sparkles className="w-8 h-8" />;
-      case 'news':
-        return <Newspaper className="w-8 h-8" />;
-      case 'research':
-        return <Microscope className="w-8 h-8" />;
-      default:
-        return <LayoutGrid className="w-8 h-8" />;
-    }
+  const getCategoryIcon = (iconName) => {
+    const iconMap = {
+      tag: Tag,
+      brain: Brain,
+      microscope: Microscope,
+      newspaper: Newspaper,
+      wrench: Wrench,
+      stethoscope: Stethoscope,
+      award: Award,
+      lightbulb: Lightbulb,
+      users: Users,
+      settings: Settings,
+      // Legacy mappings for backward compatibility
+      general: Brain,
+      industry: Briefcase,
+      tools: Syringe,
+      tech: Laptop,
+      'ai generated': Sparkles,
+      news: Newspaper,
+      research: Microscope,
+    };
+    
+    const IconComponent = iconMap[iconName?.toLowerCase()] || LayoutGrid;
+    return <IconComponent className="w-8 h-8" />;
   };
 
   const handleLogout = async () => {
@@ -175,15 +180,15 @@ return (
                 [...Array(3)].map((_, i) => <Skeleton key={i} className="h-8 w-full" />)
               ) : (
                 categories?.map((category) => (
-                  <SidebarMenuItem key={category}>
+                  <SidebarMenuItem key={category.name}>
                     <SidebarMenuButton
                       asChild
-                      isActive={location.pathname === `/category/${category}`}
+                      isActive={location.pathname === `/category/${category.name}`}
                       className={buttonClasses}
                     >
-                      <Link to={`/category/${category}`} onClick={handleLinkClick}>
-                        {getCategoryIcon(category)}
-                        <span className={textClasses}>{category}</span>
+                      <Link to={`/category/${category.name}`} onClick={handleLinkClick}>
+                        {getCategoryIcon(category.icon)}
+                        <span className={textClasses}>{category.name}</span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>

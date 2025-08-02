@@ -3,7 +3,8 @@ import * as React from "react"
 const MOBILE_BREAKPOINT = 1024
 
 export function useIsMobile() {
-  const [isMobile, setIsMobile] = React.useState<boolean | undefined>(undefined)
+  // Start with false to avoid hydration mismatches
+  const [isMobile, setIsMobile] = React.useState<boolean>(false)
 
   React.useEffect(() => {
     const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`)
@@ -11,24 +12,12 @@ export function useIsMobile() {
     const onChange = () => {
       const newIsMobile = window.innerWidth < MOBILE_BREAKPOINT
       setIsMobile(newIsMobile)
-      
-      // 🔥 ENHANCED: Add touch device detection
-      const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0
-      
-      // 🔥 DEBUG: Log mobile detection for troubleshooting
-      console.log('Mobile detection:', {
-        windowWidth: window.innerWidth,
-        breakpoint: MOBILE_BREAKPOINT,
-        isMobile: newIsMobile,
-        hasTouch,
-        userAgent: navigator.userAgent.substring(0, 50)
-      })
     }
     
-    // 🔥 CRITICAL: Set initial state immediately
+    // Set initial state immediately
     onChange()
     
-    // 🔥 ENHANCED: Listen to both resize and orientation change
+    // Listen to media query changes
     mql.addEventListener("change", onChange)
     window.addEventListener("resize", onChange)
     window.addEventListener("orientationchange", onChange)
@@ -40,5 +29,5 @@ export function useIsMobile() {
     }
   }, [])
 
-  return !!isMobile
+  return isMobile
 }

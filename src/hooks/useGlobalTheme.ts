@@ -70,6 +70,9 @@ export const useGlobalTheme = () => {
 
   // 🔥 APPLY THEME TO DOM
   const applyTheme = useCallback((theme: Theme) => {
+    // Only apply theme on client side to avoid SSR issues
+    if (typeof window === 'undefined') return;
+    
     console.log('🎨 Applying theme:', theme);
     Object.entries(theme).forEach(([key, value]) => {
       document.documentElement.style.setProperty(key, value);
@@ -78,6 +81,9 @@ export const useGlobalTheme = () => {
 
   // 🔥 DETERMINE ACTIVE THEME
   useEffect(() => {
+    // Skip on server side
+    if (typeof window === 'undefined') return;
+    
     const determineActiveTheme = () => {
       const hasGlobal =
         !!activeGlobalTheme &&
@@ -163,6 +169,9 @@ export const useGlobalTheme = () => {
 
   // 🔥 SAVE USER THEME
   const saveUserTheme = useCallback((theme: Theme) => {
+    // Only save on client side
+    if (typeof window === 'undefined') return;
+    
     const themeString = JSON.stringify(theme);
     localStorage.setItem('user-theme', themeString);
     setCurrentTheme(theme);

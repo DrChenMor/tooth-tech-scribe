@@ -9,6 +9,8 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { NewsletterSubscribe } from './NewsletterSubscribe';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
 // --- Helper Components (to keep code clean while preserving all styles) ---
 
@@ -58,7 +60,31 @@ const Footer = () => {
     { title: "Contact", href: "/contact" },
   ];
 
-  const topics = [
+  // Fetch categories from database
+  const { data: categoriesData } = useQuery({
+    queryKey: ['footer-categories'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('categories_with_article_counts')
+        .select('category')
+        .order('category')
+        .limit(4);
+
+      if (error) {
+        console.error('Error fetching footer categories:', error);
+        return [];
+      }
+
+      return data || [];
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  // Convert to footer format or use fallback
+  const categories = categoriesData?.map(cat => ({
+    title: cat.category,
+    href: `/category/${encodeURIComponent(cat.category)}`
+  })) || [
     { title: "AI Technology", href: "/category/AI Technology" },
     { title: "Research", href: "/category/Research" },
     { title: "Industry News", href: "/category/Industry" },
@@ -75,7 +101,7 @@ const Footer = () => {
           <div className="hidden lg:grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             <BrandSection />
             <LinkSection title="Quick Links" links={quickLinks} />
-            <LinkSection title="Topics" links={topics} />
+            <LinkSection title="Categories" links={categories} />
             <NewsletterSubscribe />
           </div>
 
@@ -90,10 +116,10 @@ const Footer = () => {
                   <LinkSection links={quickLinks} noTitle />
                 </AccordionContent>
               </AccordionItem>
-              <AccordionItem value="topics" className="border-b-0">
-                <AccordionTrigger className="text-lg font-semibold text-blue-900 hover:no-underline">Topics</AccordionTrigger>
+              <AccordionItem value="categories" className="border-b-0">
+                <AccordionTrigger className="text-lg font-semibold text-blue-900 hover:no-underline">Categories</AccordionTrigger>
                 <AccordionContent>
-                  <LinkSection links={topics} noTitle />
+                  <LinkSection links={categories} noTitle />
                 </AccordionContent>
               </AccordionItem>
             </Accordion>

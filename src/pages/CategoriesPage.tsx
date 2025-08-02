@@ -13,6 +13,26 @@ const useImageWithFallback = (categoryName: string, fallbackImage: string) => {
 
   useEffect(() => {
     const loadImage = async () => {
+      // If fallbackImage is a database URL, use it directly
+      if (fallbackImage && fallbackImage.startsWith('http')) {
+        const img = new Image();
+        img.onload = () => {
+          setImageUrl(fallbackImage);
+          setIsLoading(false);
+        };
+        img.onerror = () => {
+          // If database image fails, try legacy method
+          tryLegacyImageLoading();
+        };
+        img.src = fallbackImage;
+        return;
+      }
+
+      // Legacy method for backward compatibility
+      tryLegacyImageLoading();
+    };
+
+    const tryLegacyImageLoading = async () => {
       const supabaseUrl = 'https://nuhjsrmkkqtecfkjrcox.supabase.co';
       const slug = categoryName.toLowerCase().replace(/[^a-z0-9]/g, '-');
       
@@ -71,9 +91,9 @@ const getFallbackImage = (index: number): string => {
 };
 
 // Individual category card component for better performance
-const CategoryCard = ({ category, index }: { category: { name: string; count: number }, index: number }) => {
+const CategoryCard = ({ category, index }: { category: { name: string; count: number; image_url?: string }, index: number }) => {
   const fallbackImage = getFallbackImage(index);
-  const { imageUrl, isLoading } = useImageWithFallback(category.name, fallbackImage);
+  const { imageUrl, isLoading } = useImageWithFallback(category.name, category.image_url || fallbackImage);
 
   return (
     <Link
@@ -132,9 +152,9 @@ const CategoryCard = ({ category, index }: { category: { name: string; count: nu
 
 const fetchCategoriesWithCounts = async () => {
   const { data, error } = await supabase
-    .from('articles')
-    .select('category')
-    .not('category', 'is', null);
+    .from('categories_with_article_counts')
+    .select('*')
+    .order('name');
 
   if (error) {
     console.error('Error fetching categories:', error);
@@ -143,17 +163,10 @@ const fetchCategoriesWithCounts = async () => {
 
   if (!data) return [];
 
-  // Count articles per category
-  const categoryCount = data.reduce((acc: Record<string, number>, item) => {
-    if (item.category) {
-      acc[item.category] = (acc[item.category] || 0) + 1;
-    }
-    return acc;
-  }, {});
-
-  return Object.entries(categoryCount).map(([category, count]) => ({
-    name: category,
-    count,
+  return data.map((category) => ({
+    name: category.category,
+    count: category.article_count || 0,
+    image_url: category.category_image_url,
   }));
 };
 

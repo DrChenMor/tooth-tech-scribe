@@ -34,6 +34,7 @@ import ContentQueuePage from './pages/ContentQueuePage';
 import ScrollToTop from './components/ScrollToTop'; // Add this import
 import { useGlobalTheme } from './hooks/useGlobalTheme';
 import ReportersManagementPage from '@/pages/ReportersManagementPage';
+import CategoriesManagementPage from '@/pages/CategoriesManagementPage';
 import ChatPage from '@/pages/ChatPage';
 import { SidebarProvider } from "@/components/ui/sidebar";
 import UnsubscribePage from './pages/UnsubscribePage';
@@ -95,6 +96,7 @@ function AppContent() {
                 <Route path="/admin/ai-agents" element={<AIAgentManagementPage />} />
                 <Route path="/admin/articles" element={<ArticlesManagementPage />} />
                 <Route path="/admin/content-queue" element={<ContentQueuePage />} />
+                <Route path="/admin/categories" element={<CategoriesManagementPage />} />
                 <Route path="/admin/reporters" element={<ProtectedRoute requireAdmin><AdminLayout><ReportersManagementPage /></AdminLayout></ProtectedRoute>} />
               </Route>
               

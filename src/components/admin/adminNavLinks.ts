@@ -9,7 +9,8 @@ import {
   Award,
   Workflow,
   Clock,
-  User
+  User,
+  Tag
 } from 'lucide-react';
 
 export const adminNavLinks = [
@@ -29,7 +30,11 @@ export const adminNavLinks = [
     url: '/admin/reporters',   // 🔧 ADD THIS
     icon: User,               // 🔧 ADD THIS
   }, 
-       
+  {
+    title: 'Categories',
+    url: '/admin/categories',
+    icon: Tag,
+  },
   {
     title: 'Content Queue',
     url: '/admin/content-queue',

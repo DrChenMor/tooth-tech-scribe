@@ -13,6 +13,9 @@ CREATE POLICY "Authenticated users can update categories" ON public.categories
 CREATE POLICY "Authenticated users can delete categories" ON public.categories
     FOR DELETE USING (auth.uid() IS NOT NULL);
 
+-- Add icon column if it doesn't exist
+ALTER TABLE public.categories ADD COLUMN IF NOT EXISTS icon TEXT;
+
 -- Populate categories table with existing data from articles if empty
 INSERT INTO public.categories (name, description, icon)
 SELECT DISTINCT

@@ -151,20 +151,7 @@ const CategoryCard = ({ category, index }: { category: { name: string; count: nu
 };
 
 const fetchCategoriesWithCounts = async () => {
-  // First get categories
-  const { data: categories, error: categoriesError } = await supabase
-    .from('categories')
-    .select('*')
-    .order('name');
-
-  if (categoriesError) {
-    console.error('Error fetching categories:', categoriesError);
-    throw new Error(categoriesError.message);
-  }
-
-  if (!categories) return [];
-
-  // Then get article counts
+  // First get article counts
   const { data: articleCounts, error: countsError } = await supabase
     .from('articles')
     .select('category')
@@ -172,7 +159,7 @@ const fetchCategoriesWithCounts = async () => {
 
   if (countsError) {
     console.error('Error fetching article counts:', countsError);
-    // Continue without counts if there's an error
+    throw new Error(countsError.message);
   }
 
   // Count articles per category
@@ -183,11 +170,29 @@ const fetchCategoriesWithCounts = async () => {
     return acc;
   }, {});
 
-  // Combine categories with counts
-  return categories.map(category => ({
-    name: category.name,
-    count: countMap[category.name] || 0,
-    image_url: category.image_url,
+  // Try to get categories from categories table first
+  const { data: categories, error: categoriesError } = await supabase
+    .from('categories')
+    .select('*')
+    .order('name');
+
+  if (!categoriesError && categories && categories.length > 0) {
+    // Use categories table if available
+    return categories.map(category => ({
+      name: category.name,
+      count: countMap[category.name] || 0,
+      image_url: category.image_url,
+    }));
+  }
+
+  // Fallback to using categories from articles
+  console.log('CategoriesPage falling back to articles table for categories');
+  const uniqueCategories = [...new Set(Object.keys(countMap))];
+  
+  return uniqueCategories.map(categoryName => ({
+    name: categoryName,
+    count: countMap[categoryName] || 0,
+    image_url: undefined,
   }));
 };
 

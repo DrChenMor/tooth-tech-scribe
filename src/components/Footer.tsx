@@ -64,18 +64,34 @@ const Footer = () => {
   const { data: categoriesData } = useQuery({
     queryKey: ['footer-categories'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // First try the new categories table
+      const { data: categoriesData, error: categoriesError } = await supabase
         .from('categories')
         .select('name')
         .order('name')
         .limit(4);
 
-      if (error) {
-        console.error('Error fetching footer categories:', error);
+      if (!categoriesError && categoriesData && categoriesData.length > 0) {
+        return categoriesData;
+      }
+
+      // Fallback to articles table
+      console.log('Footer falling back to articles table for categories');
+      const { data: articlesData, error: articlesError } = await supabase
+        .from('articles')
+        .select('category')
+        .not('category', 'is', null);
+
+      if (articlesError) {
+        console.error('Error fetching footer categories from articles:', articlesError);
         return [];
       }
 
-      return data || [];
+      if (!articlesData) return [];
+
+      // Get unique categories, limit to 4
+      const uniqueCategories = [...new Set(articlesData.map(item => item.category).filter(Boolean))];
+      return uniqueCategories.slice(0, 4).map(name => ({ name }));
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
   });

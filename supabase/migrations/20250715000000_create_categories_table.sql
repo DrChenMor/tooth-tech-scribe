@@ -17,15 +17,15 @@ CREATE POLICY "Public read access for categories" ON public.categories
 
 -- Allow authenticated users to insert categories (admin only in practice)
 CREATE POLICY "Authenticated users can insert categories" ON public.categories
-    FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+    FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
 
 -- Allow authenticated users to update categories (admin only in practice)
 CREATE POLICY "Authenticated users can update categories" ON public.categories
-    FOR UPDATE USING (auth.role() = 'authenticated');
+    FOR UPDATE USING (auth.uid() IS NOT NULL);
 
 -- Allow authenticated users to delete categories (admin only in practice)
 CREATE POLICY "Authenticated users can delete categories" ON public.categories
-    FOR DELETE USING (auth.role() = 'authenticated');
+    FOR DELETE USING (auth.uid() IS NOT NULL);
 
 -- Create function to update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -42,16 +42,44 @@ CREATE TRIGGER update_categories_updated_at
     FOR EACH ROW 
     EXECUTE FUNCTION update_updated_at_column();
 
--- Insert some default categories if they don't exist
-INSERT INTO public.categories (name, description) VALUES
-    ('AI Technology', 'Latest developments in artificial intelligence for dentistry'),
-    ('Research', 'Scientific research and studies in dental technology'),
-    ('Industry News', 'Breaking news and updates from the dental industry'),
-    ('Tools & Software', 'Dental tools, software, and technology solutions')
-ON CONFLICT (name) DO NOTHING;
-
 -- First, let's check if we need to add an icon column
 ALTER TABLE public.categories ADD COLUMN IF NOT EXISTS icon TEXT;
+
+-- Insert existing categories from articles table first
+INSERT INTO public.categories (name, description, icon)
+SELECT DISTINCT
+    category as name,
+    CASE 
+        WHEN category = 'AI Technology' THEN 'Latest developments in artificial intelligence for dentistry'
+        WHEN category = 'Research' THEN 'Scientific research and studies in dental technology'
+        WHEN category = 'Industry' THEN 'Breaking news and updates from the dental industry'
+        WHEN category = 'Industry News' THEN 'Breaking news and updates from the dental industry'
+        WHEN category = 'Tools' THEN 'Dental tools, software, and technology solutions'
+        WHEN category = 'Tools & Software' THEN 'Dental tools, software, and technology solutions'
+        WHEN category = 'News' THEN 'Latest news in dental technology'
+        WHEN category = 'Tech' THEN 'Technology advancements in dentistry'
+        WHEN category = 'General' THEN 'General dental topics and information'
+        ELSE CONCAT('Articles about ', category)
+    END as description,
+    CASE 
+        WHEN category ILIKE '%AI%' OR category ILIKE '%technology%' THEN 'brain'
+        WHEN category ILIKE '%research%' THEN 'microscope'
+        WHEN category ILIKE '%industry%' OR category ILIKE '%news%' THEN 'newspaper'
+        WHEN category ILIKE '%tool%' OR category ILIKE '%software%' THEN 'wrench'
+        WHEN category ILIKE '%general%' THEN 'stethoscope'
+        ELSE 'tag'
+    END as icon
+FROM public.articles 
+WHERE category IS NOT NULL AND category != ''
+ON CONFLICT (name) DO NOTHING;
+
+-- Insert some default categories if they don't exist (fallback)
+INSERT INTO public.categories (name, description, icon) VALUES
+    ('AI Technology', 'Latest developments in artificial intelligence for dentistry', 'brain'),
+    ('Research', 'Scientific research and studies in dental technology', 'microscope'),
+    ('Industry News', 'Breaking news and updates from the dental industry', 'newspaper'),
+    ('Tools & Software', 'Dental tools, software, and technology solutions', 'wrench')
+ON CONFLICT (name) DO NOTHING;
 
 -- Create a view for categories with article counts
 DROP VIEW IF EXISTS public.categories_with_article_counts;

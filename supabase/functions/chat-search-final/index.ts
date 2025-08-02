@@ -327,10 +327,15 @@ async function generateSmartResponse(
     // Prepare article content
     const articlesContent = searchResults.slice(0, 3).map(article => {
       const content = article.content ? article.content.substring(0, 600) : article.excerpt || '';
+
+      const cleanSlug = article.slug.includes('dentalai.live') 
+      ? article.slug.split('/article/')[1] || article.slug.split('/').pop()
+      : article.slug;
+
       return `ARTICLE: "${article.title}"
 AUTHOR: ${article.author_name || 'Unknown'}
 CATEGORY: ${article.category || 'General'}
-URL: https://dentalai.live/article/${article.slug}
+URL: https://dentalai.live/article/${cleanSlug}
 EXCERPT: ${content}
 ---`;
     }).join('\n\n');
@@ -509,13 +514,20 @@ serve(async (req) => {
     );
 
     // Format references only when relevant
-    const references = shouldShowReferences ? searchResults.slice(0, 2).map(article => ({
-      title: article.title,
-      url: `https://dentalai.live/article/${article.slug}`,
-      excerpt: article.excerpt || article.content?.substring(0, 150) + '...' || '',
-      category: article.category || 'Article',
-      author: article.author_name || 'Unknown'
-    })) : [];
+    const references = shouldShowReferences ? searchResults.slice(0, 2).map(article => {
+      // Extract just the slug from the URL if it's a full URL
+      const cleanSlug = article.slug.includes('dentalai.live') 
+        ? article.slug.split('/article/')[1] || article.slug.split('/').pop()
+        : article.slug;
+        
+      return {
+        title: article.title,
+        url: `https://dentalai.live/article/${cleanSlug}`,
+        excerpt: article.excerpt || article.content?.substring(0, 150) + '...' || '',
+        category: article.category || 'Article',
+        author: article.author_name || 'Unknown'
+      };
+    }) : [];
 
     console.log(`🎉 Smart search completed: ${searchResults.length} results, ${searchType} search, context: ${context}`);
 

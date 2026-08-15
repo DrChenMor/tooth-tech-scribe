@@ -34,32 +34,54 @@ Colours in the prompter: red is a joke, green italic in brackets is a stage dire
 
 ## Running to time
 
-The full script is around 52 minutes at reading pace, before laughter and before counting paddles. Four slides are marked optional in the code (`cut:true`) and show OPTIONAL in the prompter:
+**This is the one thing still not solved.** With the brushing section in, the full script runs to roughly 55 minutes at reading pace, before laughter and before counting paddles. The slot is 45. That is ten minutes over, and no amount of talking faster fixes ten minutes.
 
-1. Waterloo Teeth
-2. Enamel gets thinner
-3. Old fillings get old too
-4. The second paddle round
+Eight slides are marked optional in the code (`cut:true`). They show OPTIONAL in the prompter bar, and the NEXT line warns you when the next slide is one of them:
 
-Cutting the first three saves about two minutes and costs almost nothing. **Cut the second paddle round last.** The voting is what keeps the room with you, and round two is where the two surprising True answers live.
+| Slide | Roughly |
+|---|---|
+| Enamel gets thinner | 0:30 |
+| Old fillings get old too | 0:30 |
+| Waterloo Teeth | 1:00 |
+| The good news | 1:40 |
+| Six things to look for | 1:50 |
+| Three things wear teeth down | 2:00 |
+| Now, our food | 2:30 |
+| Round two, paddles up | 1:30 |
 
-## Swapping in your own pictures
+Dropping the first six gets you to about 47 minutes. That is as close as this gets without losing something you care about.
 
-The four drawn illustrations live in the `ART` object at the top of the script. Any of them can be replaced with a real image with no code knowledge:
+**Cut the second paddle round last.** The voting is what keeps the room with you, and round two is where two of the three surprising True answers live.
 
-1. Put the file in this folder's `images/` folder, for example `images/pocket.jpg`
-2. Find the slide in the `SLIDES` list, for example the one with `art:'pocket'`
-3. Add one thing to it: `photo:'images/pocket.jpg'`
+The honest alternative is to ask the group for an hour. Plenty of speaker clubs will say yes, and this talk is really an hour of material.
 
-So the line becomes:
+## The pictures
 
-```js
-{kind:'art', sec:'The gums', at:'15:10', art:'pocket', photo:'images/pocket.jpg',
-```
+Three of the four illustrations are already pointed at your Magnific images. **Drop the files into the `images/` folder with these exact names and they appear on their own:**
 
-If the file is missing or misspelled, the slide quietly falls back to the drawing. Nothing breaks in front of the room.
+| File to save | Which slide it lands on |
+|---|---|
+| `images/tooth.png` | The gum moves back. The root shows. |
+| `images/bone.png` | The tooth can be perfect and still be lost |
+| `images/pocket.png` | 1, 2, 3 is fine. 4 and above is a pocket |
+| `images/brush.png` | If you buy one thing this morning, buy these |
 
-The four are `tooth` (gum receded, root showing), `posts` (bone holding versus bone gone), `pocket` (2 mm versus 6 mm), `brush` (floss versus interdental brush).
+No code to edit. Until a file is there, the slide shows the drawing instead, so nothing can break in front of the room. Same if you misspell a name.
+
+`.png` or `.jpg` both work, but the name in the folder has to match the name in the deck. If you save a `.jpg`, change the four `photo:` lines in the deck to say `.jpg`.
+
+### The numbers on top of a picture
+
+Two slides keep their labels sitting on top of the photograph, because the picture alone does not say them:
+
+- the pocket slide keeps **2 mm** and **6 mm**
+- the bone slide keeps **BONE HOLDING** and **BONE GONE**
+
+They are the `marks:` lines in the deck. `x` and `y` are fractions of the picture, so `x:.24` means a quarter of the way across and `y:.13` means near the top. If a label lands somewhere awkward on your image, change those two numbers and reload. Every label is drawn with a white outline behind it, so it stays readable wherever it sits.
+
+## Adding a picture to a slide that has none
+
+Any slide can take one. Change its `kind:'list'` to `kind:'art'`, then give it `art:'tooth'` (any of the four drawings, as the fallback) and `photo:'images/yourfile.png'`. An `art` slide shows a heading, one line of text and the picture, so the list items move into that one line.
 
 ## Fonts
 

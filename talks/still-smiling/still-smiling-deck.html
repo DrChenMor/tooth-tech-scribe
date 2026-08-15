@@ -317,7 +317,7 @@ pocket:`<svg class="art" viewBox="0 0 560 430" role="img" aria-label="A shallow 
 </svg>`,
 
 /* ---------- 4. floss passing through versus a brush touching both sides ---------- */
-brush:`<svg class="art" viewBox="0 0 560 430" role="img" aria-label="Floss slides through the gap without touching. An interdental brush presses against both tooth surfaces.">
+brush:`<svg class="art" viewBox="0 0 560 430" role="img" aria-label="Floss slides through the gap without touching. An interdental brush goes in sideways and presses both tooth surfaces.">
  <defs>
   <linearGradient id="t4en" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff"/><stop offset=".45" stop-color="#f2ece0"/><stop offset="1" stop-color="#dccdb2"/></linearGradient>
   <linearGradient id="t4gm" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e79aa4"/><stop offset="1" stop-color="#bf6a78"/></linearGradient>
@@ -326,45 +326,42 @@ brush:`<svg class="art" viewBox="0 0 560 430" role="img" aria-label="Floss slide
 
  <line x1="292" y1="70" x2="292" y2="350" stroke="#e6e9ec" stroke-width="2"/>
 
- <!-- LEFT: floss slides through -->
+ <!-- LEFT: floss goes straight down the middle and touches nothing -->
  <g transform="translate(26,112)">
   <path d="M106 64h39l21 146H88z" fill="#fbeae8"/>
   <use href="#t4c" x="0" y="0" fill="url(#t4en)" stroke="#ab8f60" stroke-width="2.5"/>
   <use href="#t4c" x="140" y="0" fill="url(#t4en)" stroke="#ab8f60" stroke-width="2.5"/>
   <path d="M88 210l38-60 40 60z" fill="url(#t4gm)" stroke="#b1616e" stroke-width="2"/>
-  <line x1="126" y1="-52" x2="126" y2="206" stroke="#33404b" stroke-width="3" stroke-linecap="round"/>
+  <path d="M92 -54L126 52 160 -54" fill="none" stroke="#33404b" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+  <line x1="126" y1="52" x2="126" y2="202" stroke="#33404b" stroke-width="3" stroke-linecap="round"/>
   <g stroke="#c22f26" stroke-width="2.4" fill="none" stroke-linecap="round">
-   <path d="M120 104h-16m0 0l6-5m-6 5l6 5"/><path d="M132 104h16m0 0l-6-5m6 5l-6 5"/>
+   <path d="M120 108h-16m0 0l6-5m-6 5l6 5"/><path d="M132 108h16m0 0l-6-5m6 5l-6 5"/>
   </g>
  </g>
  <text class="lbl r cap" x="26" y="384" textLength="204" lengthAdjust="spacingAndGlyphs">FLOSS PASSES THROUGH</text>
- <text class="lbl" x="26" y="408" style="font-size:14px" textLength="222" lengthAdjust="spacingAndGlyphs">it never touches the sides</text>
+ <text class="lbl" x="26" y="408" textLength="222" lengthAdjust="spacingAndGlyphs" style="font-size:14px">it never touches the sides</text>
 
- <!-- RIGHT: the brush presses both sides -->
+ <!-- RIGHT: the brush enters from the side and fills the whole space -->
  <g transform="translate(306,112)">
   <path d="M106 64h39l21 146H88z" fill="#e6f2ec"/>
   <use href="#t4c" x="0" y="0" fill="url(#t4en)" stroke="#ab8f60" stroke-width="2.5"/>
   <use href="#t4c" x="140" y="0" fill="url(#t4en)" stroke="#ab8f60" stroke-width="2.5"/>
   <path d="M88 210l38-60 40 60z" fill="url(#t4gm)" stroke="#b1616e" stroke-width="2"/>
-  <g stroke="#0f7a4d" stroke-width="2.4" stroke-linecap="round">
-   <path d="M126 76h-23.5M126 76h20.7"/>
-   <path d="M126 94h-25.7M126 94h23.3"/>
-   <path d="M126 112h-27.9M126 112h25.9"/>
-   <path d="M126 130h-30.1M126 130h28.5"/>
-   <path d="M126 148h-32.3M126 148h31.1"/>
-   <path d="M126 164h-34.3M126 164h33.4"/>
+  <line x1="126" y1="112" x2="196" y2="160" stroke="#0b6440" stroke-width="5" stroke-linecap="round"/>
+  <line x1="196" y1="160" x2="250" y2="198" stroke="#0f7a4d" stroke-width="22" stroke-linecap="round"/>
+  <line x1="202" y1="166" x2="240" y2="192" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".35"/>
+  <g stroke="#0f7a4d" stroke-width="2.3" stroke-linecap="round">
+   <path d="M126 112 98 112M126 112 154 112M126 112 100 96M126 112 152 96M126 112 96 128M126 112 156 128
+            M126 112 104 80M126 112 148 80M126 112 94 142M126 112 158 142M126 112 126 72M126 112 126 148"/>
   </g>
-  <line x1="126" y1="68" x2="126" y2="168" stroke="#0b6440" stroke-width="4" stroke-linecap="round"/>
-  <line x1="126" y1="20" x2="126" y2="70" stroke="#0b6440" stroke-width="5" stroke-linecap="round"/>
-  <rect x="112" y="-52" width="28" height="76" rx="13" fill="#0f7a4d"/>
-  <rect x="118" y="-44" width="6" height="58" rx="3" fill="#fff" opacity=".35"/>
+  <circle cx="126" cy="112" r="5" fill="#0b6440"/>
   <g fill="#0f7a4d">
-   <circle cx="100.3" cy="94" r="4"/><circle cx="149.3" cy="94" r="4"/>
-   <circle cx="95.9" cy="130" r="4"/><circle cx="154.5" cy="130" r="4"/>
+   <circle cx="99" cy="112" r="4"/><circle cx="154" cy="112" r="4"/>
+   <circle cx="95" cy="141" r="4"/><circle cx="157" cy="141" r="4"/>
   </g>
  </g>
- <text class="lbl g cap" x="306" y="384" style="font-size:14px" textLength="244" lengthAdjust="spacingAndGlyphs">THE BRUSH TOUCHES BOTH SIDES</text>
- <text class="lbl" x="306" y="408" style="font-size:14px" textLength="244" lengthAdjust="spacingAndGlyphs">which is where the trouble is</text>
+ <text class="lbl g cap" x="306" y="384" textLength="244" lengthAdjust="spacingAndGlyphs" style="font-size:14px">IT TOUCHES BOTH SIDES</text>
+ <text class="lbl" x="306" y="408" textLength="244" lengthAdjust="spacingAndGlyphs" style="font-size:14px">and it goes in sideways, not from the top</text>
 </svg>`
 };
 
@@ -435,7 +432,7 @@ const SLIDES = [
  note:[`So. Five things really do change in the mouth over the years.`,
        `This part is quick. Then we slow right down.`]},
 
-{kind:'art', sec:'What changes', at:'4:55', art:'tooth',
+{kind:'art', sec:'What changes', at:'4:55', art:'tooth', photo:'images/tooth.png',
  h:'The gum moves back.<br>The root shows.',
  kick:'Enamel is the hardest thing in your body. The root is not enamel.',
  note:[
@@ -508,7 +505,8 @@ const SLIDES = [
  `#1 That is a test you can run at home this month. For free.`,
  `#1 Let me show you what is actually happening under there.`]},
 
-{kind:'art', sec:'The gums', at:'10:00', art:'posts',
+{kind:'art', sec:'The gums', at:'10:00', art:'posts', photo:'images/bone.png',
+ marks:[{x:.27,y:.94,t:'BONE HOLDING',c:'g',s:18},{x:.74,y:.94,t:'BONE GONE',c:'r',s:18}],
  h:'The tooth can be perfect<br>and still be lost.',
  kick:'A leaning fence post is not rotten. The ground around it washed away.',
  note:[
@@ -552,7 +550,8 @@ const SLIDES = [
  `But it is worth knowing which one you are.`,
  `Because if you are the one in ten, then cleaning between your teeth is not a nice little habit. It is your medication.`]},
 
-{kind:'art', sec:'The gums', at:'15:10', art:'pocket',
+{kind:'art', sec:'The gums', at:'15:10', art:'pocket', photo:'images/pocket.png',
+ marks:[{x:.24,y:.13,t:'2 mm',c:'g',s:26},{x:.87,y:.13,t:'6 mm',c:'r',s:26}],
  h:'1, 2, 3 is fine.<br>4 and above is a pocket.',
  kick:'Ask your dentist: what were my numbers, and are they worse than last time?',
  note:[
@@ -580,7 +579,7 @@ const SLIDES = [
  `J: In fact, a Jewish mother's version of preventive care is asking whether you are eating enough. Twice a week. For sixty years. And honestly, that is more follow up than most people give their own mouth.`,
  `So if it does not hurt, and nobody rings a bell, what are you supposed to look for?`]},
 
-{kind:'list', sec:'The gums', at:'18:30', h:'Six things to look for',
+{kind:'list', sec:'The gums', at:'18:30', cut:true, h:'Six things to look for',
  items:['Gums bleed when you brush','A bad taste that comes back','Teeth look longer','New gaps between the teeth','Food catches in a new spot','A tooth that has moved'],
  note:[
  `Six things. And none of them hurt.`,
@@ -609,7 +608,7 @@ const SLIDES = [
  `So if you are ever helping to look after somebody who cannot clean their own mouth. A husband. A wife. A parent.`,
  `That small job matters far more than it looks.`]},
 
-{kind:'list', sec:'The gums', at:'22:20', h:'The good news',
+{kind:'list', sec:'The gums', at:'22:20', cut:true, h:'The good news',
  items:['Usually a deep clean, not surgery','The bone does not come back. But it stops going','Three or four months between visits, not six','Stopping smoking beats anything I do in a clinic'],
  note:[
  `Right. Good news. And there is plenty of it.`,
@@ -622,7 +621,44 @@ const SLIDES = [
  `And the biggest single thing anybody here can do at home is not a product at all. It is *stopping smoking*.`,
  `Nothing I do in a clinic competes with that.`]},
 
-{kind:'art', sec:'The gums', at:'24:00', art:'brush',
+{kind:'list', sec:'Brushing', at:'24:00', h:'Manual or electric?',
+ items:['Electric wins, mainly because it is easier','The only feature you need is a pressure sensor','Everything else on the box is decoration','Stiff or sore hands? Then it is not even close'],
+ note:[
+ `Now, the brush itself. People ask me this more than anything else.`,
+ `*Manual or electric?*`,
+ `Electric. And let me be honest about why, because it is not what people expect.`,
+ `It is not magic. A manual brush, in a good hand, with the right movement, cleans perfectly well.`,
+ `*Electric wins because it is easier.* And easier means you actually do it, and you keep doing it for long enough.`,
+ `That is the whole argument. Nothing more clever than that.`,
+ `Now, the shop will try to sell you a brush with a screen on it, an app for your telephone, and seven different modes.`,
+ `J: I have never once in my life met a person who chose a cleaning mode.`,
+ `*There is one feature that matters. A pressure sensor.* A little light that tells you when you are pushing too hard.`,
+ `Because pushing too hard is the most common mistake there is, and it is the one that digs that groove at the gum line.`,
+ `If somebody asks me for a name, I usually say something small and simple, like an Oral B iO three. And honestly, even that is more than most people need.`,
+ `So the cheap brush with a pressure sensor beats the expensive one without it. And if you already own a fancy one, wonderful. Do not go out and buy another.`,
+ `*And if your hands are stiff or sore*, then it is not even close. Let the machine do the work for you.`]},
+
+{kind:'list', sec:'Brushing', at:'25:20', h:'How to actually brush',
+ items:['Two minutes. Most of us do about forty five seconds','Three seconds on every surface. Outside, then inside','Point the bristles into the gum. Wiggle, then sweep','Always away from the pink','Sensitive roots? Sensitive toothpaste. I get no commission'],
+ note:[
+ `And now the part almost nobody was ever actually taught.`,
+ `*Two minutes*, twice a day. That is the rule, and everybody in this room already knows it.`,
+ `But here is the funny part. When researchers actually measure people, most of us brush for about *forty five seconds* and are completely certain it was two minutes.`,
+ `So forget the clock. Here is a better way to think about it.`,
+ `*Three seconds on every surface.* The outside of the tooth. Then the inside. Three seconds each, then move along.`,
+ `Do that honestly all the way round, and the time takes care of itself.`,
+ `Now the movement. And this is the bit that really matters.`,
+ `Most people hold the brush flat against the tooth and scrub sideways. That polishes the middle of the tooth beautifully. The middle of the tooth was never the problem.`,
+ `*Point the bristles into the edge of the gum instead.* At an angle, so the very tips go just under the gum edge. That is where all of this starts.`,
+ `Then a small wiggle. On the spot. Do not travel along, just wiggle.`,
+ `And then sweep away from the gum. Down for the bottom teeth. Up for the top ones.`,
+ `[slow down. this is the one thing they will actually take home]`,
+ `Wiggle, then sweep. And *always away from the pink.*`,
+ `One last thing. If your roots are showing and cold things hurt, use a *sensitive toothpaste*. Sensodyne is the one everybody knows, and there are others just as good.`,
+ `It works by blocking the tiny tubes in the root that carry the cold straight down to the nerve. Give it two weeks, not two days.`,
+ `J: And no, I get no commission. If I did, I would be giving this talk from a much nicer chair.`]},
+
+{kind:'art', sec:'The gums', at:'27:00', art:'brush', photo:'images/brush.png',
  h:'If you buy one thing<br>this morning, buy these.',
  kick:'Interdental brushes. Colour coded by size. Once a day, in front of the television.',
  note:[
@@ -642,10 +678,10 @@ const SLIDES = [
  `The cheap one you actually use beats the expensive one sitting in the drawer.`]},
 
 /* ---------- PART THREE ---------- */
-{kind:'divider', sec:'', at:'26:20', num:'Part three', title:'Old advice, new dentistry', ghost:'03',
+{kind:'divider', sec:'', at:'29:20', num:'Part three', title:'Old advice, new dentistry', ghost:'03',
  note:[`Now. Before I show you what is new, let us deal with what is old.`]},
 
-{kind:'list', sec:'Bubbe', at:'26:35', h:"Bubbe's remedies",
+{kind:'list', sec:'Bubbe', at:'29:35', h:"Bubbe's remedies",
  items:['Aspirin on the tooth','Whisky on the gum','Oil of cloves','A hot compress on a swollen face'],
  note:[
  `Every family has these. Mine certainly did.`,
@@ -659,7 +695,7 @@ const SLIDES = [
  `If there is swelling, there is infection. And heat can help an infection spread. So, cold on the outside. And a telephone call.`,
  `J: And chicken soup cures everything except a toothache. Believe me. My grandmother tested this very thoroughly.`]},
 
-{kind:'myths', sec:'Myths', at:'28:30', h:'True or false. Paddles up.',
+{kind:'myths', sec:'Myths', at:'31:30', h:'True or false. Paddles up.',
  items:[{t:'Brushing harder cleans better.',v:'no'},
         {t:'Wait half an hour after wine or fruit before you brush.',v:'yes'},
         {t:'If a tooth does not hurt, nothing is wrong.',v:'no'},
@@ -682,7 +718,7 @@ const SLIDES = [
  `#8 True. On average, a bit better. And much better if your hands are stiff or sore.`,
  `#8 But the cheap one you actually use beats the expensive one in the drawer. I will keep saying that.`]},
 
-{kind:'myths', sec:'Myths', at:'30:00', h:'Round two. Paddles up.', cut:true,
+{kind:'myths', sec:'Myths', at:'33:00', h:'Round two. Paddles up.', cut:true,
  items:[{t:'Sugar free drinks are safe for your teeth.',v:'no'},
         {t:'Chewing sugar free gum is good for your teeth.',v:'yes'},
         {t:'My silver fillings are poisoning me.',v:'no'},
@@ -708,7 +744,7 @@ const SLIDES = [
  `#10 Partly true, partly an excuse. Your genes load the gun. Your habits and your saliva decide what happens next.`,
  `#10 [let them argue for a moment. it is meant to be a draw]`]},
 
-{kind:'statement', sec:"What's new", at:'31:20', cut:true,
+{kind:'statement', sec:"What's new", at:'34:20', cut:true,
  text:'1815: dentures made from the teeth of dead soldiers.',
  kicker:'They were advertised as Waterloo Teeth. If a young man died, that was considered good quality.',
  note:[
@@ -718,7 +754,7 @@ const SLIDES = [
  `That is where we started.`,
  `Now let me tell you where we are. Because I think this is the most surprising part of the morning.`]},
 
-{kind:'statement', sec:'Our approach', at:'32:20',
+{kind:'statement', sec:'Our approach', at:'35:20',
  text:'Nothing we make is as good as what you already have.',
  kicker:'Not a filling, not a crown, not an implant. This is not modesty. We simply cannot build one.',
  note:[
@@ -737,7 +773,7 @@ const SLIDES = [
  `Keep what you have, for as long as it can be kept.`,
  `Every step away from the natural tooth is a step down. Even when it is a step done beautifully.`]},
 
-{kind:'statement', sec:'Our approach', at:'34:00',
+{kind:'statement', sec:'Our approach', at:'37:00',
  text:'We are not a digging company.',
  kicker:'Early decay can be stopped, and even hardened back up. Watching a tooth is a treatment, not neglect.',
  note:[
@@ -756,7 +792,7 @@ const SLIDES = [
  `J: Watching a tooth is like watching a leak in the roof. It only counts if you actually go back up and look. So please, do look.`,
  `Nobody can watch a tooth you never bring in.`]},
 
-{kind:'list', sec:"What's new", at:'35:40', h:'So we drill much less than we used to',
+{kind:'list', sec:"What's new", at:'38:40', h:'So we drill much less than we used to',
  items:['Early decay is stopped, not drilled','Pastes that harden the enamel back up','Silver fluoride: painted on. No needle, no drill, no noise','The only catch: that spot turns black'],
  note:[
  `And that is why the tools have changed.`,
@@ -768,7 +804,7 @@ const SLIDES = [
  `For a back tooth, in somebody who really does not want to sit through drilling, that is a wonderful trade.`,
  `J: So if a dentist offers to paint your tooth black, do not be insulted. It is not laziness. It is one of the kindest tools we have.`]},
 
-{kind:'list', sec:"What's new", at:'37:10', h:'And the goop is going away',
+{kind:'list', sec:"What's new", at:'40:10', h:'And the goop is going away',
  items:['A small camera instead of the tray. Two minutes','Crowns milled or printed. Sometimes the same day','Computers now help read the x-rays','The dentist you remember does not exist any more'],
  note:[
  `J: And now my favourite change. Do you remember the impressions? The tray full of cold pink material pushed into your mouth. Hold still. Do not swallow. Four minutes. Do not breathe through your nose.`,
@@ -781,7 +817,7 @@ const SLIDES = [
  `The dentist still decides. But there is a second pair of eyes in the room now.`,
  `So when I say the dentistry you remember does not exist any more, this is what I mean.`]},
 
-{kind:'list', sec:"What's new", at:'39:00', h:'Implants, honestly',
+{kind:'list', sec:"What's new", at:'42:00', h:'Implants, honestly',
  items:['Ninety is not too old. Bone and health matter, not age','The best value: two implants holding a loose bottom denture','Not fit and forget. They get gum disease too','And they never warn you, because there is no nerve'],
  note:[
  `And implants. Because somebody here is thinking about it. And somebody else has been quoted a frightening number.`,
@@ -799,10 +835,10 @@ const SLIDES = [
  `J: Two Jews, three opinions. Two Jews with a toothache, four dentists and a cousin who knows somebody. So if the number frightens you, get a second opinion. In this community, I understand that is practically a mitzvah.`]},
 
 /* ---------- PART FOUR ---------- */
-{kind:'divider', sec:'', at:'41:00', num:'Part four', title:'The hero nobody thanks', ghost:'04',
+{kind:'divider', sec:'', at:'44:00', num:'Part four', title:'The hero nobody thanks', ghost:'04',
  note:[`Last part.`,`And this is the one almost nobody has ever had explained to them.`]},
 
-{kind:'vote', sec:'Saliva', at:'41:15', tag:'Vote first',
+{kind:'vote', sec:'Saliva', at:'44:15', tag:'Vote first',
  q:'A dry mouth is uncomfortable, but it does not damage teeth.',
  verdict:'no', word:'No.', why:'It is one of the main reasons teeth are lost later in life. And the cause is often in the kitchen cupboard.',
  note:[
@@ -813,7 +849,7 @@ const SLIDES = [
  `#1 And for many people in this room, the cause of it is sitting in the kitchen cupboard.`,
  `#1 Let me tell you what saliva is actually doing all day.`]},
 
-{kind:'statement', sec:'Saliva', at:'42:15',
+{kind:'statement', sec:'Saliva', at:'45:15',
  text:'You only notice saliva when it leaves.',
  kicker:'It washes. It cancels acid. It repairs the enamel every day. It holds a denture in place. It lets you taste and swallow and speak.',
  note:[
@@ -826,7 +862,7 @@ const SLIDES = [
  `So *you only notice saliva when it leaves.*`,
  `Now watch what happens when it does.`]},
 
-{kind:'list', sec:'Saliva', at:'43:15', h:'Tablets that dry the mouth',
+{kind:'list', sec:'Saliva', at:'46:15', h:'Tablets that dry the mouth',
  items:['Blood pressure. Fluid tablets','Antidepressants. Antihistamines','Bladder tablets. Parkinson’s','Strong painkillers'],
  note:[
  `Hundreds of very ordinary medicines dry the mouth. Look at this list.`,
@@ -840,7 +876,7 @@ const SLIDES = [
  `And one extra thing. If you use a puffer for your chest, rinse your mouth out afterwards.`,
  `Otherwise you can get a fungal infection in there. Easily avoided. And almost never mentioned.`]},
 
-{kind:'list', sec:'Saliva', at:'45:00', h:'What actually helps',
+{kind:'list', sec:'Saliva', at:'48:00', h:'What actually helps',
  items:['Sip water. By the bed. Not juice, not cordial','Sugar free gum. Chewing is a pump','Saliva gel at night, from the pharmacy','No alcohol mouthwash. If it burns, it is not helping','Ask about 5000 fluoride toothpaste','Spit, do not rinse'],
  note:[
  `First, what a dry mouth actually does. So you take it seriously.`,
@@ -857,7 +893,7 @@ const SLIDES = [
  `And one that is completely free. After you brush, *spit, but do not rinse* with water.`,
  `Leave the toothpaste on the teeth and let it work. Most people wash the medicine straight down the sink.`]},
 
-{kind:'list', sec:'Our food', at:'47:00', h:'Now, our food',
+{kind:'list', sec:'Our food', at:'50:00', cut:true, h:'Now, our food',
  items:['Matzah has broken more teeth than any food in Jewish history','Sticky beats sweet. Honey cake, teiglach, dried fruit','The mints in shul. One is nothing. Twelve is a different story','Kiddush wine is acid. Water after, and do not brush for half an hour'],
  note:[
  `J: And now our food. Because I am not going to stand here and pretend that we all eat carrot sticks.`,
@@ -874,7 +910,7 @@ const SLIDES = [
  `My part is small. Brush well the night before. Use a saliva gel before it starts.`,
  `And if you take several drying tablets and you find fasting difficult, that is a conversation for your doctor and your rabbi together.`]},
 
-{kind:'list', sec:'Wear', at:'49:00', h:'Three things wear teeth down',
+{kind:'list', sec:'Wear', at:'52:00', cut:true, h:'Three things wear teeth down',
  items:['Grinding flattens them','Acid dissolves them. Reflux is very common','A hard brush digs a groove at the gum line','A cracked tooth hurts only on one bite, at one angle'],
  note:[
  `Almost finished. Three different things wear teeth down. They get mixed up, and they have different answers.`,
@@ -890,23 +926,25 @@ const SLIDES = [
  `If it is loose, glue is a patch and a reline is the real answer, because the gum underneath slowly changes shape.`,
  `And even with no natural teeth at all, you still come once a year. The denture does not get holes, but the mouth underneath still gets sick.`]},
 
-{kind:'takes', sec:'Close', at:'51:00', h:'Five things to take home',
- items:['Bleeding gums are never normal','Buy an interdental brush. Once a day','A dry mouth damages teeth. Bring your tablet list','Ask what your numbers are','The check up when nothing hurts is the cheapest one you will ever have'],
+{kind:'takes', sec:'Close', at:'54:00', h:'Six things to take home',
+ items:['Bleeding gums are never normal','Two minutes, twice a day. Always brush away from the gum','Clean between the teeth once a day. A brush beats floss','A dry mouth damages teeth. Bring your tablet list','Ask what your numbers are','Come when nothing hurts. That is the cheapest visit of your life'],
  note:[
- `Five things. And they are printed on the card on your chair, so there is nothing to remember.`,
+ `Six things. And they are printed on the card on your chair, so there is nothing to remember.`,
  `[read them one at a time. slowly. let each one land]`,
  `#1 *Bleeding gums are never normal.*`,
- `#2 *Buy an interdental brush, and use it once a day.*`,
- `#3 *A dry mouth damages teeth. Bring your tablet list to your dentist.*`,
- `#4 *Ask what your numbers are.*`,
- `#5 *And the check up when nothing hurts is the cheapest one you will ever have.*`,
- `#5 That last one is really the whole morning.`,
- `#5 Everything I have described today is completely silent at the beginning.`,
- `#5 J: We are a people who remember everything for three thousand years, and still cannot remember to book a check up.`,
- `#5 So once a year, let something in your mouth have a chance to complain.`,
- `#5 Thank you very much for having me.`]},
+ `#2 *Two minutes, twice a day. And always brush away from the gum.*`,
+ `#3 *Clean between the teeth once a day.* And for most of us, a little brush beats floss.`,
+ `#4 *A dry mouth damages teeth. Bring your tablet list to your dentist.*`,
+ `#5 *Ask what your numbers are.*`,
+ `#6 *And come when nothing hurts.*`,
+ `#6 Not when it wakes you up at two in the morning. A check up while everything feels fine.`,
+ `#6 That is the cheapest visit you will ever have, and it is the whole morning in one sentence.`,
+ `#6 Everything I have described today is completely silent at the beginning.`,
+ `#6 J: We are a people who remember everything for three thousand years, and still cannot remember to book a check up.`,
+ `#6 So once a year, let something in your mouth have a chance to complain.`,
+ `#6 Thank you very much for having me.`]},
 
-{kind:'statement', sec:'Close', at:'52:30',
+{kind:'statement', sec:'Close', at:'55:30',
  text:'Questions.',
  note:[
  `Now, questions. And I would love as many as you have.`,
@@ -967,6 +1005,20 @@ const notesEl=document.getElementById('notes');
 let i=0, step=0, maxStep=0, back=false, notesOpen=false;
 let pres=null, presSize=30, startedAt=null, presSlide=-1;
 
+/* A photo replaces the drawing, but any marks[] ride on top of it so the
+   numbers and the captions stay. x and y are fractions of the picture, so
+   they do not need to be precise. If the file is missing, the drawing
+   comes back on its own and nothing breaks in front of the room. */
+function photoArt(s){
+  const marks=(s.marks||[]).map(m=>
+    '<text class="lbl'+(m.c?' '+m.c:'')+'" x="'+(m.x*560).toFixed(0)+'" y="'+(m.y*430).toFixed(0)+'"'+
+    ' text-anchor="middle" style="font-size:'+(m.s||20)+'px;font-weight:700;paint-order:stroke;'+
+    'stroke:#fff;stroke-width:6px;stroke-linejoin:round">'+m.t+'</text>').join('');
+  return '<svg class="art" viewBox="0 0 560 430">'+
+         '<image href="'+s.photo+'" x="0" y="0" width="560" height="430" preserveAspectRatio="xMidYMid meet"'+
+         ' onerror="this.parentNode.outerHTML=window.__ART[\''+s.art+'\']"/>'+marks+'</svg>';
+}
+
 function build(s){
   let body='', steps=0, d=0;
   const A=extra=>'class="anim'+(extra?' '+extra:'')+'" style="animation-delay:'+((d++)*90)+'ms"';
@@ -978,9 +1030,7 @@ function build(s){
   else if(s.kind==='statement')
     body='<div class="wrap"><div '+A('rule')+'></div><div class="statement" '+A()+'>'+s.text+'</div>'+(s.kicker?'<div class="kicker" '+A()+'>'+s.kicker+'</div>':'')+'</div>';
   else if(s.kind==='art'){
-    const visual = s.photo
-      ? '<img class="art" src="'+s.photo+'" alt="" onerror="this.outerHTML=window.__ART[\''+s.art+'\']">'
-      : ART[s.art];
+    const visual = s.photo ? photoArt(s) : ART[s.art];
     body='<div class="wrap split"><div><div '+A('rule')+'></div><div class="statement sm" '+A()+'>'+s.h+'</div>'+
          (s.kick?'<div class="kicker sm" '+A()+'>'+s.kick+'</div>':'')+'</div><div '+A()+'>'+visual+'</div></div>';
   }

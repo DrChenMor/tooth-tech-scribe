@@ -43,6 +43,10 @@ h1 .sub{display:block;font-size:31px;font-weight:400;color:var(--muted);margin-t
 h2{font-size:52px;font-weight:800;line-height:1.06;letter-spacing:-.025em;max-width:16ch}
 .statement{font-size:66px;font-weight:900;line-height:1.08;letter-spacing:-.035em;max-width:16ch}
 .statement.sm{font-size:54px;max-width:14ch}
+.statement.sm.xs{font-size:42px;max-width:15ch}
+ul.mini{margin-top:26px}
+ul.mini li{font-size:23px;line-height:1.3;padding:12px 0 12px 34px}
+ul.mini li::before{top:22px;width:14px;height:3px}
 .statement em{font-style:normal;color:var(--green)}
 .kicker{font-size:28px;color:var(--ink-soft);line-height:1.45;margin-top:32px;max-width:33ch}
 .kicker.sm{font-size:25px;margin-top:26px}
@@ -638,7 +642,7 @@ const SLIDES = [
  `So the cheap brush with a pressure sensor beats the expensive one without it. And if you already own a fancy one, wonderful. Do not go out and buy another.`,
  `*And if your hands are stiff or sore*, then it is not even close. Let the machine do the work for you.`]},
 
-{kind:'list', sec:'Brushing', at:'25:20', h:'How to actually brush',
+{kind:'art', sec:'Brushing', at:'25:20', photo:'images/brushing.png', h:'How to actually brush',
  items:['Two minutes. Most of us do about forty five seconds','Three seconds on every surface. Outside, then inside','Point the bristles into the gum. Wiggle, then sweep','Always away from the pink','Sensitive roots? Sensitive toothpaste. I get no commission'],
  note:[
  `And now the part almost nobody was ever actually taught.`,
@@ -804,7 +808,7 @@ const SLIDES = [
  `For a back tooth, in somebody who really does not want to sit through drilling, that is a wonderful trade.`,
  `J: So if a dentist offers to paint your tooth black, do not be insulted. It is not laziness. It is one of the kindest tools we have.`]},
 
-{kind:'list', sec:"What's new", at:'40:10', h:'And the goop is going away',
+{kind:'art', sec:"What's new", at:'40:10', photo:'images/scanner.png', h:'And the goop is going away',
  items:['A small camera instead of the tray. Two minutes','Crowns milled or printed. Sometimes the same day','Computers now help read the x-rays','The dentist you remember does not exist any more'],
  note:[
  `J: And now my favourite change. Do you remember the impressions? The tray full of cold pink material pushed into your mouth. Hold still. Do not swallow. Four minutes. Do not breathe through your nose.`,
@@ -817,7 +821,7 @@ const SLIDES = [
  `The dentist still decides. But there is a second pair of eyes in the room now.`,
  `So when I say the dentistry you remember does not exist any more, this is what I mean.`]},
 
-{kind:'list', sec:"What's new", at:'42:00', h:'Implants, honestly',
+{kind:'art', sec:"What's new", at:'42:00', photo:'images/implants.png', h:'Implants, honestly',
  items:['Ninety is not too old. Bone and health matter, not age','The best value: two implants holding a loose bottom denture','Not fit and forget. They get gum disease too','And they never warn you, because there is no nerve'],
  note:[
  `And implants. Because somebody here is thinking about it. And somebody else has been quoted a frightening number.`,
@@ -1016,8 +1020,19 @@ function photoArt(s){
     'stroke:#fff;stroke-width:6px;stroke-linejoin:round">'+m.t+'</text>').join('');
   return '<svg class="art" viewBox="0 0 560 430">'+
          '<image href="'+s.photo+'" x="0" y="0" width="560" height="430" preserveAspectRatio="xMidYMid meet"'+
-         ' onerror="this.parentNode.outerHTML=window.__ART[\''+s.art+'\']"/>'+marks+'</svg>';
+         ' onerror="window.__artFail(this,\''+(s.art||'')+'\')"/>'+marks+'</svg>';
 }
+/* If the file is not there: fall back to the drawing when the slide has one,
+   otherwise drop the picture and let the words go full width. Either way the
+   slide still works, which is the only thing that matters on the day. */
+window.__artFail=function(el, art){
+  const svg=el.ownerSVGElement||el.parentNode;
+  if(art && window.__ART[art]){ svg.outerHTML=window.__ART[art]; return; }
+  const cell=svg.parentNode, wrap=cell&&cell.parentNode;
+  if(cell) cell.remove();
+  if(wrap&&wrap.classList) wrap.classList.remove('split');
+  fitWrap();
+};
 
 function build(s){
   let body='', steps=0, d=0;
@@ -1031,8 +1046,10 @@ function build(s){
     body='<div class="wrap"><div '+A('rule')+'></div><div class="statement" '+A()+'>'+s.text+'</div>'+(s.kicker?'<div class="kicker" '+A()+'>'+s.kicker+'</div>':'')+'</div>';
   else if(s.kind==='art'){
     const visual = s.photo ? photoArt(s) : ART[s.art];
-    body='<div class="wrap split"><div><div '+A('rule')+'></div><div class="statement sm" '+A()+'>'+s.h+'</div>'+
-         (s.kick?'<div class="kicker sm" '+A()+'>'+s.kick+'</div>':'')+'</div><div '+A()+'>'+visual+'</div></div>';
+    const left='<div '+A('rule')+'></div><div class="statement sm'+(s.items?' xs':'')+'" '+A()+'>'+s.h+'</div>'+
+      (s.items ? '<ul class="mini">'+s.items.map(t=>'<li '+A()+'>'+t+'</li>').join('')+'</ul>'
+               : (s.kick?'<div class="kicker sm" '+A()+'>'+s.kick+'</div>':''));
+    body='<div class="wrap split"><div>'+left+'</div><div '+A()+'>'+visual+'</div></div>';
   }
   else if(s.kind==='list')
     body='<div class="wrap"><div '+A('rule')+'></div><h2 '+A()+'>'+s.h+'</h2><ul>'+s.items.map(t=>'<li '+A()+'>'+t+'</li>').join('')+'</ul></div>';

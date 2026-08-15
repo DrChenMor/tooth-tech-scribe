@@ -57,18 +57,23 @@ The honest alternative is to ask the group for an hour. Plenty of speaker clubs 
 
 ## The pictures
 
-Three of the four illustrations are already pointed at your Magnific images. **Drop the files into the `images/` folder with these exact names and they appear on their own:**
+Seven slides are already pointed at image files. **Drop the files into the `images/` folder with these exact names and they appear on their own:**
 
 | File to save | Which slide it lands on |
 |---|---|
-| `images/tooth.png` | The gum moves back. The root shows. |
+| `images/tooth.png` | The gum moves back. The root shows |
 | `images/bone.png` | The tooth can be perfect and still be lost |
 | `images/pocket.png` | 1, 2, 3 is fine. 4 and above is a pocket |
 | `images/brush.png` | If you buy one thing this morning, buy these |
+| `images/brushing.png` | How to actually brush |
+| `images/scanner.png` | And the goop is going away |
+| `images/implants.png` | Implants, honestly |
 
-No code to edit. Until a file is there, the slide shows the drawing instead, so nothing can break in front of the room. Same if you misspell a name.
+No code to edit. `.png` or `.jpg` both work, but the name has to match. If you save a `.jpg`, change that slide's `photo:` line to say `.jpg`.
 
-`.png` or `.jpg` both work, but the name in the folder has to match the name in the deck. If you save a `.jpg`, change the four `photo:` lines in the deck to say `.jpg`.
+**Nothing breaks if a file is missing or misspelled.** The first four slides fall back to their drawing. The last three have no drawing, so they simply drop the picture and the words go full width, exactly like an ordinary slide. You will never see a broken image in front of the room.
+
+The last three slides keep their four or five bullet points sitting next to the picture, so adding an image costs you no content and no extra time.
 
 ### The numbers on top of a picture
 

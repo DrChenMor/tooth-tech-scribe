@@ -1,0 +1,1163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A Dentist Walks Into a Coffee Club</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;800;900&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#0f1216; --ink-soft:#454e57; --paper:#fff; --muted:#7b848e; --line:#e6e9ec;
+  --green:#0f7a4d; --green-soft:#e6f2ec; --red:#c22f26; --red-soft:#fbeae8;
+  --display:'Archivo',-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:#07090b;overflow:hidden}
+body{font-family:var(--display);-webkit-font-smoothing:antialiased}
+#viewport{position:fixed;inset:0;display:grid;place-items:center}
+#stage{width:1280px;height:720px;position:relative;overflow:hidden;transform-origin:center center;
+  background:radial-gradient(130% 100% at 0% 0%,#f7faf8 0%,#fff 55%);color:var(--ink);border-radius:6px;
+  box-shadow:0 40px 90px -30px rgba(0,0,0,.55)}
+
+.eyebrow{position:absolute;top:46px;left:78px;font-family:var(--mono);font-size:13px;letter-spacing:.2em;
+  text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:12px}
+.eyebrow::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--green)}
+.pagenum{position:absolute;bottom:40px;right:78px;font-family:var(--mono);font-size:13px;color:#b7bec5}
+.rail{position:absolute;bottom:0;left:0;height:4px;background:var(--green);transition:width .55s cubic-bezier(.2,.8,.2,1)}
+
+.wrap{position:absolute;inset:118px 96px 96px 96px;display:flex;flex-direction:column;justify-content:center}
+.wrap.split{display:grid;grid-template-columns:1.05fr .95fr;gap:60px;align-items:center}
+/* a slide with a lot on it tightens up before anything is allowed to shrink */
+.wrap.dense h2{font-size:46px}
+.wrap.dense ul,.wrap.dense .takes,.wrap.dense .myths{margin-top:24px}
+.wrap.dense li{padding:11px 0 11px 46px}
+.wrap.dense li::before{top:23px}
+.wrap.dense .take,.wrap.dense .myth{padding:12px 0}
+.wrap.dense .rule{margin-bottom:26px}
+.rule{width:64px;height:5px;background:var(--green);margin-bottom:34px;transform-origin:left center}
+h1{font-size:88px;font-weight:900;line-height:.98;letter-spacing:-.035em}
+h1 .sub{display:block;font-size:31px;font-weight:400;color:var(--muted);margin-top:30px;line-height:1.35;letter-spacing:-.005em}
+h2{font-size:52px;font-weight:800;line-height:1.06;letter-spacing:-.025em;max-width:16ch}
+.statement{font-size:66px;font-weight:900;line-height:1.08;letter-spacing:-.035em;max-width:16ch}
+.statement.sm{font-size:54px;max-width:14ch}
+.statement em{font-style:normal;color:var(--green)}
+.kicker{font-size:28px;color:var(--ink-soft);line-height:1.45;margin-top:32px;max-width:33ch}
+.kicker.sm{font-size:25px;margin-top:26px}
+
+ul{list-style:none;margin-top:40px;border-top:1px solid var(--line)}
+li{font-size:32px;line-height:1.3;font-weight:500;padding:18px 0 18px 46px;border-bottom:1px solid var(--line);position:relative}
+li::before{content:"";position:absolute;left:0;top:30px;width:18px;height:4px;background:var(--green);border-radius:2px}
+
+.cols{display:grid;grid-template-columns:1fr 1fr;margin-top:42px;border-top:4px solid var(--ink)}
+.col{padding:34px 42px 30px 0}
+.col+.col{padding-left:52px;border-left:1px solid var(--line)}
+.col .name{font-family:var(--mono);font-size:14px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+.col .def{font-size:40px;font-weight:900;line-height:1.1;margin-top:18px;letter-spacing:-.025em}
+.col .tail{font-size:24px;line-height:1.45;margin-top:22px;color:var(--ink-soft)}
+.col.good .def{color:var(--green)} .col.bad .def{color:var(--red)}
+
+.votetag{font-family:var(--mono);font-size:14px;letter-spacing:.2em;text-transform:uppercase;color:var(--green);margin-bottom:30px}
+.voteq{font-size:56px;font-weight:800;line-height:1.1;letter-spacing:-.03em;max-width:18ch}
+.verdict{margin-top:50px;padding:34px 46px;border-radius:8px;display:flex;align-items:baseline;gap:32px;max-width:1000px}
+.verdict .word{font-size:58px;font-weight:900;letter-spacing:-.03em;line-height:1;white-space:nowrap}
+.verdict .why{font-size:26px;line-height:1.4;color:var(--ink-soft)}
+.verdict.no{background:var(--red-soft)} .verdict.no .word{color:var(--red)}
+.verdict.yes{background:var(--green-soft)} .verdict.yes .word{color:var(--green)}
+.verdict.both{background:#f0f2f4} .verdict.both .word{color:var(--ink)}
+
+.myths{margin-top:32px;border-top:1px solid var(--line)}
+.myth{display:grid;grid-template-columns:1fr 150px;align-items:center;gap:26px;padding:20px 0;border-bottom:1px solid var(--line)}
+.myth .t{font-size:29px;line-height:1.25;font-weight:500}
+.myths.tight .myth{padding:14px 0}
+.myths.tight .myth .t{font-size:26px}
+.vcell{position:relative;justify-self:end;width:150px;height:46px}
+.chip{position:absolute;right:0;top:0;font-family:var(--mono);font-size:15px;letter-spacing:.12em;text-transform:uppercase;
+  padding:11px 16px;border-radius:4px;white-space:nowrap;line-height:1}
+.chip.no{background:var(--red-soft);color:var(--red)}
+.chip.yes{background:var(--green-soft);color:var(--green)}
+.chip.both{background:#eceef1;color:#5b636c}
+.chip.ask{background:#fff;color:var(--muted);border:2px dashed #ccd2d8;padding:9px 14px}
+
+.takes{margin-top:32px;border-top:1px solid var(--line)}
+.take{display:flex;gap:34px;align-items:flex-start;padding:19px 0;border-bottom:1px solid var(--line)}
+.take .n{font-family:var(--mono);font-size:18px;color:var(--green);padding-top:9px;width:26px}
+.take .t{font-size:31px;line-height:1.28;font-weight:500}
+
+#stage.divider{background:linear-gradient(155deg,#12161b 0%,#0b0e12 60%);color:#fff}
+#stage.divider .eyebrow,#stage.divider .pagenum{color:#5f6873}
+.ghost{position:absolute;right:52px;bottom:-96px;font-size:400px;font-weight:900;letter-spacing:-.05em;color:rgba(255,255,255,.045);line-height:1}
+.dividernum{font-family:var(--mono);font-size:15px;letter-spacing:.22em;text-transform:uppercase;color:#4fbf8b;margin-bottom:30px}
+.dividertitle{font-size:78px;font-weight:900;letter-spacing:-.035em;line-height:1.02;max-width:15ch}
+
+.art{width:100%;height:auto;max-height:440px;display:block}
+.art .lbl{font-family:var(--mono);font-size:15px;fill:var(--muted);letter-spacing:.05em}
+.art .lbl.g{fill:var(--green)} .art .lbl.r{fill:var(--red)}
+.art .hd{font-weight:700;font-size:19px;letter-spacing:.03em}
+.art .cap{font-weight:700;font-size:15px;letter-spacing:.08em}
+
+@keyframes rise{from{opacity:0;transform:translateY(26px)}to{opacity:1;transform:none}}
+@keyframes wipeIn{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes popIn{from{opacity:0;transform:translateY(24px) scale(.97)}to{opacity:1;transform:none}}
+@keyframes stageIn{from{opacity:0;transform:translateX(38px)}to{opacity:1;transform:none}}
+@keyframes stageInBack{from{opacity:0;transform:translateX(-38px)}to{opacity:1;transform:none}}
+@keyframes ghostIn{from{opacity:0;transform:translateY(40px)}to{opacity:1;transform:none}}
+#slideroot{position:absolute;inset:0;animation:stageIn .44s cubic-bezier(.2,.8,.2,1) both}
+#slideroot.back{animation-name:stageInBack}
+.anim{animation:rise .55s cubic-bezier(.18,.8,.2,1) both}
+.anim.rule{animation:wipeIn .5s cubic-bezier(.2,.8,.2,1) both}
+.ghost{animation:ghostIn .8s cubic-bezier(.2,.8,.2,1) both}
+.step{opacity:0;transform:translateY(24px);transition:opacity .38s cubic-bezier(.2,.8,.2,1),transform .38s cubic-bezier(.2,.8,.2,1)}
+.step.on{opacity:1;transform:none}
+.verdict.step.on{animation:popIn .42s cubic-bezier(.2,.9,.25,1) both}
+.chip.step.on{animation:popIn .34s cubic-bezier(.2,.9,.25,1) both}
+
+#notes{position:fixed;left:0;right:0;bottom:0;max-height:44vh;overflow:auto;background:#101316;color:#e9ecef;
+  padding:24px 34px 30px;transform:translateY(101%);transition:transform .28s ease;z-index:20;border-top:3px solid var(--green)}
+#notes.on{transform:none}
+#notes h3{font-family:var(--mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#79838e;margin-bottom:14px}
+#notes .beat{font-size:17px;line-height:1.5;max-width:100ch;margin-bottom:14px}
+.ln{display:block}
+.cue{color:#7fd0a6;font-style:italic}
+.joke{color:#ff8a7a}
+.onscreen{color:#fff;border-bottom:2px solid #4fbf8b;font-weight:600}
+.beat.future{opacity:.22}
+#help{position:fixed;top:14px;right:16px;font-family:var(--mono);font-size:11px;color:#565e66;z-index:21;text-align:right;line-height:1.75}
+:focus-visible{outline:3px solid var(--green);outline-offset:3px}
+@media (prefers-reduced-motion:reduce){#slideroot,.anim,.ghost{animation:none!important}.step{transition:none}}
+</style>
+</head>
+<body>
+<div id="viewport"><div id="stage"></div></div>
+<div id="notes"><h3>Script (rehearsal view)</h3><div id="notesbody"></div></div>
+<div id="help">&rarr; / space next &nbsp; &larr; back &nbsp; &uarr; skip slide<br><b style="color:#8fd6ae">P prompter window</b> &nbsp; F full screen<br>N script &nbsp; T clock &nbsp; H hide this</div>
+
+<script>
+/* ============================================================
+   SCRIPT FORMAT, used inside every note[] array
+
+   "J: ..."   the whole line is a joke        -> RED in the prompter
+   "#2 ..."   the line belongs to reveal 2    -> stays dim until you
+                                                 press to reveal 2
+   *text*     is on the screen right now      -> white, underlined green
+   [text]     is a stage direction            -> green italic, never spoken
+
+   Every sentence is put on its own line in the prompter. Read one line,
+   look up, say it. That is what stops it sounding read.
+   ============================================================ */
+
+const ART = {
+
+/* ---------- 1. molar in cross-section, gum receded, root showing ---------- */
+tooth:`<svg class="art" viewBox="0 0 560 430" role="img" aria-label="A tooth in cross section. The gum has moved back and the softer root is showing.">
+ <defs>
+  <linearGradient id="t1en" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff"/><stop offset=".5" stop-color="#f3f7f9"/><stop offset="1" stop-color="#d5e1e8"/></linearGradient>
+  <linearGradient id="t1de" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f7ebd6"/><stop offset=".45" stop-color="#eddcbb"/><stop offset="1" stop-color="#d6ba8c"/></linearGradient>
+  <linearGradient id="t1gm" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e79aa4"/><stop offset="1" stop-color="#bf6a78"/></linearGradient>
+  <linearGradient id="t1bn" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f6efe0"/><stop offset="1" stop-color="#ded0af"/></linearGradient>
+  <pattern id="t1tr" width="27" height="23" patternUnits="userSpaceOnUse">
+   <circle cx="6" cy="7" r="3.4" fill="#c9b691" opacity=".5"/><circle cx="20" cy="16" r="2.6" fill="#c9b691" opacity=".42"/>
+   <circle cx="13" cy="20" r="1.9" fill="#c9b691" opacity=".3"/><circle cx="24" cy="4" r="1.7" fill="#c9b691" opacity=".28"/>
+  </pattern>
+ </defs>
+
+ <path d="M10 272h540v128a8 8 0 0 1-8 8H18a8 8 0 0 1-8-8z" fill="url(#t1bn)" stroke="#c9b691" stroke-width="2"/>
+ <path d="M10 272h540v128a8 8 0 0 1-8 8H18a8 8 0 0 1-8-8z" fill="url(#t1tr)"/>
+ <path d="M10 266c56-16 132-24 196-16 12 2 16 12 18 24H10z" fill="url(#t1gm)" stroke="#b1616e" stroke-width="2"/>
+ <path d="M550 266c-56-16-132-24-196-16-12 2-16 12-18 24h214z" fill="url(#t1gm)" stroke="#b1616e" stroke-width="2"/>
+
+ <path d="M203 190C196 150 198 120 208 96 218 68 232 60 243 72c9 14 15 24 37 32 22-8 28-18 37-32 11-12 25-4 35 24 10 24 12 54 5 94
+          1 50-13 110-21 146-3 12-13 11-16-1-6-38-14-90-32-116-6-10-34-10-40 0-18 26-26 78-32 116-3 12-13 13-16 1-8-36-22-96-21-146z"
+       fill="url(#t1de)" stroke="#ab8f60" stroke-width="2.5" stroke-linejoin="round"/>
+ <path d="M203 190C196 150 198 120 208 96 218 68 232 60 243 72c9 14 15 24 37 32 22-8 28-18 37-32 11-12 25-4 35 24 10 24 12 54 5 94
+          h-22c6-38 5-64-3-84-8-20-18-24-25-14-8 12-15 22-37 30-22-8-29-18-37-30-7-10-17-6-25 14-8 20-9 46-3 84z"
+       fill="url(#t1en)" stroke="#9fb2bc" stroke-width="2.5" stroke-linejoin="round"/>
+ <path d="M216 176c-4-30-2-52 6-68 5-10 11-12 15-6-9 16-13 42-11 74z" fill="#fff" opacity=".65"/>
+ <g fill="#bd463f">
+  <path d="M248 144c10-12 54-12 64 0 4 20 2 38-6 54h-52c-8-16-10-34-6-54z"/>
+  <path d="M262 196c-10 42-22 90-27 124-1 9-8 9-8 0 2-36 12-88 22-126z"/>
+  <path d="M298 196c10 42 22 90 26 124 1 9 8 9 8 0-2-36-12-88-22-126z"/>
+ </g>
+
+ <!-- the gum used to sit up here -->
+ <line x1="124" y1="196" x2="470" y2="196" stroke="#0f7a4d" stroke-width="2.5" stroke-dasharray="9 7"/>
+ <text class="lbl g hd" x="8" y="202" style="font-size:15px" textLength="106" lengthAdjust="spacingAndGlyphs">OLD GUM LINE</text>
+ <g stroke="#0f7a4d" stroke-width="2.4" fill="none">
+  <line x1="150" y1="206" x2="150" y2="240"/><path d="M144 234l6 8 6-8"/>
+ </g>
+
+ <line x1="96" y1="112" x2="196" y2="130" stroke="#0f7a4d" stroke-width="2"/>
+ <circle cx="196" cy="130" r="4" fill="#0f7a4d"/>
+ <text class="lbl g hd" x="8" y="106" textLength="96" lengthAdjust="spacingAndGlyphs">ENAMEL</text>
+ <text class="lbl" x="8" y="130" textLength="118" lengthAdjust="spacingAndGlyphs">hard as stone</text>
+
+ <line x1="426" y1="232" x2="352" y2="224" stroke="#c22f26" stroke-width="2"/>
+ <circle cx="352" cy="224" r="4" fill="#c22f26"/>
+ <text class="lbl r hd" x="432" y="226" textLength="62" lengthAdjust="spacingAndGlyphs">ROOT</text>
+ <text class="lbl" x="432" y="250" style="font-size:13px" textLength="118" lengthAdjust="spacingAndGlyphs">soft, no enamel</text>
+
+ <text class="lbl" x="452" y="268" style="fill:#95505c;font-size:14px" textLength="36" lengthAdjust="spacingAndGlyphs">GUM</text>
+ <text class="lbl" x="28" y="326" style="fill:#a08a5c" textLength="52" lengthAdjust="spacingAndGlyphs">BONE</text>
+</svg>`,
+
+/* ---------- 2. the same tooth, bone holding versus bone gone ---------- */
+posts:`<svg class="art" viewBox="0 0 560 430" role="img" aria-label="The same tooth twice. On the left the bone holds it. On the right the bone has gone and the tooth leans.">
+ <defs>
+  <linearGradient id="t2en" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#dbe5eb"/></linearGradient>
+  <linearGradient id="t2de" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f7ebd6"/><stop offset=".5" stop-color="#eddcbb"/><stop offset="1" stop-color="#d6ba8c"/></linearGradient>
+  <linearGradient id="t2gm" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e79aa4"/><stop offset="1" stop-color="#bf6a78"/></linearGradient>
+  <linearGradient id="t2bn" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f6efe0"/><stop offset="1" stop-color="#ded0af"/></linearGradient>
+  <pattern id="t2tr" width="25" height="21" patternUnits="userSpaceOnUse">
+   <circle cx="5" cy="6" r="3" fill="#c9b691" opacity=".48"/><circle cx="18" cy="14" r="2.3" fill="#c9b691" opacity=".4"/>
+   <circle cx="11" cy="18" r="1.6" fill="#c9b691" opacity=".28"/>
+  </pattern>
+  <g id="t2th">
+   <path d="M6 92C2 62 6 32 16 16 24 4 36 2 44 14c4 7 7 13 14 18 7-5 10-11 14-18 8-12 20-10 28 2 10 16 14 46 10 76
+            2 40-6 92-11 128-1 10-11 10-13-1-4-30-9-70-19-92-4-8-14-8-18 0-10 22-15 62-19 92-2 11-12 11-13 1C12 184 4 132 6 92z"
+         fill="url(#t2de)" stroke="#ab8f60" stroke-width="2.5" stroke-linejoin="round"/>
+   <path d="M6 92C2 62 6 32 16 16 24 4 36 2 44 14c4 7 7 13 14 18 7-5 10-11 14-18 8-12 20-10 28 2 10 16 14 46 10 76H98
+            c3-26 0-46-7-58-5-9-13-8-17 0-4 8-9 15-16 20-7-5-12-12-16-20-4-8-12-9-17 0-7 12-10 32-7 58z"
+         fill="url(#t2en)" stroke="#9fb2bc" stroke-width="2.5" stroke-linejoin="round"/>
+  </g>
+ </defs>
+
+ <line x1="284" y1="30" x2="284" y2="372" stroke="#e6e9ec" stroke-width="2"/>
+
+ <g>
+  <path d="M20 208h240v164H20z" fill="url(#t2bn)" stroke="#c9b691" stroke-width="2"/>
+  <path d="M20 208h240v164H20z" fill="url(#t2tr)"/>
+  <path d="M20 208h240v20H20z" fill="url(#t2gm)" stroke="#b1616e" stroke-width="1.5"/>
+  <use href="#t2th" x="82" y="98"/>
+  <line x1="20" y1="208" x2="260" y2="208" stroke="#0f7a4d" stroke-width="3.5"/>
+  <text class="lbl g cap" x="20" y="400" textLength="132" lengthAdjust="spacingAndGlyphs">BONE HOLDING</text>
+  <text class="lbl" x="20" y="422" textLength="196" lengthAdjust="spacingAndGlyphs">the tooth cannot move</text>
+ </g>
+
+ <g>
+  <path d="M308 292h232v80H308z" fill="url(#t2bn)" stroke="#c9b691" stroke-width="2"/>
+  <path d="M308 292h232v80H308z" fill="url(#t2tr)"/>
+  <path d="M308 292h232v20H308z" fill="url(#t2gm)" stroke="#b1616e" stroke-width="1.5"/>
+  <g transform="rotate(10 424 300)"><use href="#t2th" x="366" y="98"/></g>
+  <line x1="308" y1="208" x2="540" y2="208" stroke="#c22f26" stroke-width="2.5" stroke-dasharray="9 7"/>
+  <line x1="308" y1="292" x2="540" y2="292" stroke="#c22f26" stroke-width="3.5"/>
+  <g stroke="#c22f26" stroke-width="2.2" fill="none">
+   <line x1="322" y1="212" x2="322" y2="288"/>
+   <path d="M318 218l4-6 4 6M318 282l4 6 4-6"/>
+  </g>
+  <text class="lbl r hd" x="332" y="244" style="font-size:14px" textLength="42" lengthAdjust="spacingAndGlyphs">BONE</text>
+  <text class="lbl r hd" x="332" y="262" style="font-size:14px" textLength="42" lengthAdjust="spacingAndGlyphs">LOST</text>
+  <text class="lbl r cap" x="308" y="400" textLength="104" lengthAdjust="spacingAndGlyphs">BONE GONE</text>
+  <text class="lbl" x="308" y="422" style="font-size:14px" textLength="224" lengthAdjust="spacingAndGlyphs">same tooth. nothing wrong</text>
+ </g>
+</svg>`,
+
+/* ---------- 3. a 2 mm space next to a 6 mm pocket, both being measured ---------- */
+pocket:`<svg class="art" viewBox="0 0 560 430" role="img" aria-label="A shallow two millimetre gum space next to a deep six millimetre pocket, each being measured with a probe.">
+ <defs>
+  <linearGradient id="t3en" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff"/><stop offset=".55" stop-color="#f3f7f9"/><stop offset="1" stop-color="#d5e1e8"/></linearGradient>
+  <linearGradient id="t3de" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#f7ebd6"/><stop offset="1" stop-color="#dcc49a"/></linearGradient>
+  <linearGradient id="t3gm" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e79aa4"/><stop offset="1" stop-color="#bf6a78"/></linearGradient>
+  <linearGradient id="t3bn" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f6efe0"/><stop offset="1" stop-color="#ded0af"/></linearGradient>
+  <pattern id="t3tr" width="25" height="21" patternUnits="userSpaceOnUse">
+   <circle cx="5" cy="6" r="3" fill="#c9b691" opacity=".46"/><circle cx="18" cy="14" r="2.3" fill="#c9b691" opacity=".38"/>
+  </pattern>
+  <linearGradient id="t3pr" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#5a6773"/><stop offset=".45" stop-color="#2b3540"/><stop offset="1" stop-color="#141b23"/></linearGradient>
+  <g id="t3tooth">
+   <path d="M44 36C32 40 28 62 32 86c4 32 8 52 8 66 1 88 5 168 8 224h56c5-56 9-136 12-224 0-14 16-34 22-66 4-24-12-50-24-50z"
+         fill="url(#t3de)" stroke="#ab8f60" stroke-width="2"/>
+   <path d="M44 36C32 40 28 62 32 86c4 32 8 52 8 66h76c0-14 16-34 22-66 4-24-12-50-24-50z"
+         fill="url(#t3en)" stroke="#9fb2bc" stroke-width="2"/>
+   <path d="M42 44c-6 6-8 24-5 42 3 20 6 34 7 44l-8 1c-1-12-4-26-7-45-3-20-1-36 5-43z" fill="#fff" opacity=".6"/>
+  </g>
+ </defs>
+
+ <line x1="290" y1="26" x2="290" y2="408" stroke="#e6e9ec" stroke-width="2"/>
+
+ <!-- LEFT: a 2 mm space. a brush reaches the bottom -->
+ <g transform="translate(20,0)">
+  <path d="M0 234h260v168H0z" fill="url(#t3bn)" stroke="#c9b691" stroke-width="1.5"/>
+  <path d="M0 234h260v168H0z" fill="url(#t3tr)"/>
+  <use href="#t3tooth"/>
+  <path d="M116 150h42v44c-14 8-28 12-42 12z" fill="#6d2733"/>
+  <path d="M158 150c32 10 52 32 62 58v26H112v-22h46z" fill="url(#t3gm)" stroke="#b1616e" stroke-width="2"/>
+  <rect x="132" y="60" width="16" height="134" rx="6" fill="url(#t3pr)" stroke="#0d1319" stroke-width="1.2"/>
+  <g fill="#fff"><rect x="132" y="150" width="16" height="9"/><rect x="132" y="172" width="16" height="9"/></g>
+  <g fill="none" stroke-linecap="round">
+   <path d="M230 150v44M225 156l5-6 5 6M225 188l5 6 5-6" stroke="#fff" stroke-width="7"/>
+   <path d="M230 150v44M225 156l5-6 5 6M225 188l5 6 5-6" stroke="#0f7a4d" stroke-width="3"/>
+  </g>
+  <text class="lbl g" x="230" y="140" text-anchor="middle" style="font-size:20px;font-weight:700">2 mm</text>
+  <text class="lbl g cap" x="0" y="424" textLength="238" lengthAdjust="spacingAndGlyphs">A BRUSH REACHES THE BOTTOM</text>
+ </g>
+
+ <!-- RIGHT: a 6 mm pocket. nothing reaches down there -->
+ <g transform="translate(300,0)">
+  <path d="M0 322h260v80H0z" fill="url(#t3bn)" stroke="#c9b691" stroke-width="1.5"/>
+  <path d="M0 322h260v80H0z" fill="url(#t3tr)"/>
+  <use href="#t3tooth"/>
+  <path d="M116 150h42v132c-14 8-29 14-44 16z" fill="#6d2733"/>
+  <path d="M158 150c32 10 52 32 62 58v114H110v-22c15-2 30-8 44-16z" fill="url(#t3gm)" stroke="#b1616e" stroke-width="2"/>
+  <g fill="#c2a86e" stroke="#9e854e" stroke-width="1">
+   <ellipse cx="124" cy="196" rx="6" ry="9"/><ellipse cx="123" cy="224" rx="5" ry="8"/>
+   <ellipse cx="125" cy="252" rx="6" ry="9"/>
+  </g>
+  <rect x="132" y="60" width="16" height="222" rx="6" fill="url(#t3pr)" stroke="#0d1319" stroke-width="1.2"/>
+  <g fill="#fff"><rect x="132" y="150" width="16" height="9"/><rect x="132" y="172" width="16" height="9"/>
+   <rect x="132" y="194" width="16" height="9"/><rect x="132" y="216" width="16" height="9"/>
+   <rect x="132" y="238" width="16" height="9"/><rect x="132" y="260" width="16" height="9"/></g>
+  <g fill="none" stroke-linecap="round">
+   <path d="M230 150v132M225 156l5-6 5 6M225 276l5 6 5-6" stroke="#fff" stroke-width="7"/>
+   <path d="M230 150v132M225 156l5-6 5 6M225 276l5 6 5-6" stroke="#c22f26" stroke-width="3"/>
+  </g>
+  <text class="lbl r" x="230" y="140" text-anchor="middle" style="font-size:20px;font-weight:700">6 mm</text>
+  <text class="lbl r cap" x="0" y="424" textLength="238" lengthAdjust="spacingAndGlyphs">NOTHING REACHES DOWN HERE</text>
+ </g>
+</svg>`,
+
+/* ---------- 4. floss passing through versus a brush touching both sides ---------- */
+brush:`<svg class="art" viewBox="0 0 560 430" role="img" aria-label="Floss slides through the gap without touching. An interdental brush presses against both tooth surfaces.">
+ <defs>
+  <linearGradient id="t4en" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff"/><stop offset=".45" stop-color="#f2ece0"/><stop offset="1" stop-color="#dccdb2"/></linearGradient>
+  <linearGradient id="t4gm" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e79aa4"/><stop offset="1" stop-color="#bf6a78"/></linearGradient>
+  <path id="t4c" d="M8 64C4 34 18 8 40 5c10-1 15 9 17 19 2-10 7-20 17-19 22 3 36 29 32 59-3 28-6 54-8 82-2 32-6 52-10 64H26c-4-12-8-32-10-64-2-28-5-54-8-82z"/>
+ </defs>
+
+ <line x1="292" y1="70" x2="292" y2="350" stroke="#e6e9ec" stroke-width="2"/>
+
+ <!-- LEFT: floss slides through -->
+ <g transform="translate(26,112)">
+  <path d="M106 64h39l21 146H88z" fill="#fbeae8"/>
+  <use href="#t4c" x="0" y="0" fill="url(#t4en)" stroke="#ab8f60" stroke-width="2.5"/>
+  <use href="#t4c" x="140" y="0" fill="url(#t4en)" stroke="#ab8f60" stroke-width="2.5"/>
+  <path d="M88 210l38-60 40 60z" fill="url(#t4gm)" stroke="#b1616e" stroke-width="2"/>
+  <line x1="126" y1="-52" x2="126" y2="206" stroke="#33404b" stroke-width="3" stroke-linecap="round"/>
+  <g stroke="#c22f26" stroke-width="2.4" fill="none" stroke-linecap="round">
+   <path d="M120 104h-16m0 0l6-5m-6 5l6 5"/><path d="M132 104h16m0 0l-6-5m6 5l-6 5"/>
+  </g>
+ </g>
+ <text class="lbl r cap" x="26" y="384" textLength="204" lengthAdjust="spacingAndGlyphs">FLOSS PASSES THROUGH</text>
+ <text class="lbl" x="26" y="408" style="font-size:14px" textLength="222" lengthAdjust="spacingAndGlyphs">it never touches the sides</text>
+
+ <!-- RIGHT: the brush presses both sides -->
+ <g transform="translate(306,112)">
+  <path d="M106 64h39l21 146H88z" fill="#e6f2ec"/>
+  <use href="#t4c" x="0" y="0" fill="url(#t4en)" stroke="#ab8f60" stroke-width="2.5"/>
+  <use href="#t4c" x="140" y="0" fill="url(#t4en)" stroke="#ab8f60" stroke-width="2.5"/>
+  <path d="M88 210l38-60 40 60z" fill="url(#t4gm)" stroke="#b1616e" stroke-width="2"/>
+  <g stroke="#0f7a4d" stroke-width="2.4" stroke-linecap="round">
+   <path d="M126 76h-23.5M126 76h20.7"/>
+   <path d="M126 94h-25.7M126 94h23.3"/>
+   <path d="M126 112h-27.9M126 112h25.9"/>
+   <path d="M126 130h-30.1M126 130h28.5"/>
+   <path d="M126 148h-32.3M126 148h31.1"/>
+   <path d="M126 164h-34.3M126 164h33.4"/>
+  </g>
+  <line x1="126" y1="68" x2="126" y2="168" stroke="#0b6440" stroke-width="4" stroke-linecap="round"/>
+  <line x1="126" y1="20" x2="126" y2="70" stroke="#0b6440" stroke-width="5" stroke-linecap="round"/>
+  <rect x="112" y="-52" width="28" height="76" rx="13" fill="#0f7a4d"/>
+  <rect x="118" y="-44" width="6" height="58" rx="3" fill="#fff" opacity=".35"/>
+  <g fill="#0f7a4d">
+   <circle cx="100.3" cy="94" r="4"/><circle cx="149.3" cy="94" r="4"/>
+   <circle cx="95.9" cy="130" r="4"/><circle cx="154.5" cy="130" r="4"/>
+  </g>
+ </g>
+ <text class="lbl g cap" x="306" y="384" style="font-size:14px" textLength="244" lengthAdjust="spacingAndGlyphs">THE BRUSH TOUCHES BOTH SIDES</text>
+ <text class="lbl" x="306" y="408" style="font-size:14px" textLength="244" lengthAdjust="spacingAndGlyphs">which is where the trouble is</text>
+</svg>`
+};
+
+const SLIDES = [
+
+/* ---------- OPENING ---------- */
+{kind:'title', sec:'', at:'0:00',
+ h:'A Dentist Walks<br>Into a Coffee Club', sub:'Forty five minutes on the subject everybody avoids',
+ note:[
+ `Good morning. Thank you for having me.`,
+ `[stand still. let the room settle. do not start on the walk in]`,
+ `J: Forty five minutes. And you do not have to open your mouth once. Unless you want to argue with me. Which, in this room, I am expecting.`,
+ `J: I promise you three things this morning. No drill. No bill. And no lecture about lollies.`]},
+
+{kind:'statement', sec:'Opening', at:'0:40',
+ text:'Two confessions.',
+ note:[
+ `Before we start, I owe you *two confessions*.`,
+ `The first one. I am a dentist.`,
+ `[stop. wait for the groan. it always comes. let it]`,
+ `J: When I told my mother I was going to be a dentist, she went very quiet. And then she said: a dentist? Not a doctor?`,
+ `J: So you are not the first people to be disappointed in me.`,
+ `J: And I will tell you something about my profession. Dentists have the highest rate in the world of people saying "no offence" right after telling us exactly what they think of us.`,
+ `The second confession. I qualified in Jerusalem. I practised in Israel, mostly with children.`,
+ `So I have spent most of my working life convincing nervous people that I am not the enemy.`,
+ `J: Adults turn out to be exactly the same. Only taller.`]},
+
+{kind:'vote', sec:'Opening', at:'1:50', tag:'Warm up',
+ q:'Green if you enjoy going to the dentist.',
+ verdict:'both', word:'Nobody.', why:'Good. Now we understand each other.',
+ note:[
+ `You all have a stick. Green on one side, red on the other.`,
+ `Green means yes. Red means no. That is the whole system.`,
+ `I will ask you things all morning and you vote. Nobody is marking you. Nobody is writing anything down.`,
+ `Let us try an easy one first.`,
+ `*Green if you enjoy going to the dentist.* Paddles up, please.`,
+ `[look slowly around the room. take your time here. do not rush it]`,
+ `#1 J: Beautiful. I am a dentist, and I do not enjoy it either.`]},
+
+{kind:'vote', sec:'Opening', at:'2:40', tag:'Vote first',
+ q:'Losing teeth is a normal part of getting older.',
+ verdict:'no', word:'No.', why:'So what does take teeth out? That is the next twenty minutes.',
+ note:[
+ `Now a real one.`,
+ `*Losing teeth is a normal part of getting older.* Paddles up. Do not think too hard.`,
+ `[count the room out loud. it makes them commit to an answer]`,
+ `#1 The answer is *no*. And I am not playing with words here.`,
+ `#1 Teeth are not lost because of the calendar.`,
+ `#1 They are lost because of a disease. A slow one. A quiet one. One that simply had a lot of years to work in.`,
+ `#1 So the question is not what age does to your teeth. The question is what that disease does.`,
+ `#1 And that is the next twenty minutes.`]},
+
+{kind:'statement', sec:'The big idea', at:'3:40',
+ text:'It is a disease. It just had a lot of <em>time</em>.',
+ kicker:'Which is good news. A disease can be stopped. Getting older, so far, cannot.',
+ note:[
+ `I want you to hear why that is good news and not bad news.`,
+ `*A disease can be stopped.* We know how. We are quite good at it now.`,
+ `Getting older, so far, nobody can stop. Believe me. If I could, I would not be giving talks in a coffee club.`,
+ `[pause. let them read the slide. count to three]`,
+ `Everything this morning comes back to that one sentence.`,
+ `One more thing before we start.`,
+ `Most of what we were all told about teeth is about thirty years old.`,
+ `The dentistry you remember is not the dentistry that exists today. And that is the happy part of the morning.`]},
+
+/* ---------- PART ONE ---------- */
+{kind:'divider', sec:'', at:'4:40', num:'Part one', title:'What actually changes', ghost:'01',
+ note:[`So. Five things really do change in the mouth over the years.`,
+       `This part is quick. Then we slow right down.`]},
+
+{kind:'art', sec:'What changes', at:'4:55', art:'tooth',
+ h:'The gum moves back.<br>The root shows.',
+ kick:'Enamel is the hardest thing in your body. The root is not enamel.',
+ note:[
+ `First change. The gum slowly moves back. And a part of the tooth that was always hidden starts to show.`,
+ `That is why people say, my teeth look longer than they used to.`,
+ `They are not longer. Less of them is covered.`,
+ `Now here is why that matters. This is the first real piece of dentistry this morning.`,
+ `The top of the tooth is covered in *enamel*. Enamel is the white outer shell. It is the hardest material in your whole body. Harder than bone.`,
+ `But the part that lives under the gum has no enamel on it at all. That part is called the *root*. And the root is soft. Much softer.`,
+ `So decay later in life does not happen where it happened when you were fifteen.`,
+ `Then it was on top, on the chewing surface. Now it happens down at the edge of the gum, where the soft part is showing.`,
+ `Same disease. Completely different address.`]},
+
+{kind:'statement', sec:'What changes', at:'6:40',
+ text:'Less saliva.',
+ kicker:'Usually the tablets, not the years.',
+ note:[
+ `Second change. *Less saliva.*`,
+ `And I want to be very clear here, because this is the biggest misunderstanding I hear.`,
+ `Age itself does not really dry the mouth. *The tablets do.*`,
+ `That is the whole last part of this morning. Just hold that thought.`]},
+
+{kind:'statement', sec:'What changes', at:'7:10', cut:true,
+ text:'Enamel gets thinner.',
+ kicker:'And teeth look yellower. That is not dirt. That is the layer underneath showing through.',
+ note:[
+ `Third. *Enamel gets thinner.* Seventy or eighty years of chewing wears it down.`,
+ `And here is something almost nobody is told.`,
+ `Teeth look more yellow with age, and people assume that means dirty. Stained. Neglected.`,
+ `It is none of those. Underneath the white enamel there is a naturally yellow layer. As the white gets thinner, the yellow shows through.`,
+ `So that colour is not a sign that you failed. It is a sign that you have been chewing for seventy years.`]},
+
+{kind:'statement', sec:'What changes', at:'7:40',
+ text:'The nerve gets quieter.',
+ kicker:'So problems hurt less, and get found later. Less pain is not good news here.',
+ note:[
+ `Fourth. And this one really matters. *The nerve gets quieter.*`,
+ `Inside every tooth there is a living nerve. Over the years it shrinks and it gets less sensitive.`,
+ `Which sounds wonderful. Less pain at the dentist. Who would complain?`,
+ `But think about what pain is actually for. Pain is an alarm.`,
+ `And what happens in a house where the alarm gets quieter every year?`,
+ `So the problem hurts less. It gets found later. And it is bigger by the time anybody looks.`,
+ `In the mouth, less pain is not good news.`]},
+
+{kind:'statement', sec:'What changes', at:'8:10', cut:true,
+ text:'Old fillings get old too.',
+ kicker:'A filling is a repair. Repairs age.',
+ note:[
+ `And the fifth. *Old fillings get old too.*`,
+ `A filling is not permanent. It is a repair. And every repair has a working life.`,
+ `The edges wear. Small gaps open. Decay can start underneath, where nobody can see it.`,
+ `J: A filling from 1985 is a wall with cracks in it. It has been holding that tooth together longer than some marriages in this room. I am not asking which.`]},
+
+/* ---------- PART TWO ---------- */
+{kind:'divider', sec:'', at:'8:40', num:'Part two', title:'The gums', ghost:'02',
+ note:[`Now the heart of the morning.`,
+       `And this is the part that almost nobody has ever had properly explained to them.`]},
+
+{kind:'vote', sec:'The gums', at:'8:55', tag:'Vote first',
+ q:'If my gums bleed when I brush, I should leave that spot alone.',
+ verdict:'no', word:'No.', why:'Bleeding is not a reason to stay away from that spot. It is the reason to go there.',
+ note:[
+ `Paddles up. *If my gums bleed when I brush, I should leave that spot alone.*`,
+ `[wait. look around the room. then reveal]`,
+ `#1 The answer is *no*. And I know that feels wrong.`,
+ `#1 When something bleeds, every instinct says leave it alone.`,
+ `#1 But in the mouth, leaving it alone is exactly what caused it in the first place.`,
+ `#1 Gently, yes. Carefully, yes. But you go there. Every single day.`,
+ `#1 And after about two weeks, it stops bleeding.`,
+ `#1 That is a test you can run at home this month. For free.`,
+ `#1 Let me show you what is actually happening under there.`]},
+
+{kind:'art', sec:'The gums', at:'10:00', art:'posts',
+ h:'The tooth can be perfect<br>and still be lost.',
+ kick:'A leaning fence post is not rotten. The ground around it washed away.',
+ note:[
+ `Everybody in this room worries about holes.`,
+ `But usually it is not the hole that takes the tooth out. It is the ground the tooth stands in.`,
+ `Look at these two fence posts. *Same post.* Same wood. Nothing wrong with either of them.`,
+ `The one on the left stands straight, because the ground around it is solid.`,
+ `The one on the right leans, because the ground washed away.`,
+ `That is gum disease.`,
+ `The tooth itself can be completely healthy. No holes. Never had a filling. And it is still lost, because what holds it has gone.`,
+ `And what holds a tooth is bone. Real bone. The same bone as everywhere else in your body.`,
+ `And it is quietly disappearing while nothing hurts.`]},
+
+{kind:'cols', sec:'The gums', at:'11:30', h:'Two problems. Similar names.',
+ colA:{name:'Gingivitis', def:'The gum is inflamed', tail:'Red, puffy, bleeds when you brush. Everybody gets it. Two weeks of proper cleaning and it is completely gone. Nothing is lost.'},
+ colB:{name:'Periodontitis', def:'The bone is going', tail:'It has gone deeper and started eating the bone. We can stop it. We cannot undo it.'},
+ note:[
+ `Now, there are two different problems here, and they have confusingly similar names.`,
+ `Let me separate them. This is the most useful thing I can give you this morning.`,
+ `The first one is called *gingivitis*. That word just means the gum is inflamed. Red. A bit puffy. Bleeds when you brush.`,
+ `Everybody gets this. I have had it. You have had it.`,
+ `And here is the important part. It goes away completely. Two weeks of proper cleaning and the gum is healthy again. Nothing has been lost.`,
+ `The second one is called *periodontitis*. That means the same inflammation has gone deeper, past the gum, and started eating the bone underneath.`,
+ `And that does not grow back. We can stop it. We cannot undo it.`,
+ `So there is a line between those two words.`,
+ `On one side of the line, everything is repairable. On the other side, everything is only controllable.`,
+ `And nobody tells you when you cross that line. There is no bell. Nothing hurts on the day it happens.`,
+ `[slow down here. this is the centre of the talk]`,
+ `That line is the whole reason I am standing here this morning.`]},
+
+{kind:'statement', sec:'The gums', at:'13:40',
+ text:'Only about one person in ten crosses that line.',
+ kicker:'Genes, smoking, diabetes, saliva. You all know somebody who never flossed and has beautiful gums. That is true, and it is not fair.',
+ note:[
+ `And now something honest, because I do not like making people feel guilty.`,
+ `Almost everybody gets the first one, the gum inflammation.`,
+ `But *only about one person in ten* goes on to lose bone seriously.`,
+ `And it depends on things you did not choose. Your family. Whether you smoked. Whether you have diabetes. How much saliva you make.`,
+ `Which means every one of you knows somebody who has never cleaned between his teeth in his life, eats like a horse, and has beautiful gums at eighty.`,
+ `That is true. And it is not fair. I cannot fix that. Nobody chooses their grandmother.`,
+ `But it is worth knowing which one you are.`,
+ `Because if you are the one in ten, then cleaning between your teeth is not a nice little habit. It is your medication.`]},
+
+{kind:'art', sec:'The gums', at:'15:10', art:'pocket',
+ h:'1, 2, 3 is fine.<br>4 and above is a pocket.',
+ kick:'Ask your dentist: what were my numbers, and are they worse than last time?',
+ note:[
+ `Here is a piece of inside information, so you know what is happening to you in the chair.`,
+ `When the dentist or the hygienist puts a little probe in and starts calling numbers out to the nurse, they are measuring something very specific.`,
+ `They are measuring, in millimetres, how deep the gum sits around each tooth.`,
+ `J: It is not a code. Nobody is talking about you.`,
+ `*One, two, three is normal.* A toothbrush reaches the bottom of that. Look at the left side of the picture.`,
+ `*Four and above* means a space has opened up. We call that space a *pocket*.`,
+ `A pocket is simply a gap between the gum and the tooth that is now too deep for any brush to reach.`,
+ `And bacteria live very comfortably down there, where nothing can touch them.`,
+ `So next time, ask one question.`,
+ `[say this slowly. this is the line they should take home]`,
+ `Ask: what were my numbers, and are they worse than last time?`,
+ `That one question will change how your appointments go for the rest of your life.`]},
+
+{kind:'statement', sec:'The gums', at:'17:00',
+ text:'It does not hurt.',
+ kicker:'Not at the start. Not in the middle. Sometimes not until the tooth is loose.',
+ note:[
+ `And here is the cruel part of the whole thing. *It does not hurt.*`,
+ `Not at the beginning. Not in the middle. Sometimes not until the tooth is already loose.`,
+ `J: Your gums are the opposite of a Jewish mother. A Jewish mother tells you she is suffering. In detail. With dates. And a small comment about how rarely you call.`,
+ `J: Your gums suffer in complete silence. Very un-Jewish behaviour.`,
+ `J: In fact, a Jewish mother's version of preventive care is asking whether you are eating enough. Twice a week. For sixty years. And honestly, that is more follow up than most people give their own mouth.`,
+ `So if it does not hurt, and nobody rings a bell, what are you supposed to look for?`]},
+
+{kind:'list', sec:'The gums', at:'18:30', h:'Six things to look for',
+ items:['Gums bleed when you brush','A bad taste that comes back','Teeth look longer','New gaps between the teeth','Food catches in a new spot','A tooth that has moved'],
+ note:[
+ `Six things. And none of them hurt.`,
+ `*Bleeding when you brush.* And now you know why that one matters, because we voted on it.`,
+ `J: If your hands bled every time you washed them, you would not say, I am washing too hard.`,
+ `*A bad taste, or a smell, that comes back* an hour after you brushed. Not first thing in the morning. Everybody has that. I mean the one that returns.`,
+ `*Teeth that look longer* than they do in your photographs.`,
+ `*New gaps between the teeth.* Not the gaps you have always had. New ones.`,
+ `*Food catching in a spot* where it never caught before. That is often the first thing people notice. And they usually blame the food.`,
+ `*And a tooth that has moved.* Teeth do not move later in life for no reason. If something shifted, something underneath it changed.`]},
+
+{kind:'statement', sec:'The gums', at:'20:20',
+ text:'The mouth is not a separate country.',
+ kicker:'In a nursing home, a toothbrush is a serious piece of medical equipment.',
+ note:[
+ `One more thing about gums. Then good news, I promise.`,
+ `*The mouth is not a separate country* from the rest of your body. We treat it separately. It does not behave separately.`,
+ `Diabetes and gum disease feed each other, in both directions.`,
+ `Gum disease makes blood sugar harder to control. And poor control makes the gums worse.`,
+ `That one is well proven, and most people are never told it. If you have diabetes, your gums are part of your diabetes care.`,
+ `Heart disease is linked as well. And I will be honest with you, the scientists still argue about how much. So I am not going to oversell that one.`,
+ `But here is the one I really want you to hear.`,
+ `Bacteria from a dirty mouth get breathed down into the lungs. And cleaning the mouth properly reduces chest infections in people who are frail or unwell.`,
+ `That is not a theory. That is well established.`,
+ `[say this one gently. slow right down. do not rush the ending]`,
+ `So if you are ever helping to look after somebody who cannot clean their own mouth. A husband. A wife. A parent.`,
+ `That small job matters far more than it looks.`]},
+
+{kind:'list', sec:'The gums', at:'22:20', h:'The good news',
+ items:['Usually a deep clean, not surgery','The bone does not come back. But it stops going','Three or four months between visits, not six','Stopping smoking beats anything I do in a clinic'],
+ note:[
+ `Right. Good news. And there is plenty of it.`,
+ `Treatment is *usually not surgery*. It is a proper clean underneath the gum, in that pocket we talked about.`,
+ `It takes longer than an ordinary clean. It is not glamorous. And that is most of the treatment.`,
+ `*The bone does not come back.* I am not going to pretend otherwise.`,
+ `But it stops going. And stopping it is a real success, not a consolation prize.`,
+ `After that, people usually come *every three or four months instead of six*.`,
+ `That is not a business plan. That is simply how long the bacteria take to rebuild down there.`,
+ `And the biggest single thing anybody here can do at home is not a product at all. It is *stopping smoking*.`,
+ `Nothing I do in a clinic competes with that.`]},
+
+{kind:'art', sec:'The gums', at:'24:00', art:'brush',
+ h:'If you buy one thing<br>this morning, buy these.',
+ kick:'Interdental brushes. Colour coded by size. Once a day, in front of the television.',
+ note:[
+ `[start the packet going round the room now, while you talk]`,
+ `If you remember one object from this morning, make it this one.`,
+ `Everybody says floss. I am going to say something slightly rebellious. For most of us, floss is the wrong tool.`,
+ `Floss is thin. It is fiddly. It needs young fingers.`,
+ `And here is the real problem. As the gums move back, the gaps get bigger. So the floss slides straight through the middle and touches nothing at all.`,
+ `These little brushes are called *interdental brushes*, which just means between the teeth brushes.`,
+ `They go into the gap and they clean the sides. Which is where the trouble actually is.`,
+ `They come in sizes, and the sizes are colour coded. The size genuinely matters. It may even be two different sizes in different parts of your mouth.`,
+ `Ask your dentist or your pharmacist which one is yours.`,
+ `Once a day. Not after every meal.`,
+ `J: Nobody does that. Not even me.`,
+ `Once a day, in front of the television. Nobody is watching you.`,
+ `And if your hands are stiff, an electric brush does the work for you.`,
+ `The cheap one you actually use beats the expensive one sitting in the drawer.`]},
+
+/* ---------- PART THREE ---------- */
+{kind:'divider', sec:'', at:'26:20', num:'Part three', title:'Old advice, new dentistry', ghost:'03',
+ note:[`Now. Before I show you what is new, let us deal with what is old.`]},
+
+{kind:'list', sec:'Bubbe', at:'26:35', h:"Bubbe's remedies",
+ items:['Aspirin on the tooth','Whisky on the gum','Oil of cloves','A hot compress on a swollen face'],
+ note:[
+ `Every family has these. Mine certainly did.`,
+ `*Aspirin placed on the tooth.* Please, no.`,
+ `Aspirin works from the inside, through the stomach. Sitting on the gum it does nothing for the pain at all, and it burns a white patch into your cheek.`,
+ `I have seen it many times. And every single one of them learned it from a relative.`,
+ `J: *Whisky on the gum.* It numbs the drinker, not the tooth. And it is a waste of good whisky, which in my opinion is the greater sin.`,
+ `*Oil of cloves.* All right. This one is real. It genuinely numbs. Your grandmother was right.`,
+ `It fixes nothing underneath. But she was right.`,
+ `*A hot compress on a swollen face.* This one actually worries me.`,
+ `If there is swelling, there is infection. And heat can help an infection spread. So, cold on the outside. And a telephone call.`,
+ `J: And chicken soup cures everything except a toothache. Believe me. My grandmother tested this very thoroughly.`]},
+
+{kind:'myths', sec:'Myths', at:'28:30', h:'True or false. Paddles up.',
+ items:[{t:'Brushing harder cleans better.',v:'no'},
+        {t:'Wait half an hour after wine or fruit before you brush.',v:'yes'},
+        {t:'If a tooth does not hurt, nothing is wrong.',v:'no'},
+        {t:'An electric brush cleans better than your hand.',v:'yes'}],
+ note:[
+ `Fast round. I read it out, you vote, then I tell you.`,
+ `[one press shows the statement. the next press shows the answer]`,
+ `[do not guess the pattern for them. some of these are true]`,
+ `#1 *Brushing harder cleans better.* Paddles up.`,
+ `#2 False.`,
+ `#2 Harder does not clean better. It digs a groove into the tooth, right at the gum line.`,
+ `#2 Think of it as a paintbrush, not a scrubbing brush.`,
+ `#3 *Wait half an hour after wine or fruit before you brush.* Paddles up.`,
+ `#4 True. And this one surprises people.`,
+ `#4 After anything acid, orange juice, wine, fruit, the enamel is temporarily soft. For about half an hour.`,
+ `#4 Brushing right then scrubs it away. So wait.`,
+ `#5 *If a tooth does not hurt, nothing is wrong.* Paddles up.`,
+ `#6 False. We just spent twenty minutes on exactly this one.`,
+ `#7 *An electric brush cleans better than your hand.* Paddles up.`,
+ `#8 True. On average, a bit better. And much better if your hands are stiff or sore.`,
+ `#8 But the cheap one you actually use beats the expensive one in the drawer. I will keep saying that.`]},
+
+{kind:'myths', sec:'Myths', at:'30:00', h:'Round two. Paddles up.', cut:true,
+ items:[{t:'Sugar free drinks are safe for your teeth.',v:'no'},
+        {t:'Chewing sugar free gum is good for your teeth.',v:'yes'},
+        {t:'My silver fillings are poisoning me.',v:'no'},
+        {t:'You cannot have a tooth out on blood thinners.',v:'no'},
+        {t:'Bad teeth run in families.',v:'both'}],
+ note:[
+ `Round two. Same rules.`,
+ `#1 *Sugar free drinks are safe for your teeth.* Paddles up.`,
+ `#2 False.`,
+ `#2 Diet soft drink has no sugar and plenty of acid. And acid dissolves teeth on its own.`,
+ `#2 Sugar free gum and sugar free lollies are genuinely fine. Sugar free drinks are a different animal.`,
+ `#3 *Chewing sugar free gum is good for your teeth.* Paddles up.`,
+ `#4 True. Actually good for you.`,
+ `#4 Chewing is a pump. It makes saliva. And saliva is the hero of the last part of this morning.`,
+ `#5 *My silver fillings are poisoning me.* Paddles up.`,
+ `#6 False. They have been studied for a hundred years.`,
+ `#6 If one breaks, we replace it with a white one, because the material is better now. Not because the old one was harming you.`,
+ `#7 *You cannot have a tooth out on blood thinners.* Paddles up.`,
+ `#8 False. Almost always you can.`,
+ `#8 And please, never stop your tablets on your own to make it easier. That is a decision for your dentist and your doctor together.`,
+ `#9 *Bad teeth run in families.* Paddles up.`,
+ `#10 This one is both. And I put it in deliberately.`,
+ `#10 Partly true, partly an excuse. Your genes load the gun. Your habits and your saliva decide what happens next.`,
+ `#10 [let them argue for a moment. it is meant to be a draw]`]},
+
+{kind:'statement', sec:"What's new", at:'31:20', cut:true,
+ text:'1815: dentures made from the teeth of dead soldiers.',
+ kicker:'They were advertised as Waterloo Teeth. If a young man died, that was considered good quality.',
+ note:[
+ `So that is the old world of advice. Now let me show you the old world of treatment.`,
+ `After the battle of Waterloo, in *1815*, dentures were made from the teeth of the dead soldiers. And sold as a luxury item.`,
+ `They advertised them as *Waterloo Teeth*. If a young man died, that was considered good quality material.`,
+ `That is where we started.`,
+ `Now let me tell you where we are. Because I think this is the most surprising part of the morning.`]},
+
+{kind:'statement', sec:'Our approach', at:'32:20',
+ text:'Nothing we make is as good as what you already have.',
+ kicker:'Not a filling, not a crown, not an implant. This is not modesty. We simply cannot build one.',
+ note:[
+ `Before I show you the technology, I want to tell you the thinking behind it.`,
+ `Because the thinking changed more than the machines did.`,
+ `Here it is. *Nothing we make is as good as what you already have.*`,
+ `Every material we have is a compromise. A filling is good. A crown is good. An implant is very good.`,
+ `But none of them is a tooth.`,
+ `A real tooth is alive. It feels hot and cold and pressure, so it warns you.`,
+ `It sits in a little elastic sling called a *ligament*, which lets it move a fraction when you bite. So it absorbs the shock.`,
+ `It repairs its own surface every day, using your saliva.`,
+ `And it tells the jaw to keep the bone around it.`,
+ `No material does any of those things. That is not modesty. We simply cannot build one.`,
+ `So the whole modern approach comes down to one sentence.`,
+ `[pause. then say it slowly]`,
+ `Keep what you have, for as long as it can be kept.`,
+ `Every step away from the natural tooth is a step down. Even when it is a step done beautifully.`]},
+
+{kind:'statement', sec:'Our approach', at:'34:00',
+ text:'We are not a digging company.',
+ kicker:'Early decay can be stopped, and even hardened back up. Watching a tooth is a treatment, not neglect.',
+ note:[
+ `Which brings me to the second sentence. *We are not a digging company.*`,
+ `When you were young, the rule was simple. Find a dark spot, drill it out.`,
+ `And we now know that was often too much, too early.`,
+ `Because decay is not a hole that suddenly appears.`,
+ `It is a slow argument between acid, which pulls minerals out of the tooth, and your saliva, which puts them back in.`,
+ `And for a long time, that argument goes both ways.`,
+ `So a small area of early decay, if it is kept clean and watched, can genuinely be stopped. It can even harden back up.`,
+ `Not repaired by us. Repaired by you, and your own saliva.`,
+ `So if a dentist says, we will watch this one, that is not laziness and it is not neglect.`,
+ `Watching is a treatment. It is the modern answer. And it is usually the right one.`,
+ `But there is a catch. And the catch is the word watching.`,
+ `[look up for this one. do not read it off the page]`,
+ `J: Watching a tooth is like watching a leak in the roof. It only counts if you actually go back up and look. So please, do look.`,
+ `Nobody can watch a tooth you never bring in.`]},
+
+{kind:'list', sec:"What's new", at:'35:40', h:'So we drill much less than we used to',
+ items:['Early decay is stopped, not drilled','Pastes that harden the enamel back up','Silver fluoride: painted on. No needle, no drill, no noise','The only catch: that spot turns black'],
+ note:[
+ `And that is why the tools have changed.`,
+ `There are now *pastes that put minerals back into the enamel*.`,
+ `One of them is called Tooth Mousse, and it was invented in Melbourne. So somebody in this room should be proud.`,
+ `And there is something called *silver fluoride*. It is a liquid, painted on with a tiny brush.`,
+ `No needle. No drill. No noise. It stops the decay exactly where it stands.`,
+ `It has one catch. It stains that spot black.`,
+ `For a back tooth, in somebody who really does not want to sit through drilling, that is a wonderful trade.`,
+ `J: So if a dentist offers to paint your tooth black, do not be insulted. It is not laziness. It is one of the kindest tools we have.`]},
+
+{kind:'list', sec:"What's new", at:'37:10', h:'And the goop is going away',
+ items:['A small camera instead of the tray. Two minutes','Crowns milled or printed. Sometimes the same day','Computers now help read the x-rays','The dentist you remember does not exist any more'],
+ note:[
+ `J: And now my favourite change. Do you remember the impressions? The tray full of cold pink material pushed into your mouth. Hold still. Do not swallow. Four minutes. Do not breathe through your nose.`,
+ `That is going away.`,
+ `Now there is a small camera on a wand. It photographs the whole mouth in about two minutes, and you watch it appear on the screen.`,
+ `From that scan, a *crown*, which is a cap that covers a broken tooth, can be carved by machine, or printed.`,
+ `In some clinics, on the same day. You go in with a broken tooth and you go home with the finished one.`,
+ `No temporary crown falling off on a Friday night.`,
+ `And computers now help read the x-rays, and mark the spots the eye might miss.`,
+ `The dentist still decides. But there is a second pair of eyes in the room now.`,
+ `So when I say the dentistry you remember does not exist any more, this is what I mean.`]},
+
+{kind:'list', sec:"What's new", at:'39:00', h:'Implants, honestly',
+ items:['Ninety is not too old. Bone and health matter, not age','The best value: two implants holding a loose bottom denture','Not fit and forget. They get gum disease too','And they never warn you, because there is no nerve'],
+ note:[
+ `And implants. Because somebody here is thinking about it. And somebody else has been quoted a frightening number.`,
+ `An *implant* is a small titanium screw placed into the jaw. It acts as a replacement root. Then a tooth is built on top of it.`,
+ `It is not a miracle and it is not a scam. It is a very good tool with rules.`,
+ `*Age is not the problem.* Ninety is not too old. Bone and general health are what matter. And smoking is the thing that ruins them.`,
+ `And remember what I said a moment ago. This is the best replacement we have. And it is still a replacement.`,
+ `Now the honest part.`,
+ `The best value in the whole of implant dentistry is not a beautiful front tooth.`,
+ `It is *two implants in the lower jaw, to hold a loose bottom denture in place*.`,
+ `Two little studs. The denture clicks on. And it stops swimming around.`,
+ `For somebody who has been fighting a bottom denture for fifteen years, that is a different life. For a fraction of the cost of a mouthful.`,
+ `And they are *not fit and forget*. An implant can get the same gum disease we spent twenty minutes on.`,
+ `It just never warns you. Because there is no nerve in it at all.`,
+ `J: Two Jews, three opinions. Two Jews with a toothache, four dentists and a cousin who knows somebody. So if the number frightens you, get a second opinion. In this community, I understand that is practically a mitzvah.`]},
+
+/* ---------- PART FOUR ---------- */
+{kind:'divider', sec:'', at:'41:00', num:'Part four', title:'The hero nobody thanks', ghost:'04',
+ note:[`Last part.`,`And this is the one almost nobody has ever had explained to them.`]},
+
+{kind:'vote', sec:'Saliva', at:'41:15', tag:'Vote first',
+ q:'A dry mouth is uncomfortable, but it does not damage teeth.',
+ verdict:'no', word:'No.', why:'It is one of the main reasons teeth are lost later in life. And the cause is often in the kitchen cupboard.',
+ note:[
+ `Paddles up. *A dry mouth is uncomfortable, but it does not damage teeth.*`,
+ `[wait. this one catches almost everybody]`,
+ `#1 It is *no*.`,
+ `#1 A dry mouth is one of the main reasons teeth are lost later in life.`,
+ `#1 And for many people in this room, the cause of it is sitting in the kitchen cupboard.`,
+ `#1 Let me tell you what saliva is actually doing all day.`]},
+
+{kind:'statement', sec:'Saliva', at:'42:15',
+ text:'You only notice saliva when it leaves.',
+ kicker:'It washes. It cancels acid. It repairs the enamel every day. It holds a denture in place. It lets you taste and swallow and speak.',
+ note:[
+ `J: Saliva. Spit. Nobody in the history of the world has ever said thank you to it.`,
+ `But look at the job it does.`,
+ `It *washes* the mouth all day. It *cancels out acid* after you eat.`,
+ `It *repairs* the earliest damage in the enamel. Quietly. Every single day. Exactly as I described a few minutes ago.`,
+ `It *holds a denture in place*, by suction.`,
+ `And it lets you *taste, and swallow, and speak* comfortably.`,
+ `So *you only notice saliva when it leaves.*`,
+ `Now watch what happens when it does.`]},
+
+{kind:'list', sec:'Saliva', at:'43:15', h:'Tablets that dry the mouth',
+ items:['Blood pressure. Fluid tablets','Antidepressants. Antihistamines','Bladder tablets. Parkinson’s','Strong painkillers'],
+ note:[
+ `Hundreds of very ordinary medicines dry the mouth. Look at this list.`,
+ `Blood pressure tablets. Fluid tablets. Antidepressants. Hay fever tablets. Bladder tablets. Parkinson's medicine. Strong painkillers.`,
+ `Some of you take one of these. Some of you take five.`,
+ `J: And I say this with love. Some of you carry a list in your handbag that is longer than the menu at kiddush.`,
+ `Now. Nobody stops anything this morning.`,
+ `J: Please do not go home and tell your doctor that a dentist from Israel said so.`,
+ `What I am asking is much smaller. Take the list to your dentist. The actual list. Not a summary from memory.`,
+ `Because a dry mouth changes what your dentist should be doing for you. And most dentists are never shown it.`,
+ `And one extra thing. If you use a puffer for your chest, rinse your mouth out afterwards.`,
+ `Otherwise you can get a fungal infection in there. Easily avoided. And almost never mentioned.`]},
+
+{kind:'list', sec:'Saliva', at:'45:00', h:'What actually helps',
+ items:['Sip water. By the bed. Not juice, not cordial','Sugar free gum. Chewing is a pump','Saliva gel at night, from the pharmacy','No alcohol mouthwash. If it burns, it is not helping','Ask about 5000 fluoride toothpaste','Spit, do not rinse'],
+ note:[
+ `First, what a dry mouth actually does. So you take it seriously.`,
+ `It causes decay. Quickly. Right at the gum line, where the root is soft.`,
+ `Sore cracks at the corners of the mouth. Infections underneath dentures. Food tasting wrong. And waking up at night.`,
+ `So. What helps.`,
+ `*Sip water*, and keep a glass beside the bed. Water. Not juice, not cordial.`,
+ `A dry mouth sipping sweet drinks all day is the fastest way to lose teeth that I know.`,
+ `*Sugar free chewing gum.* Chewing is a pump. It makes saliva on demand.`,
+ `*Saliva gel or spray* from the pharmacy. Especially last thing at night.`,
+ `*Avoid mouthwash with alcohol in it*, and the very strong minty ones. Simple rule. If it burns, it is not helping.`,
+ `*Ask your dentist about extra strength fluoride toothpaste.* It is five thousand parts per million. Roughly three times normal strength. It needs a prescription.`,
+ `For a dry mouth, it is the most useful thing that exists.`,
+ `And one that is completely free. After you brush, *spit, but do not rinse* with water.`,
+ `Leave the toothpaste on the teeth and let it work. Most people wash the medicine straight down the sink.`]},
+
+{kind:'list', sec:'Our food', at:'47:00', h:'Now, our food',
+ items:['Matzah has broken more teeth than any food in Jewish history','Sticky beats sweet. Honey cake, teiglach, dried fruit','The mints in shul. One is nothing. Twelve is a different story','Kiddush wine is acid. Water after, and do not brush for half an hour'],
+ note:[
+ `J: And now our food. Because I am not going to stand here and pretend that we all eat carrot sticks.`,
+ `J: *Matzah has broken more teeth than any other food in Jewish history.* This is a serious clinical statement.`,
+ `It also cracks dentures.`,
+ `So break it into small pieces. Do not bite a whole sheet with a front tooth. And if you have a crown at the front, treat Pesach as a soup week.`,
+ `*Honey cake, teiglach, dried fruit.* The problem is not that they are sweet.`,
+ `The problem is that they are *sticky*, so they sit on the tooth for an hour afterwards. Sticky beats sweet. Every time.`,
+ `*The mints in shul.* One mint is nothing. A mint every twenty minutes for three hours is a completely different thing.`,
+ `Change to sugar free. Then they help your dry mouth instead of feeding the decay.`,
+ `*Kiddush wine is acid.* And acid on a dry mouth is not a fair fight. Have some water afterwards. And remember, do not brush for half an hour.`,
+ `And a fast day is a whole day with no water, on a mouth that is often already dry.`,
+ `The religious question is entirely for your rabbi. Not for me.`,
+ `My part is small. Brush well the night before. Use a saliva gel before it starts.`,
+ `And if you take several drying tablets and you find fasting difficult, that is a conversation for your doctor and your rabbi together.`]},
+
+{kind:'list', sec:'Wear', at:'49:00', h:'Three things wear teeth down',
+ items:['Grinding flattens them','Acid dissolves them. Reflux is very common','A hard brush digs a groove at the gum line','A cracked tooth hurts only on one bite, at one angle'],
+ note:[
+ `Almost finished. Three different things wear teeth down. They get mixed up, and they have different answers.`,
+ `*Grinding* flattens them. That is pressure.`,
+ `*Acid dissolves them.* That is chemistry. And reflux, heartburn coming up at night, is very common and very quiet.`,
+ `*A hard brush with a strong arm* digs a groove at the gum line. That is friction.`,
+ `J: Some people grind their teeth in their sleep. Some people grind their teeth at the Shabbat table. Only one of those I can help with.`,
+ `And *a cracked tooth* has one very particular sign.`,
+ `It hurts only when you bite one particular thing, at one particular angle. No ache. No swelling. Just that.`,
+ `If that is you, mention it. A crack caught early is a far smaller job.`,
+ `A *night guard*, a plastic cover worn while you sleep, protects what is left. It is a seatbelt, not a cure. And not everybody needs one.`,
+ `And for those with dentures, three sentences. They come out at night. Every night.`,
+ `If it is loose, glue is a patch and a reline is the real answer, because the gum underneath slowly changes shape.`,
+ `And even with no natural teeth at all, you still come once a year. The denture does not get holes, but the mouth underneath still gets sick.`]},
+
+{kind:'takes', sec:'Close', at:'51:00', h:'Five things to take home',
+ items:['Bleeding gums are never normal','Buy an interdental brush. Once a day','A dry mouth damages teeth. Bring your tablet list','Ask what your numbers are','The check up when nothing hurts is the cheapest one you will ever have'],
+ note:[
+ `Five things. And they are printed on the card on your chair, so there is nothing to remember.`,
+ `[read them one at a time. slowly. let each one land]`,
+ `#1 *Bleeding gums are never normal.*`,
+ `#2 *Buy an interdental brush, and use it once a day.*`,
+ `#3 *A dry mouth damages teeth. Bring your tablet list to your dentist.*`,
+ `#4 *Ask what your numbers are.*`,
+ `#5 *And the check up when nothing hurts is the cheapest one you will ever have.*`,
+ `#5 That last one is really the whole morning.`,
+ `#5 Everything I have described today is completely silent at the beginning.`,
+ `#5 J: We are a people who remember everything for three thousand years, and still cannot remember to book a check up.`,
+ `#5 So once a year, let something in your mouth have a chance to complain.`,
+ `#5 Thank you very much for having me.`]},
+
+{kind:'statement', sec:'Close', at:'52:30',
+ text:'Questions.',
+ note:[
+ `Now, questions. And I would love as many as you have.`,
+ `[everything below is for the tea afterwards. do not read it out]`,
+ `Someone with a photo on their phone: I would love to look properly, but a guess across a teacup helps nobody. What I can tell you is exactly what to ask your dentist when you go in.`,
+ `Someone wanting a second opinion refereed: I cannot judge that from here. But go back and ask two questions. What happens if I do nothing for a year? And what is the plan if this does not work?`,
+ `Someone asking about grandchildren: do not let a small child fall asleep with a bottle. And the first visit is around the first birthday. It is quick and cheap, and it sets the tone for the next eighty years.`]}
+];
+
+/* ============================================================ */
+window.__ART = ART;
+
+/* ---- note parsing -------------------------------------------------- */
+function parseNote(p){
+  let stepOf=0, joke=false, t=p;
+  const m=t.match(/^#(\d+)\s+/);
+  if(m){ stepOf=Number(m[1]); t=t.slice(m[0].length); }
+  if(t.startsWith('J: ')){ joke=true; t=t.slice(3); }
+  return {stepOf, joke, t};
+}
+/* one sentence per line: read a line, look up, say it */
+function splitLines(t){
+  const parts=t.split(/(?<=[.?!])\s+/), out=[]; let buf='';
+  for(const p of parts){
+    buf = buf ? buf+' '+p : p;
+    const stars=(buf.match(/\*/g)||[]).length;
+    const open=(buf.match(/\[/g)||[]).length, close=(buf.match(/\]/g)||[]).length;
+    if(stars%2===0 && open===close){ out.push(buf); buf=''; }
+  }
+  if(buf) out.push(buf);
+  return out;
+}
+function markup(s){
+  return s.replace(/\[(.*?)\]/g,'<span class="cue">[$1]</span>')
+          .replace(/\*(.+?)\*/g,'<span class="onscreen">$1</span>');
+}
+function fmtNote(p){
+  const n=parseNote(p);
+  return '<p class="beat'+(n.joke?' joke':'')+'" data-step="'+n.stepOf+'">'+
+         splitLines(n.t).map(l=>'<span class="ln">'+markup(l)+'</span>').join('')+'</p>';
+}
+function plainNote(p){ return parseNote(p).t.replace(/\*/g,'').replace(/\[.*?\]/g,'').replace(/\s+/g,' ').trim(); }
+
+/* one-line plain summary of what is coming next, for the prompter */
+function nextSummary(nx){
+  if(!nx) return 'END OF TALK  ·  questions and the tea';
+  const head=String(nx.h||nx.title||nx.text||nx.q||'').replace(/<[^>]+>/g,' ').replace(/\*/g,'').replace(/\s+/g,' ').trim();
+  const line=nx.note.map(plainNote).find(x=>x) || '';
+  const gist=line.split(' ').slice(0,15).join(' ');
+  const tag = nx.kind==='vote' ? 'VOTE  ·  ' : nx.kind==='divider' ? 'NEW SECTION  ·  '
+            : nx.kind==='myths' ? 'PADDLES  ·  ' : '';
+  return 'NEXT  ·  '+(nx.cut?'[OPTIONAL] ':'')+tag+head+(gist?'  ·  '+gist+'…':'');
+}
+
+const stage=document.getElementById('stage');
+const notesBody=document.getElementById('notesbody');
+const notesEl=document.getElementById('notes');
+let i=0, step=0, maxStep=0, back=false, notesOpen=false;
+let pres=null, presSize=30, startedAt=null, presSlide=-1;
+
+function build(s){
+  let body='', steps=0, d=0;
+  const A=extra=>'class="anim'+(extra?' '+extra:'')+'" style="animation-delay:'+((d++)*90)+'ms"';
+
+  if(s.kind==='title')
+    body='<div class="wrap"><div '+A('rule')+'></div><h1 '+A()+'>'+s.h+'<span class="sub">'+s.sub+'</span></h1></div>';
+  else if(s.kind==='divider')
+    body='<div class="ghost">'+s.ghost+'</div><div class="wrap"><div class="dividernum" '+A()+'>'+s.num+'</div><div class="dividertitle" '+A()+'>'+s.title+'</div></div>';
+  else if(s.kind==='statement')
+    body='<div class="wrap"><div '+A('rule')+'></div><div class="statement" '+A()+'>'+s.text+'</div>'+(s.kicker?'<div class="kicker" '+A()+'>'+s.kicker+'</div>':'')+'</div>';
+  else if(s.kind==='art'){
+    const visual = s.photo
+      ? '<img class="art" src="'+s.photo+'" alt="" onerror="this.outerHTML=window.__ART[\''+s.art+'\']">'
+      : ART[s.art];
+    body='<div class="wrap split"><div><div '+A('rule')+'></div><div class="statement sm" '+A()+'>'+s.h+'</div>'+
+         (s.kick?'<div class="kicker sm" '+A()+'>'+s.kick+'</div>':'')+'</div><div '+A()+'>'+visual+'</div></div>';
+  }
+  else if(s.kind==='list')
+    body='<div class="wrap"><div '+A('rule')+'></div><h2 '+A()+'>'+s.h+'</h2><ul>'+s.items.map(t=>'<li '+A()+'>'+t+'</li>').join('')+'</ul></div>';
+  else if(s.kind==='cols')
+    body='<div class="wrap"><div '+A('rule')+'></div><h2 '+A()+'>'+s.h+'</h2><div class="cols">'+
+      '<div class="col good" '+A()+'><div class="name">'+s.colA.name+'</div><div class="def">'+s.colA.def+'</div><div class="tail">'+s.colA.tail+'</div></div>'+
+      '<div class="col bad" '+A()+'><div class="name">'+s.colB.name+'</div><div class="def">'+s.colB.def+'</div><div class="tail">'+s.colB.tail+'</div></div></div></div>';
+  else if(s.kind==='vote'){
+    steps=1;
+    body='<div class="wrap"><div class="votetag" '+A()+'>'+s.tag+'</div><div class="voteq" '+A()+'>'+s.q+'</div>'+
+      '<div class="verdict '+s.verdict+' step" data-step="1"><div class="word">'+s.word+'</div><div class="why">'+s.why+'</div></div></div>';
+  }
+  else if(s.kind==='myths'){
+    steps=s.items.length*2;
+    const word=v=>v==='no'?'False':v==='yes'?'True':'Both';
+    body='<div class="wrap"><div '+A('rule')+'></div><h2 '+A()+'>'+s.h+'</h2><div class="myths'+(s.items.length>4?' tight':'')+'">'+
+      s.items.map((m,n)=>'<div class="myth"><div class="t step" data-step="'+(n*2+1)+'">'+m.t+'</div>'+
+        '<div class="vcell">'+
+          '<div class="chip ask step" data-step="'+(n*2+1)+'" data-until="'+(n*2+2)+'">Paddles up</div>'+
+          '<div class="chip '+m.v+' step" data-step="'+(n*2+2)+'">'+word(m.v)+'</div>'+
+        '</div></div>').join('')+'</div></div>';
+  }
+  else if(s.kind==='takes'){
+    steps=s.items.length;
+    body='<div class="wrap"><div '+A('rule')+'></div><h2 '+A()+'>'+s.h+'</h2><div class="takes">'+
+      s.items.map((t,n)=>'<div class="take step" data-step="'+(n+1)+'"><div class="n">'+String(n+1).padStart(2,'0')+'</div><div class="t">'+t+'</div></div>').join('')+'</div></div>';
+  }
+
+  stage.className = s.kind==='divider' ? 'divider' : '';
+  stage.innerHTML='<div id="slideroot"'+(back?' class="back"':'')+'>'+
+    (s.sec?'<div class="eyebrow">'+s.sec+'</div>':'')+body+
+    '<div class="pagenum">'+String(SLIDES.indexOf(s)+1).padStart(2,'0')+' / '+SLIDES.length+'</div>'+
+    '<div class="rail" style="width:'+(((SLIDES.indexOf(s)+1)/SLIDES.length)*100)+'%"></div></div>';
+  fitWrap();
+  return steps;
+}
+
+/* nothing is ever allowed to spill past the frame, however much he adds later.
+   tighten the spacing first, and only shrink the type if that is not enough. */
+function fitWrap(){
+  const w=stage.querySelector('.wrap'); if(!w) return;
+  w.classList.remove('dense'); w.style.transform='';
+  if(w.scrollHeight-w.clientHeight>2) w.classList.add('dense');
+  if(w.scrollHeight-w.clientHeight>2){
+    w.style.transformOrigin='center center';
+    w.style.transform='scale('+Math.max(.78, w.clientHeight/w.scrollHeight)+')';
+  }
+}
+
+/* dim the lines you have not reached yet, and scroll to the one you are on */
+function paintBeats(root, scroller){
+  let now=null;
+  root.querySelectorAll('.beat').forEach(el=>{
+    const st=Number(el.dataset.step||0);
+    el.classList.toggle('future', st>step);
+    if(st>0 && st===step && !now) now=el;
+  });
+  if(now && scroller) scroller.scrollTo({top:Math.max(0, now.offsetTop - scroller.clientHeight*0.3), behavior:'smooth'});
+}
+
+function show(){
+  const s=SLIDES[i];
+  maxStep=build(s);
+  if(step>maxStep) step=maxStep;
+  notesBody.innerHTML=s.note.map(fmtNote).join('');
+  applySteps();
+}
+function applySteps(){
+  stage.querySelectorAll('.step').forEach(el=>{
+    const st=Number(el.dataset.step), until=el.dataset.until?Number(el.dataset.until):Infinity;
+    el.classList.toggle('on', st<=step && step<until);
+  });
+  paintBeats(notesBody, notesEl);
+  updatePresenter();
+}
+function next(){ if(step<maxStep){step++;applySteps();return;} if(i<SLIDES.length-1){i++;step=0;back=false;show();} }
+function prev(){ if(step>0){step--;applySteps();return;} if(i>0){i--;step=99;back=true;show();} }
+function jumpPrev(){ if(i>0){i--;step=0;back=true;show();} }
+function jumpNext(){ if(i<SLIDES.length-1){i++;step=0;back=false;show();} }
+
+/* ---------- prompter ---------- */
+const PRES_CSS='*{box-sizing:border-box;margin:0;padding:0}'+
+'body{background:#0b0e11;color:#eef1f4;font-family:Archivo,-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;height:100vh;display:flex;flex-direction:column}'+
+'#bar{display:flex;gap:22px;align-items:baseline;padding:14px 28px;background:#141920;border-bottom:2px solid #0f7a4d;'+
+ 'font-family:ui-monospace,Menlo,Consolas,monospace;font-size:14px;color:#8b949e;flex:0 0 auto}'+
+'#ptime{font-size:28px;color:#fff;font-weight:600;letter-spacing:-.02em}'+
+'#ppace{font-size:18px;font-weight:600}'+
+'#ptarget{color:#63c99a} #psec{margin-left:auto;letter-spacing:.18em;text-transform:uppercase;color:#63c99a}'+
+'#pcut{color:#111;background:#e3b341;padding:3px 8px;border-radius:3px;font-weight:700;letter-spacing:.1em}'+
+'#pnotes{flex:1 1 auto;overflow:auto;padding:30px 38px 46vh;scroll-behavior:smooth}'+
+'#pnotes .beat{line-height:1.42;margin-bottom:26px;max-width:56ch;padding-left:16px;border-left:3px solid transparent}'+
+'#pnotes .ln{display:block;margin-bottom:2px}'+
+'#pnotes .joke{color:#ff8a7a}'+
+'#pnotes .cue{color:#7fd0a6;font-style:italic}'+
+'#pnotes .onscreen{color:#fff;font-weight:600;border-bottom:2px solid #4fbf8b;padding-bottom:1px}'+
+'#pnotes .beat.future{opacity:.2}'+
+'#pnext{flex:0 0 auto;padding:15px 38px;background:#141920;border-top:1px solid #232a32;font-size:15px;color:#79838e;font-family:ui-monospace,Menlo,Consolas,monospace}'+
+'#pfoot{flex:0 0 auto;padding:9px 38px 14px;font-size:11px;color:#4a525a;font-family:ui-monospace,Menlo,Consolas,monospace;letter-spacing:.06em}';
+
+function openPresenter(){
+  if(pres && !pres.closed){ pres.focus(); return; }
+  pres=window.open('','prompter','width=980,height=880');
+  if(!pres){ alert('The browser blocked the second window. Allow pop-ups for this page, then press P again.'); return; }
+  pres.document.write('<!DOCTYPE html><html><head><title>Prompter</title><style>'+PRES_CSS+'</style></head><body>'+
+   '<div id="bar"><span id="ptime">--:--</span><span id="ppace"></span><span id="ptarget"></span>'+
+   '<span id="pnum"></span><span id="pcut" style="display:none">OPTIONAL</span><span id="psec"></span></div>'+
+   '<div id="pnotes"></div><div id="pnext"></div>'+
+   '<div id="pfoot"><span style="color:#ff8a7a">red = joke</span> &nbsp;·&nbsp; <span style="color:#fff;border-bottom:2px solid #4fbf8b">underlined = on the screen now</span>'+
+   ' &nbsp;·&nbsp; <span style="color:#7fd0a6">green = stage direction</span> &nbsp;·&nbsp; dim = not revealed yet'+
+   ' &nbsp;·&nbsp; A bigger &nbsp; Z smaller &nbsp; T clock</div></body></html>');
+  pres.document.close();
+  pres.document.addEventListener('keydown', presKey);
+  presSlide=-1;
+  updatePresenter();
+}
+function presKey(e){
+  const k=e.key.toLowerCase();
+  if(e.key==='ArrowRight'||e.key===' '||e.key==='PageDown'){e.preventDefault();next();}
+  else if(e.key==='ArrowLeft'||e.key==='PageUp'){e.preventDefault();prev();}
+  else if(e.key==='ArrowUp'){e.preventDefault();jumpPrev();}
+  else if(e.key==='ArrowDown'){e.preventDefault();jumpNext();}
+  else if(k==='t'){ startedAt = startedAt?null:Date.now(); }
+  else if(k==='a'){ presSize=Math.min(54,presSize+2); updatePresenter(); }
+  else if(k==='z'){ presSize=Math.max(16,presSize-2); updatePresenter(); }
+}
+function targetSeconds(at){ const p=String(at||'0:00').split(':'); return Number(p[0])*60+Number(p[1]||0); }
+function paintPace(){
+  if(!pres||pres.closed) return;
+  const el=pres.document.getElementById('ppace'); if(!el) return;
+  if(!startedAt){ el.textContent=''; return; }
+  const d=Math.floor((Date.now()-startedAt)/1000) - targetSeconds(SLIDES[i].at);
+  const a=Math.abs(d), mm=String(Math.floor(a/60)).padStart(2,'0')+':'+String(a%60).padStart(2,'0');
+  el.textContent=(d>=0?'+':'-')+mm+(d>=0?' behind':' ahead');
+  el.style.color = d<=30 ? '#63c99a' : d<=90 ? '#e3b341' : '#ff8a7a';
+}
+function updatePresenter(){
+  if(!pres||pres.closed) return;
+  const d=pres.document, s=SLIDES[i], nx=SLIDES[i+1], q=id=>d.getElementById(id);
+  if(!q('pnotes')) return;
+  q('pnotes').style.fontSize=presSize+'px';
+  if(presSlide!==i){ q('pnotes').innerHTML=s.note.map(fmtNote).join(''); q('pnotes').scrollTop=0; presSlide=i; }
+  paintBeats(q('pnotes'), q('pnotes'));
+  q('ptarget').textContent='target '+s.at;
+  q('pnum').textContent=(i+1)+' / '+SLIDES.length+(maxStep?'   step '+step+' of '+maxStep:'');
+  q('pcut').style.display = s.cut ? '' : 'none';
+  q('psec').textContent=s.sec||'';
+  q('pnext').textContent=nextSummary(nx);
+  paintPace();
+}
+setInterval(()=>{
+  if(!pres||pres.closed) return;
+  const pt=pres.document.getElementById('ptime'); if(!pt) return;
+  if(!startedAt){ pt.textContent='--:--'; paintPace(); return; }
+  const t=Math.floor((Date.now()-startedAt)/1000);
+  pt.textContent=String(Math.floor(t/60)).padStart(2,'0')+':'+String(t%60).padStart(2,'0');
+  paintPace();
+},500);
+window.addEventListener('beforeunload',()=>{ if(pres&&!pres.closed) pres.close(); });
+
+document.addEventListener('keydown',e=>{
+  const k=e.key.toLowerCase();
+  if(k==='p'){ openPresenter(); return; }
+  if(e.key==='ArrowRight'||e.key===' '||e.key==='PageDown'){e.preventDefault();next();}
+  else if(e.key==='ArrowLeft'||e.key==='PageUp'){e.preventDefault();prev();}
+  else if(e.key==='ArrowUp'){e.preventDefault();jumpPrev();}
+  else if(e.key==='ArrowDown'){e.preventDefault();jumpNext();}
+  else if(k==='n'){ notesOpen=!notesOpen; notesEl.classList.toggle('on',notesOpen); }
+  else if(k==='f'){ document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen(); }
+  else if(k==='t'){ startedAt=startedAt?null:Date.now(); }
+  else if(k==='h'){ const h=document.getElementById('help'); h.style.display=h.style.display==='none'?'block':'none'; }
+  else if(e.key==='Home'){ i=0;step=0;back=false;show(); }
+});
+document.getElementById('viewport').addEventListener('click',next);
+function fit(){ stage.style.transform='scale('+(Math.min(innerWidth/1280,innerHeight/720)*0.95)+')'; }
+addEventListener('resize',fit); fit(); show();
+</script>
+</body>
+</html>

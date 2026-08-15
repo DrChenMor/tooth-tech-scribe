@@ -8,13 +8,17 @@
 |---|---|
 | Right arrow, space, click | next reveal, or next slide |
 | Left arrow | back one reveal |
-| Up / Down arrow | jump a whole slide, skipping reveals |
+| **Up / Down arrow** | **in the prompter: scroll this script only. The projector does not move** |
+| Up / Down arrow | on the slide window: jump a whole slide |
+| **S** | skip a whole slide forward, from either window |
 | **P** | open the prompter window |
 | F | full screen |
 | T | start or stop the clock |
 | N | script overlay, for rehearsing on one screen |
 | H | hide the little help text |
 | Home | back to slide one |
+
+Presentation clickers usually send Page Down and Page Up. Those are wired to forward and back, so a clicker works without setting anything up.
 
 The two screens must be set to **Extend**, not Mirror, or the prompter is useless. Rehearse once with a second screen before the day.
 
@@ -26,7 +30,7 @@ Things it now does that are worth knowing:
 
 - **One sentence per line.** Read a line, look up, say it. That is the trick that stops it sounding read.
 - **Lines you have not revealed yet are dimmed.** During a paddle round you can only clearly read the statement you are actually on, so you cannot accidentally read the answer out early.
-- **It scrolls itself** to the line matching the reveal you just pressed.
+- **It scrolls itself** to the line matching the reveal you just pressed. You can also scroll by hand with the up and down arrows, or the mouse wheel, and nothing on the projector moves while you do.
 - **Pace.** Once you press T, the bar shows `+02:31 behind` in amber or red, or `-00:40 ahead` in green. That is you against the target time for the slide you are standing on.
 - **OPTIONAL** appears in the bar on slides that are safe to skip, and the NEXT line at the bottom warns you when the next slide is one of them.
 

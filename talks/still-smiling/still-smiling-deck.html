@@ -136,7 +136,7 @@ li::before{content:"";position:absolute;left:0;top:30px;width:18px;height:4px;ba
 <body>
 <div id="viewport"><div id="stage"></div></div>
 <div id="notes"><h3>Script (rehearsal view)</h3><div id="notesbody"></div></div>
-<div id="help">&rarr; / space next &nbsp; &larr; back &nbsp; &uarr; skip slide<br><b style="color:#8fd6ae">P prompter window</b> &nbsp; F full screen<br>N script &nbsp; T clock &nbsp; H hide this</div>
+<div id="help">&rarr; / space next &nbsp; &larr; back &nbsp; S skip a slide<br><b style="color:#8fd6ae">P prompter window</b> &nbsp; F full screen<br>N script &nbsp; T clock &nbsp; H hide this</div>
 
 <script>
 /* ============================================================
@@ -1159,18 +1159,26 @@ function openPresenter(){
    '<div id="pnotes"></div><div id="pnext"></div>'+
    '<div id="pfoot"><span style="color:#ff8a7a">red = joke</span> &nbsp;·&nbsp; <span style="color:#fff;border-bottom:2px solid #4fbf8b">underlined = on the screen now</span>'+
    ' &nbsp;·&nbsp; <span style="color:#7fd0a6">green = stage direction</span> &nbsp;·&nbsp; dim = not revealed yet'+
-   ' &nbsp;·&nbsp; A bigger &nbsp; Z smaller &nbsp; T clock</div></body></html>');
+   '<br><b style="color:#8fd6ae">&uarr; &darr; scroll this script only</b> &nbsp;·&nbsp; &larr; &rarr; move the slide'+
+   ' &nbsp;·&nbsp; S skip a whole slide &nbsp;·&nbsp; A bigger &nbsp; Z smaller &nbsp; T clock</div></body></html>');
   pres.document.close();
   pres.document.addEventListener('keydown', presKey);
   presSlide=-1;
   updatePresenter();
 }
+/* Scroll the script in the prompter without touching what the room can see. */
+function presScroll(dir){
+  if(!pres||pres.closed) return;
+  const n=pres.document.getElementById('pnotes'); if(!n) return;
+  n.scrollBy({top:dir*Math.round(n.clientHeight*0.45), behavior:'smooth'});
+}
 function presKey(e){
   const k=e.key.toLowerCase();
   if(e.key==='ArrowRight'||e.key===' '||e.key==='PageDown'){e.preventDefault();next();}
   else if(e.key==='ArrowLeft'||e.key==='PageUp'){e.preventDefault();prev();}
-  else if(e.key==='ArrowUp'){e.preventDefault();jumpPrev();}
-  else if(e.key==='ArrowDown'){e.preventDefault();jumpNext();}
+  else if(e.key==='ArrowDown'){e.preventDefault();presScroll(1);}
+  else if(e.key==='ArrowUp'){e.preventDefault();presScroll(-1);}
+  else if(k==='s'){ jumpNext(); }
   else if(k==='t'){ startedAt = startedAt?null:Date.now(); }
   else if(k==='a'){ presSize=Math.min(54,presSize+2); updatePresenter(); }
   else if(k==='z'){ presSize=Math.max(16,presSize-2); updatePresenter(); }
@@ -1216,6 +1224,7 @@ document.addEventListener('keydown',e=>{
   else if(e.key==='ArrowLeft'||e.key==='PageUp'){e.preventDefault();prev();}
   else if(e.key==='ArrowUp'){e.preventDefault();jumpPrev();}
   else if(e.key==='ArrowDown'){e.preventDefault();jumpNext();}
+  else if(k==='s'){ jumpNext(); }
   else if(k==='n'){ notesOpen=!notesOpen; notesEl.classList.toggle('on',notesOpen); }
   else if(k==='f'){ document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen(); }
   else if(k==='t'){ startedAt=startedAt?null:Date.now(); }
